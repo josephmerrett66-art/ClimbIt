@@ -12,6 +12,7 @@ export type Objective = Point & {
   id: string;
   type: 'carry' | 'repair';
   name: string;
+  kind?: 'cross' | 'bulb';
 };
 export type Level = {
   version: 1;
@@ -218,6 +219,7 @@ export const churchLevel: Level = {
     {
       id: 'church-cross',
       type: 'repair',
+      kind: 'cross',
       name: 'Crooked cross',
       x: 612,
       y: 122,
@@ -230,6 +232,130 @@ export const churchLevel: Level = {
   cameraBounds: { x: 0, y: 0, width: 1200, height: 1000 },
   completionTrigger: { x: 520, y: 850, width: 180, height: 110 },
   pay: 55,
+};
+
+const towerGrips: Grip[] = [];
+const towerRoute = (points: number[][]) =>
+  points.forEach(([x, y], i) => {
+    if (i) {
+      const [ax, ay] = points[i - 1],
+        steps = Math.ceil(Math.hypot(x - ax, y - ay) / 27);
+      for (let j = 1; j < steps; j++)
+        towerGrips.push({
+          id: `tower-grip-${towerGrips.length}`,
+          x: ax + ((x - ax) * j) / steps,
+          y: ay + ((y - ay) * j) / steps,
+        });
+    }
+    towerGrips.push({
+      id: `tower-grip-${towerGrips.length}`,
+      x,
+      y,
+    });
+  });
+
+// The central route follows ladders and alternating diagonal lattice braces.
+towerRoute([
+  [556, 925],
+  [638, 920],
+  [536, 866],
+  [660, 838],
+  [525, 784],
+  [668, 754],
+  [516, 704],
+  [678, 672],
+  [520, 622],
+  [670, 590],
+  [528, 538],
+  [660, 506],
+  [536, 458],
+  [650, 426],
+  [542, 376],
+  [642, 344],
+  [548, 296],
+  [634, 264],
+  [556, 216],
+  [626, 184],
+  [570, 142],
+  [610, 96],
+  [602, 62],
+]);
+// Maintenance platforms provide wider, swing-friendly detours.
+towerRoute([
+  [522, 690],
+  [472, 676],
+  [432, 646],
+  [474, 616],
+  [526, 604],
+]);
+towerRoute([
+  [674, 690],
+  [724, 676],
+  [770, 650],
+  [726, 618],
+  [670, 606],
+]);
+towerRoute([
+  [536, 432],
+  [492, 410],
+  [462, 376],
+  [502, 350],
+  [546, 334],
+]);
+towerRoute([
+  [652, 428],
+  [698, 410],
+  [742, 380],
+  [700, 350],
+  [644, 332],
+]);
+towerRoute([
+  [552, 206],
+  [514, 180],
+  [496, 145],
+  [544, 126],
+  [576, 106],
+]);
+towerRoute([
+  [626, 204],
+  [672, 184],
+  [704, 150],
+  [660, 126],
+  [624, 106],
+]);
+
+export const towerLevel: Level = {
+  version: 1,
+  id: 'telephone-tower-bulb',
+  name: 'Replace the tower light bulb',
+  backgroundImage: '/assets/telephone-tower.png',
+  worldWidth: 1200,
+  worldHeight: 1000,
+  playerSpawn: { x: 590, y: 872 },
+  gripPoints: towerGrips,
+  colliders: [
+    { id: 'tower-ground', type: 'edge', x: 0, y: 960, x2: 1200, y2: 960 },
+    { id: 'platform-low', type: 'edge', x: 430, y: 682, x2: 772, y2: 682 },
+    { id: 'platform-mid', type: 'edge', x: 460, y: 424, x2: 744, y2: 424 },
+    { id: 'platform-high', type: 'edge', x: 496, y: 132, x2: 706, y2: 132 },
+  ],
+  objectives: [
+    {
+      id: 'tower-bulb',
+      type: 'repair',
+      kind: 'bulb',
+      name: 'Dead tower light',
+      x: 602,
+      y: 62,
+    },
+  ],
+  interactiveObjects: [
+    { id: 'tower-lamp', type: 'replace-bulb', x: 602, y: 62 },
+  ],
+  ropeAnchors: [{ x: 602, y: 42 }],
+  cameraBounds: { x: 0, y: 0, width: 1200, height: 1000 },
+  completionTrigger: { x: 520, y: 850, width: 180, height: 110 },
+  pay: 85,
 };
 export function parseLevel(raw: string): Level {
   const l = JSON.parse(raw);

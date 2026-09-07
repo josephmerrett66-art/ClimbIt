@@ -155,7 +155,10 @@ export class Climber {
         this.collected = true;
         if (this.level.objectives[0].type === 'repair') {
           this.complete = true;
-          this.message = 'Cross straightened. That should hold.';
+          this.message =
+            this.level.objectives[0].kind === 'bulb'
+              ? 'New bulb fitted. Tower light restored.'
+              : 'Cross straightened. That should hold.';
         } else {
           this.carrying = limb;
           this.p[limb].mass += this.cat.mass;

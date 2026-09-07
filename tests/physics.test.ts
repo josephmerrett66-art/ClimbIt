@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import { Climber, LIMBS, distance } from '../lib/game/physics';
-import { catLevel, churchLevel, parseLevel } from '../lib/game/level';
+import {
+  catLevel,
+  churchLevel,
+  parseLevel,
+  towerLevel,
+} from '../lib/game/level';
 const g = new Climber(structuredClone(catLevel));
 for (let i = 0; i < 300; i++) g.step();
 assert.ok(
@@ -323,3 +328,36 @@ for (let cycle = 0; cycle < 48 && !church.complete; cycle++) {
 assert.ok(church.complete, 'Church route reaches and straightens the cross');
 assert.equal(church.carrying, null, 'Repair objective leaves both hands free');
 console.log('PASS church climb and cross-straightening objective');
+
+const tower = new Climber(structuredClone(towerLevel));
+for (let i = 0; i < 240; i++) tower.step();
+for (let cycle = 0; cycle < 52 && !tower.complete; cycle++) {
+  for (const limb of LIMBS) {
+    if (
+      limb.endsWith('Hand') &&
+      distance(tower.root(limb), tower.cat) < tower.reach(limb) + 8
+    ) {
+      tower.begin(limb, tower.cat);
+      for (let i = 0; i < 55; i++) tower.step();
+      tower.end();
+      if (tower.complete) break;
+    }
+    const root = tower.root(limb),
+      endpoint = tower.p[limb],
+      next = tower.level.gripPoints
+        .filter(
+          (grip) =>
+            distance(grip, root) < tower.reach(limb) - 3 &&
+            grip.y < endpoint.y - 10,
+        )
+        .sort((a, b) => a.y - b.y)[0];
+    if (!next) continue;
+    tower.begin(limb, next);
+    for (let i = 0; i < 55; i++) tower.step();
+    tower.end();
+    for (let i = 0; i < 30; i++) tower.step();
+  }
+}
+assert.ok(tower.complete, 'Tower route reaches and replaces the summit bulb');
+assert.equal(tower.carrying, null, 'Bulb replacement leaves both hands free');
+console.log('PASS tower climb and summit light replacement');

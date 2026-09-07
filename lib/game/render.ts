@@ -237,39 +237,77 @@ export function draw(
 
     const objective = l.objectives[0];
     if (objective.type === 'repair') {
-      ctx.save();
-      ctx.translate(objective.x, objective.y);
-      ctx.rotate(g.complete ? 0 : 0.28);
-      polygon(
-        [
-          { x: -7, y: 2 },
-          { x: -8, y: -88 },
-          { x: 7, y: -91 },
-          { x: 7, y: 2 },
-        ],
-        '#777d78',
-        '#303934',
-      );
-      polygon(
-        [
-          { x: -43, y: -68 },
-          { x: 43, y: -70 },
-          { x: 42, y: -54 },
-          { x: -43, y: -52 },
-        ],
-        '#858b85',
-        '#303934',
-      );
-      ctx.fillStyle = '#c4c7b655';
-      ctx.beginPath();
-      ctx.moveTo(-5, -86);
-      ctx.lineTo(5, -89);
-      ctx.lineTo(5, -2);
-      ctx.lineTo(0, -11);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-      circle(objective, 7, g.complete ? '#dfe5aa' : '#6d746c', '#303934');
+      if (objective.kind === 'bulb') {
+        if (g.complete) {
+          const glow = ctx.createRadialGradient(
+            objective.x,
+            objective.y + 10,
+            3,
+            objective.x,
+            objective.y + 10,
+            54,
+          );
+          glow.addColorStop(0, '#fff5aaca');
+          glow.addColorStop(0.38, '#ffd45c66');
+          glow.addColorStop(1, '#ffd45c00');
+          ctx.fillStyle = glow;
+          ctx.beginPath();
+          ctx.arc(objective.x, objective.y + 10, 54, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        polygon(
+          [
+            { x: objective.x - 7, y: objective.y - 7 },
+            { x: objective.x + 7, y: objective.y - 7 },
+            { x: objective.x + 6, y: objective.y + 1 },
+            { x: objective.x - 6, y: objective.y + 1 },
+          ],
+          '#69706c',
+          '#28332f',
+        );
+        circle(
+          { x: objective.x, y: objective.y + 10 },
+          11,
+          g.complete ? '#ffe37c' : '#78919a',
+          '#303b36',
+        );
+        if (g.complete)
+          circle({ x: objective.x - 3, y: objective.y + 7 }, 3, '#fffbd0');
+      } else {
+        ctx.save();
+        ctx.translate(objective.x, objective.y);
+        ctx.rotate(g.complete ? 0 : 0.28);
+        polygon(
+          [
+            { x: -7, y: 2 },
+            { x: -8, y: -88 },
+            { x: 7, y: -91 },
+            { x: 7, y: 2 },
+          ],
+          '#777d78',
+          '#303934',
+        );
+        polygon(
+          [
+            { x: -43, y: -68 },
+            { x: 43, y: -70 },
+            { x: 42, y: -54 },
+            { x: -43, y: -52 },
+          ],
+          '#858b85',
+          '#303934',
+        );
+        ctx.fillStyle = '#c4c7b655';
+        ctx.beginPath();
+        ctx.moveTo(-5, -86);
+        ctx.lineTo(5, -89);
+        ctx.lineTo(5, -2);
+        ctx.lineTo(0, -11);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+        circle(objective, 7, g.complete ? '#dfe5aa' : '#6d746c', '#303934');
+      }
     }
 
     // Limbs sit behind a rigid torso and visibly originate at its shoulder and hip corners.
