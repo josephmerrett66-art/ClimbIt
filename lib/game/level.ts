@@ -113,7 +113,7 @@ export const catLevel: Level = {
   objectives: [
     { id: 'pickles', type: 'carry', name: 'Pickles', x: 856, y: 203 },
   ],
-  interactiveObjects: [{ id: 'owner', type: 'customer', x: 739, y: 950 }],
+  interactiveObjects: [],
   ropeAnchors: [{ x: 625, y: 140 }],
   cameraBounds: { x: 0, y: 0, width: 1200, height: 1000 },
   completionTrigger: { x: 550, y: 865, width: 255, height: 100 },

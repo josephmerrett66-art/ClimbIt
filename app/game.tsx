@@ -15,7 +15,9 @@ import {
   Hand,
   Footprints,
   Check,
-  Mountain,
+  Maximize,
+  Minimize,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { catLevel, parseLevel, type Level, type Point } from '@/lib/game/level';
@@ -54,7 +56,8 @@ export default function Game({
     images = useRef<{
       bg: HTMLImageElement | null;
       fg: HTMLImageElement | null;
-    }>({ bg: null, fg: null });
+      cat: HTMLImageElement | null;
+    }>({ bg: null, fg: null, cat: null });
   const [edit, setEdit] = useState(editing),
     [tool, setTool] = useState<Tool>('select'),
     [revision, setRevision] = useState(0),
@@ -67,7 +70,9 @@ export default function Game({
       rope: false,
     }),
     [paused, setPaused] = useState(false),
-    [zoom, setZoom] = useState(1.3),
+    [zoom, setZoom] = useState(1),
+    [fullscreen, setFullscreen] = useState(false),
+    [hintVisible, setHintVisible] = useState(true),
     [selected, setSelected] = useState<string | null>(null),
     [notice, setNotice] = useState(''),
     [chosen, setChosen] = useState<Limb | null>(null);
@@ -101,7 +106,7 @@ export default function Game({
     if (history.current.length > 40) history.current.shift();
   };
   const reset = () => {
-    game.current = new Climber(level.current);
+    game.current = new Climber(level.current, editing);
     paid.current = false;
     setHud({
       seconds: 0,
@@ -127,8 +132,22 @@ export default function Game({
       fg = new Image();
       fg.src = level.current.foregroundImage;
     }
-    images.current = { bg, fg };
+    const cat = new Image();
+    cat.src = "/assets/pickles.png";
+    images.current = { bg, fg, cat };
   };
+  useEffect(() => {
+    const timer = window.setTimeout(() => setHintVisible(false), 12000);
+    const changed = () => setFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', changed);
+    return () => { window.clearTimeout(timer); document.removeEventListener('fullscreenchange', changed); };
+  }, []);
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await canvas.current?.closest('.game-shell')?.requestFullscreen();
+    } catch { setNotice('Fullscreen is unavailable here. The game still fills this window.'); }
+  }
   useEffect(() => {
     setEdit(editing);
     reset();
@@ -171,7 +190,7 @@ export default function Game({
         }
       } else accum = 0;
       const bounds = l.cameraBounds;
-      const base = Math.min(w / bounds.width, h / bounds.height),
+      const base = (s.edit ? Math.min : Math.max)(w / bounds.width, h / bounds.height),
         scale = base * (s.edit ? 1 : s.zoom);
       const contentW = bounds.width * scale,
         contentH = bounds.height * scale;
@@ -195,15 +214,20 @@ export default function Game({
             : ty;
       }
       const v = view.current;
-      v.scale += (scale - v.scale) * 0.15;
+      v.scale = s.edit ? scale : Math.max(base, v.scale + (scale - v.scale) * 0.15);
       v.x += (tx - v.x) * 0.1;
       v.y += (ty - v.y) * 0.1;
+      if (!s.edit) {
+        v.x = Math.max(w - (bounds.x + bounds.width) * v.scale, Math.min(-bounds.x * v.scale, v.x));
+        v.y = Math.max(h - (bounds.y + bounds.height) * v.scale, Math.min(-bounds.y * v.scale, v.y));
+      }
       draw(
         ctx,
         g,
         l,
         images.current.bg,
         images.current.fg,
+        images.current.cat,
         v,
         w,
         h,
@@ -233,7 +257,7 @@ export default function Game({
       if (document.hidden) {
         game.current?.end(true);
         active.current = null;
-        setPaused(true);
+        if (settings.current.edit) setPaused(true);
       }
     };
     document.addEventListener('visibilitychange', visibility);
@@ -246,6 +270,7 @@ export default function Game({
     const key = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).matches('input,textarea,select')) return;
       if (e.key === 'Escape') {
+        
         game.current?.end(true);
         active.current = null;
         gesture.current = null;
@@ -259,7 +284,9 @@ export default function Game({
         e.preventDefault();
         undo();
       }
-      if (!edit && e.key === ' ') {
+      if (!edit && e.key.toLowerCase() === 'r') reset();
+      if (!edit && e.key.toLowerCase() === 'f') void toggleFullscreen();
+      if (edit && e.key === ' ') {
         e.preventDefault();
         setPaused((v) => !v);
       }
@@ -587,10 +614,10 @@ export default function Game({
     reset();
   };
   return (
-    <div className="game-shell">
-      <div className="game-topbar">
+    <div className={"game-shell " + (edit ? "workshop-stage" : "immersive-stage")}>
+      {edit && <div className="game-topbar">
         <button onClick={onBack}>
-          <ArrowLeft size={15} /> Job board
+          <ArrowLeft size={15} /> Back to climb
         </button>
         <div>
           <span className="eyebrow">
@@ -617,7 +644,7 @@ export default function Game({
             </button>
           )}
         </div>
-      </div>
+      </div>}
       <div className={'play-layout ' + (edit ? 'with-editor' : '')}>
         <div className="canvas-wrap">
           <canvas
@@ -635,87 +662,6 @@ export default function Game({
                 : 'Climbing game. Drag individual hands and feet to the tree. Use limb buttons for easier selection.'
             }
           />
-          {!edit && (
-            <>
-              <div className="objective-card">
-                <span className="eyebrow">
-                  {hud.carrying ? '02 / THE WAY DOWN' : '01 / THE WAY UP'}
-                </span>
-                <strong>
-                  {hud.carrying
-                    ? 'Get Pickles back to the owner'
-                    : 'Rescue Pickles'}
-                </strong>
-                <span>
-                  {hud.carrying
-                    ? 'One hand occupied. Three limbs to go.'
-                    : 'Find a route. Reach the upper-right branch.'}
-                </span>
-              </div>
-              <div className="game-stats">
-                <span>{time(hud.seconds)}</span>
-                <i />${level.current.pay}
-              </div>
-              <div className="zoom-tools">
-                <button
-                  onClick={() => setZoom((z) => Math.max(1, z - 0.2))}
-                  aria-label="Zoom out"
-                >
-                  <Minus size={16} />
-                </button>
-                <button
-                  onClick={() => setZoom((z) => Math.min(2.6, z + 0.2))}
-                  aria-label="Zoom in"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
-              <div className="belay">
-                <span className="live-dot" />
-                {hud.rope ? 'ROPE CAUGHT YOU' : 'SAFETY ROPE CONNECTED'}
-              </div>
-              {paused && !hud.complete && (
-                <div className="game-overlay">
-                  <div>
-                    <h2>Take a breather.</h2>
-                    <p>Pickles isn’t going anywhere.</p>
-                    <Button onClick={() => setPaused(false)}>
-                      Keep climbing <Play size={15} />
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {hud.complete && (
-                <div className="game-overlay">
-                  <div className="results">
-                    <span className="result-icon">
-                      <Check size={30} />
-                    </span>
-                    <p className="eyebrow">JOB COMPLETE</p>
-                    <h2>
-                      One cat.
-                      <br />
-                      Safely back.
-                    </h2>
-                    <p>Sarah is delighted. Pickles is unimpressed.</p>
-                    <div className="results-numbers">
-                      <span>
-                        {editing ? 'TEST PAY' : 'PAY'}
-                        <strong>${level.current.pay}</strong>
-                      </span>
-                      <span>
-                        TIME<strong>{time(hud.seconds)}</strong>
-                      </span>
-                    </div>
-                    <Button onClick={editing ? toggle : onBack}>
-                      {editing ? 'Return to editor' : 'Return to job board'}{' '}
-                      <ArrowLeft size={15} />
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </>
-          )}
           {edit && (
             <span className="editor-world-label">
               {level.current.worldWidth} × {level.current.worldHeight} ·{' '}
@@ -858,39 +804,7 @@ export default function Game({
           </aside>
         )}
       </div>
-      {!edit && (
-        <div className="controls-bar">
-          <div>
-            <MousePointer2 size={18} />
-            <span>
-              <strong>One limb at a time.</strong>
-              <small>{hud.message}</small>
-            </span>
-          </div>
-          <div className="limb-buttons">
-            {LIMBS.map((limb, i) => (
-              <button
-                key={limb}
-                disabled={game.current?.carrying === limb}
-                className={chosen === limb ? 'chosen' : ''}
-                onClick={() => setChosen(chosen === limb ? null : limb)}
-              >
-                {limb.endsWith('Hand') ? (
-                  <Hand size={16} />
-                ) : (
-                  <Footprints size={16} />
-                )}
-                <span>{['L hand', 'R hand', 'L foot', 'R foot'][i]}</span>
-                <kbd>{i + 1}</kbd>
-                {game.current?.carrying === limb && '🐈'}
-              </button>
-            ))}
-          </div>
-          <button className="let-go" onClick={() => game.current?.releaseAll()}>
-            Let go
-          </button>
-        </div>
-      )}
+
     </div>
   );
 }

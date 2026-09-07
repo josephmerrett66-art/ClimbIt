@@ -7,6 +7,7 @@ export function draw(
   l: Level,
   bg: HTMLImageElement | null,
   fg: HTMLImageElement | null,
+  catSprite: HTMLImageElement | null,
   v: View,
   w: number,
   h: number,
@@ -185,24 +186,16 @@ export function draw(
     }
     // Only the currently available interaction is highlighted; editor geometry stays hidden.
     const cat = g.cat;
-    ctx.save();
-    ctx.translate(cat.x, cat.y);
-    ctx.font = '35px serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.shadowColor = '#17271d';
-    ctx.shadowBlur = 4;
-    ctx.fillText('🐈', 0, -7);
-    ctx.restore();
-    if (!g.collected) label({ x: cat.x, y: cat.y - 35 }, 'PICKLES');
-    for (const o of l.interactiveObjects) {
-      if (o.type === 'customer') {
-        ctx.font = '42px serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('🧍🏻‍♀️', o.x, o.y);
-        label({ x: o.x, y: o.y - 52 }, 'SARAH');
-      }
+    if (catSprite?.complete && catSprite.naturalWidth) {
+      const height = g.collected ? 40 : 48;
+      const width = height * catSprite.naturalWidth / catSprite.naturalHeight;
+      ctx.save();
+      ctx.translate(cat.x, cat.y);
+      if (g.collected) ctx.rotate(-0.14);
+      ctx.drawImage(catSprite, -width / 2, -height + 6, width, height);
+      ctx.restore();
     }
+
   }
   if (fg?.complete && fg.naturalWidth)
     ctx.drawImage(fg, 0, 0, l.worldWidth, l.worldHeight);

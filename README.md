@@ -1,38 +1,30 @@
-# Odd Jobs
+# Odd Jobs — tree climbing prototype
 
-A browser game prototype: climb a backyard tree by moving four limbs, collect Pickles with one hand, descend with three free limbs, and earn $40. Mouse and touch use the same Pointer Events path. Money and workshop saves are device-local.
+The main page opens directly into a full-window climbing scene. It contains only the tree environment, climber, safety rope, and low-poly Pickles sprite. There is no job board, header, wallet, HUD, owner, button bar, or results menu. The phone/job menu is deferred.
+
+Drag a hand or boot onto the tree to climb. Keys 1–4 select individual limbs; R restarts the climb; F requests browser fullscreen. Pickles can still be carried in one hand. Reaching the ground keeps the climbing simulation running.
+
+The developer workshop is retained separately at `/workshop`: import background/foreground PNGs, trace grips and edge/rectangle colliders, place spawn/objective/rope/return-zone/camera geometry, play test, undo, save locally and export/reload portable JSON with embedded artwork.
 
 ## Run
 
-Use Node 22.13+ and pnpm. Run `pnpm install`, `pnpm dev`, then open the printed local URL. `pnpm build` produces the Cloudflare Worker and client assets. `pnpm exec tsc --noEmit` checks types.
-
-## Play
-
-Open **Cat stuck in tree → Accept job**. Drag hands or boots to solid-looking bark or branches. A bright ring confirms a nearby valid grip; release to attach. Short moves, especially moving feet up to support your weight, are most reliable. Buttons or keys 1–4 select a limb when it is difficult to target. Space pauses; Escape cancels a drag. Zoom out to see the route. Let go releases all grips; the rope catches you.
-
-Drag a free hand onto Pickles on the upper-right branch. That hand becomes occupied and carries extra weight. Return to the base of the tree near Sarah to finish. Reaching Pickles alone does not finish the job.
-
-## Level workshop
-
-Import a PNG background, then place grips by clicking. Use Select / move to drag and delete grips or colliders. Edge and rectangle tools trace collision geometry; spawn, objective, rope, return-zone, and camera tools place the remaining level elements. Undo supports the last 40 geometry edits. Optional foreground PNGs render over the scene.
-
-**Play test** resets the climber using the current level data; returning to the editor preserves the geometry. Tests never pay money. **Save on this device** stores one workshop level locally. **Export JSON** embeds the background and foreground PNGs so the exported file is portable. **Load JSON** validates and restores it. Large images may exceed browser storage; export JSON in that case. Background import scales existing geometry to the new dimensions.
+Node 22.13+ and pnpm. `pnpm install`, then `pnpm dev`. `pnpm build` creates the Worker and client assets. `pnpm exec tsc --noEmit` checks types.
 
 ## Architecture
 
-- `lib/game/physics.ts`: small position-based dynamics solver. Weighted particles, rigid torso and bone constraints, endpoint anchors, limited reach, damping, muscle support, collisions, and an auto-belay distance constraint. No canned climbing animations or platformer movement.
-- `lib/game/level.ts`: typed level schema, validation, and authored Cat Rescue geometry. Level appearance and geometry are independent.
-- `lib/game/render.ts`: PNG layers, simple runtime character/entities, camera transform and editor overlays. Gameplay hides tracing geometry.
-- `app/game.tsx`: pointer input abstraction, fixed physics timestep, smooth bounded camera, workshop, carry/return loop, results.
-- `app/page.tsx`: original Odd Jobs board, listing, locked future jobs and local wallet.
-- `tests/physics.test.ts`: input-driven ascent, branch traversal, actual cat capture, three-limb descent, rope catch, joint reach, carrying lockout, completion and JSON checks.
+- `lib/game/physics.ts`: position-based weighted ragdoll with fixed bone lengths, limited endpoint reach, anchored grips, muscle support, one-way knee hinges and an auto-belay harness constraint. Knee constraints operate on physics particles and preserve thigh/shin lengths while preventing inverted bends as the body rotates.
+- `lib/game/level.ts`: separate authored level data and JSON validation. No owner entity in the default level.
+- `lib/game/render.ts`: PNG background/foreground layers, simple physics-driven climber, low-poly cat PNG and editor overlays. Gameplay geometry is invisible.
+- `app/game.tsx`: fixed timestep, bounded camera, unified mouse/touch Pointer Events and workshop tools. Gameplay covers the viewport, cropping the world rather than letterboxing it.
+- `app/page.tsx`: direct climbing entry, with no app shell.
+- `app/workshop/page.tsx`: separate developer entry.
 
-The reusable objective type for this slice is `carry`. Future verbs should add objective handlers without changing limb manipulation or grip constraints. The cat is a perched entity before pickup and a weighted held entity afterward; deliberate dropping is not implemented. Collision support is edge and rectangle, without polygon or self-collision simulation. Muscle assistance favors controllability over biomechanics; the rope is a visual curve plus harness distance constraint, without rope wrapping. Runtime cat/customer visuals use platform emoji.
+The complete carry-and-return system remains available to editor play tests. The main page uses continuous climbing mode while we focus on movement.
 
 ## Validation
 
-Physics tests pass through the complete rescue and return using the same begin/move/end/step methods as player input. Type-check and production build are checked separately. Physical mouse/touch device usability has not been tested in a browser; this remains a prototype needing hands-on feel tuning. The optional read-only WebMCP job-status tool is feature-detected; no supported runtime was available to validate its registration.
+Automated tests exercise ascent, branch traversal, actual cat pickup, three-limb descent, safety-rope catch, carrying lockout and JSON validation. Hinge regression tests intentionally reverse both knees and rotate the body, then verify bend direction and unchanged leg segment lengths. Continuous mode is checked to avoid freezing at a hidden completion menu. Mouse/touch feel still needs hands-on tuning.
 
-## Art
+## Artwork
 
-`public/assets/cat-tree.png` was generated using built-in ImageGen from the supplied concept as a style reference. Prompt: clean standalone illustrated low-poly suburban backyard oak tree, full centered trunk, readable branches, grassy ground near 92% height, fence, houses, shrubs, sunny blue sky; no characters, cat, rope, text, arrows, labels, UI, or borders. It is PNG artwork, not procedural scenery.
+`public/assets/cat-tree.png` is built-in ImageGen artwork based on the supplied illustrated backyard concept. `public/assets/pickles.png` is a generated angular low-poly orange-and-white sitting cat, facing left, with a transparent background prepared from the generated sprite. Prompt: orange-and-white sitting cat, broad warm faceted planes, full body and curled tail, clean silhouette readable at game scale, no emoji, props, text, outline border, or background scenery.

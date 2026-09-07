@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'Odd Jobs — Climb higher. Do gooder.',
-  description: 'Four limbs, one cat, and a deeply underpaid rescue. A physics climbing game with a PNG level workshop.',
+  description: 'A full-window physics tree climb. Drag hands and feet to explore and rescue Pickles.',
 };
 
 export default function RootLayout({

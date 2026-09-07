@@ -80,8 +80,8 @@ for (let cycle = 0; cycle < 55 && !g.complete; cycle++) {
         (p) =>
           distance(p, root) < g.reach(limb) + 6 &&
           (left
-            ? p.x < curr.x - 10 && p.y < 420
-            : p.y > curr.y + 10 && p.x > 560 && p.x < 680),
+            ? (!g.grips[limb] || p.x < curr.x - 10) && p.y < 420
+            : (!g.grips[limb] || p.y > curr.y + 10) && p.x > 560 && p.x < 680),
       )
       .sort((a, b) => (left ? a.x - b.x : b.y - a.y));
     if (!options[0]) continue;
@@ -132,3 +132,32 @@ assert.equal(carrier.complete, true);
 console.log(
   'PASS physics reach, ascent, rope, carry, return trigger, JSON round trip and rejection',
 );
+
+// Deliberately invert the knees, then check the one-way hinge under rotation.
+for (const rotation of [0, Math.PI/2, Math.PI, -Math.PI/2]) {
+  const rig = new Climber(structuredClone(catLevel));
+  for (const side of ['left','right']) {
+    const hip=rig.p.hip, foot=rig.p[side+'Foot'], knee=rig.p[side+'Knee'];
+    const dx=foot.x-hip.x,dy=foot.y-hip.y,d=Math.hypot(dx,dy),nx=-dy/d,ny=dx/d;
+    const b=(knee.x-hip.x)*nx+(knee.y-hip.y)*ny;
+    knee.x-=2*b*nx;knee.y-=2*b*ny;
+  }
+  const origin={...rig.p.hip};
+  for(const p of Object.values(rig.p)){
+    const x=p.x-origin.x,y=p.y-origin.y;
+    p.x=origin.x+x*Math.cos(rotation)-y*Math.sin(rotation);
+    p.y=origin.y+x*Math.sin(rotation)+y*Math.cos(rotation);p.px=p.x;p.py=p.y;
+  }
+  const lengths=['left','right'].map(s=>[distance(rig.p.hip,rig.p[s+'Knee']),distance(rig.p[s+'Knee'],rig.p[s+'Foot'])]);
+  rig.constrainKnees();
+  for(const [i,side] of ['left','right'].entries()){
+    const hip=rig.p.hip,foot=rig.p[side+'Foot'],knee=rig.p[side+'Knee'];
+    const cross=(foot.x-hip.x)*(knee.y-hip.y)-(foot.y-hip.y)*(knee.x-hip.x);
+    assert.ok(cross*(side==='left'?1:-1)>0,'Knees keep their anatomical bend side when rotated');
+    assert.ok(Math.abs(distance(hip,knee)-lengths[i][0])<.001,'Hinge preserves thigh length');
+    assert.ok(Math.abs(distance(knee,foot)-lengths[i][1])<.001,'Hinge preserves shin length');
+  }
+}
+const sandbox = new Climber(structuredClone(catLevel),false);
+sandbox.cat.x=sandbox.p.leftHand.x;sandbox.cat.y=sandbox.p.leftHand.y;sandbox.begin('leftHand',sandbox.cat);sandbox.end();sandbox.step();assert.equal(sandbox.complete,false,'Focused climb continues without a results screen');
+console.log('PASS one-way knee hinges, rotation, segment lengths, and continuous climbing mode');
