@@ -134,30 +134,119 @@ console.log(
 );
 
 // Deliberately invert the knees, then check the one-way hinge under rotation.
-for (const rotation of [0, Math.PI/2, Math.PI, -Math.PI/2]) {
+for (const rotation of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
   const rig = new Climber(structuredClone(catLevel));
-  for (const side of ['left','right']) {
-    const hip=rig.p.hip, foot=rig.p[side+'Foot'], knee=rig.p[side+'Knee'];
-    const dx=foot.x-hip.x,dy=foot.y-hip.y,d=Math.hypot(dx,dy),nx=-dy/d,ny=dx/d;
-    const b=(knee.x-hip.x)*nx+(knee.y-hip.y)*ny;
-    knee.x-=2*b*nx;knee.y-=2*b*ny;
+  for (const side of ['left', 'right']) {
+    const hip = rig.p.hip,
+      foot = rig.p[side + 'Foot'],
+      knee = rig.p[side + 'Knee'];
+    const dx = foot.x - hip.x,
+      dy = foot.y - hip.y,
+      d = Math.hypot(dx, dy),
+      nx = -dy / d,
+      ny = dx / d;
+    const b = (knee.x - hip.x) * nx + (knee.y - hip.y) * ny;
+    knee.x -= 2 * b * nx;
+    knee.y -= 2 * b * ny;
   }
-  const origin={...rig.p.hip};
-  for(const p of Object.values(rig.p)){
-    const x=p.x-origin.x,y=p.y-origin.y;
-    p.x=origin.x+x*Math.cos(rotation)-y*Math.sin(rotation);
-    p.y=origin.y+x*Math.sin(rotation)+y*Math.cos(rotation);p.px=p.x;p.py=p.y;
+  const origin = { ...rig.p.hip };
+  for (const p of Object.values(rig.p)) {
+    const x = p.x - origin.x,
+      y = p.y - origin.y;
+    p.x = origin.x + x * Math.cos(rotation) - y * Math.sin(rotation);
+    p.y = origin.y + x * Math.sin(rotation) + y * Math.cos(rotation);
+    p.px = p.x;
+    p.py = p.y;
   }
-  const lengths=['left','right'].map(s=>[distance(rig.p.hip,rig.p[s+'Knee']),distance(rig.p[s+'Knee'],rig.p[s+'Foot'])]);
+  const lengths = ['left', 'right'].map((s) => [
+    distance(rig.p.hip, rig.p[s + 'Knee']),
+    distance(rig.p[s + 'Knee'], rig.p[s + 'Foot']),
+  ]);
   rig.constrainKnees();
-  for(const [i,side] of ['left','right'].entries()){
-    const hip=rig.p.hip,foot=rig.p[side+'Foot'],knee=rig.p[side+'Knee'];
-    const cross=(foot.x-hip.x)*(knee.y-hip.y)-(foot.y-hip.y)*(knee.x-hip.x);
-    assert.ok(cross*(side==='left'?1:-1)>0,'Knees keep their anatomical bend side when rotated');
-    assert.ok(Math.abs(distance(hip,knee)-lengths[i][0])<.001,'Hinge preserves thigh length');
-    assert.ok(Math.abs(distance(knee,foot)-lengths[i][1])<.001,'Hinge preserves shin length');
+  for (const [i, side] of ['left', 'right'].entries()) {
+    const hip = rig.p.hip,
+      foot = rig.p[side + 'Foot'],
+      knee = rig.p[side + 'Knee'];
+    const cross =
+      (foot.x - hip.x) * (knee.y - hip.y) - (foot.y - hip.y) * (knee.x - hip.x);
+    assert.ok(
+      cross * (side === 'left' ? 1 : -1) > 0,
+      'Knees keep their anatomical bend side when rotated',
+    );
+    assert.ok(
+      Math.abs(distance(hip, knee) - lengths[i][0]) < 0.001,
+      'Hinge preserves thigh length',
+    );
+    assert.ok(
+      Math.abs(distance(knee, foot) - lengths[i][1]) < 0.001,
+      'Hinge preserves shin length',
+    );
   }
 }
-const sandbox = new Climber(structuredClone(catLevel),false);
-sandbox.cat.x=sandbox.p.leftHand.x;sandbox.cat.y=sandbox.p.leftHand.y;sandbox.begin('leftHand',sandbox.cat);sandbox.end();sandbox.step();assert.equal(sandbox.complete,false,'Focused climb continues without a results screen');
-console.log('PASS one-way knee hinges, rotation, segment lengths, and continuous climbing mode');
+const sandbox = new Climber(structuredClone(catLevel), false);
+sandbox.cat.x = sandbox.p.leftHand.x;
+sandbox.cat.y = sandbox.p.leftHand.y;
+sandbox.begin('leftHand', sandbox.cat);
+sandbox.end();
+sandbox.step();
+assert.equal(
+  sandbox.complete,
+  false,
+  'Focused climb continues without a results screen',
+);
+console.log(
+  'PASS one-way knee hinges, rotation, segment lengths, and continuous climbing mode',
+);
+
+// Elbows use the same one-way hinge rule and retain both arm segment lengths.
+for (const rotation of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
+  const rig = new Climber(structuredClone(catLevel));
+  for (const side of ['left', 'right']) {
+    const shoulder = rig.p[side + 'Shoulder'],
+      hand = rig.p[side + 'Hand'],
+      elbow = rig.p[side + 'Elbow'];
+    const dx = hand.x - shoulder.x,
+      dy = hand.y - shoulder.y,
+      d = Math.hypot(dx, dy),
+      nx = -dy / d,
+      ny = dx / d;
+    const bend = (elbow.x - shoulder.x) * nx + (elbow.y - shoulder.y) * ny;
+    elbow.x -= 2 * bend * nx;
+    elbow.y -= 2 * bend * ny;
+  }
+  const origin = { ...rig.p.hip };
+  for (const p of Object.values(rig.p)) {
+    const x = p.x - origin.x,
+      y = p.y - origin.y;
+    p.x = origin.x + x * Math.cos(rotation) - y * Math.sin(rotation);
+    p.y = origin.y + x * Math.sin(rotation) + y * Math.cos(rotation);
+    p.px = p.x;
+    p.py = p.y;
+  }
+  const lengths = ['left', 'right'].map((side) => [
+    distance(rig.p[side + 'Shoulder'], rig.p[side + 'Elbow']),
+    distance(rig.p[side + 'Elbow'], rig.p[side + 'Hand']),
+  ]);
+  rig.constrainElbows();
+  for (const [i, side] of ['left', 'right'].entries()) {
+    const shoulder = rig.p[side + 'Shoulder'],
+      hand = rig.p[side + 'Hand'],
+      elbow = rig.p[side + 'Elbow'];
+    const cross =
+      (hand.x - shoulder.x) * (elbow.y - shoulder.y) -
+      (hand.y - shoulder.y) * (elbow.x - shoulder.x);
+    assert.ok(
+      cross * (side === 'left' ? -1 : 1) > 0,
+      'Elbows keep their anatomical bend side when rotated',
+    );
+    assert.ok(
+      Math.abs(distance(shoulder, elbow) - lengths[i][0]) < 0.001,
+      'Hinge preserves upper-arm length',
+    );
+    assert.ok(
+      Math.abs(distance(elbow, hand) - lengths[i][1]) < 0.001,
+      'Hinge preserves forearm length',
+    );
+  }
+}
+console.log('PASS one-way elbow hinges, rotation, and arm segment lengths');

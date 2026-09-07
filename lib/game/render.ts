@@ -167,14 +167,6 @@ export function draw(
       );
       if (g.grips[limb]) circle(p, 3, '#ccdda8');
       if (g.drag?.limb === limb) {
-        const root = g.root(limb);
-        ctx.strokeStyle = '#fff9d060';
-        ctx.lineWidth = 1.5 / v.scale;
-        ctx.setLineDash([5, 7]);
-        ctx.beginPath();
-        ctx.arc(root.x, root.y, g.reach(limb), 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
         circle(p, 13, '#fff0', '#fff6ce');
       }
     }
@@ -188,14 +180,13 @@ export function draw(
     const cat = g.cat;
     if (catSprite?.complete && catSprite.naturalWidth) {
       const height = g.collected ? 40 : 48;
-      const width = height * catSprite.naturalWidth / catSprite.naturalHeight;
+      const width = (height * catSprite.naturalWidth) / catSprite.naturalHeight;
       ctx.save();
       ctx.translate(cat.x, cat.y);
       if (g.collected) ctx.rotate(-0.14);
       ctx.drawImage(catSprite, -width / 2, -height + 6, width, height);
       ctx.restore();
     }
-
   }
   if (fg?.complete && fg.naturalWidth)
     ctx.drawImage(fg, 0, 0, l.worldWidth, l.worldHeight);

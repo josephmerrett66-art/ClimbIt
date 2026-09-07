@@ -34,7 +34,10 @@ export class Climber {
   ropeLength: number;
   ropeCaught = false;
   message = 'Drag a hand or boot onto the bark. Small moves work best.';
-  constructor(public level: Level, public completionEnabled = true) {
+  constructor(
+    public level: Level,
+    public completionEnabled = true,
+  ) {
     const { x, y } = level.playerSpawn;
     const add = (n: string, dx: number, dy: number, r: number, mass = 1) =>
       (this.p[n] = { x: x + dx, y: y + dy, px: x + dx, py: y + dy, r, mass });
@@ -144,20 +147,52 @@ export class Climber {
   }
   constrainKnees() {
     const hip = this.p.hip;
-    for (const [side, sign] of [['left', 1], ['right', -1]] as const) {
-      const knee = this.p[side + 'Knee'], foot = this.p[side + 'Foot'];
-      const dx = foot.x - hip.x, dy = foot.y - hip.y;
+    for (const [side, sign] of [
+      ['left', 1],
+      ['right', -1],
+    ] as const) {
+      const knee = this.p[side + 'Knee'],
+        foot = this.p[side + 'Foot'];
+      const dx = foot.x - hip.x,
+        dy = foot.y - hip.y;
       const length = Math.hypot(dx, dy);
       if (length < 0.001) continue;
       // Each knee is a one-way hinge. The signed bend follows the limb as
       // the whole body rotates, instead of flipping to the other IK solution.
-      const nx = -dy / length, ny = dx / length;
+      const nx = -dy / length,
+        ny = dx / length;
       const bend = (knee.x - hip.x) * nx + (knee.y - hip.y) * ny;
       if (bend * sign < 0.5) {
         const correction = sign * Math.max(Math.abs(bend), 0.5) - bend;
-        knee.x += nx * correction; knee.y += ny * correction;
+        knee.x += nx * correction;
+        knee.y += ny * correction;
         // Moving the constraint must not inject a kick into Verlet velocity.
-        knee.px += nx * correction; knee.py += ny * correction;
+        knee.px += nx * correction;
+        knee.py += ny * correction;
+      }
+    }
+  }
+  constrainElbows() {
+    for (const [side, sign] of [
+      ['left', -1],
+      ['right', 1],
+    ] as const) {
+      const shoulder = this.p[side + 'Shoulder'],
+        elbow = this.p[side + 'Elbow'],
+        hand = this.p[side + 'Hand'];
+      const dx = hand.x - shoulder.x,
+        dy = hand.y - shoulder.y;
+      const length = Math.hypot(dx, dy);
+      if (length < 0.001) continue;
+      const nx = -dy / length,
+        ny = dx / length;
+      const bend = (elbow.x - shoulder.x) * nx + (elbow.y - shoulder.y) * ny;
+      if (bend * sign < 0.5) {
+        const correction = sign * Math.max(Math.abs(bend), 0.5) - bend;
+        elbow.x += nx * correction;
+        elbow.y += ny * correction;
+        elbow.px += nx * correction;
+        elbow.py += ny * correction;
       }
     }
   }
@@ -210,6 +245,7 @@ export class Climber {
         c.y -= (dy * wb) / (wa + wb);
       }
       this.constrainKnees();
+      this.constrainElbows();
       if (this.drag) {
         const { limb, target } = this.drag,
           root = this.root(limb),
@@ -244,6 +280,7 @@ export class Climber {
       }
     }
     this.constrainKnees();
+    this.constrainElbows();
     // Auto-belay feeds out during deliberate descent, but catches unanchored falls.
     if (anchors.length) {
       const d = distance(this.p.hip, this.level.ropeAnchors[0]);
