@@ -44,13 +44,15 @@ export default function Game({
   editing,
   onBack,
   onPaid,
+  initialLevel = catLevel,
 }: {
   editing: boolean;
   onBack: () => void;
   onPaid: (n: number) => void;
+  initialLevel?: Level;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
-    level = useRef<Level>(clone(catLevel)),
+    level = useRef<Level>(clone(initialLevel)),
     game = useRef<Climber | null>(null),
     view = useRef<View>({ scale: 1, x: 0, y: 0 }),
     images = useRef<{
@@ -132,21 +134,31 @@ export default function Game({
       fg = new Image();
       fg.src = level.current.foregroundImage;
     }
-    const cat = new Image();
-    cat.src = "/assets/pickles.png";
+    let cat: HTMLImageElement | null = null;
+    if (level.current.objectives[0].type === 'carry') {
+      cat = new Image();
+      cat.src = '/assets/pickles.png';
+    }
     images.current = { bg, fg, cat };
   };
   useEffect(() => {
     const timer = window.setTimeout(() => setHintVisible(false), 12000);
     const changed = () => setFullscreen(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', changed);
-    return () => { window.clearTimeout(timer); document.removeEventListener('fullscreenchange', changed); };
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('fullscreenchange', changed);
+    };
   }, []);
   async function toggleFullscreen() {
     try {
       if (document.fullscreenElement) await document.exitFullscreen();
       else await canvas.current?.closest('.game-shell')?.requestFullscreen();
-    } catch { setNotice('Fullscreen is unavailable here. The game still fills this window.'); }
+    } catch {
+      setNotice(
+        'Fullscreen is unavailable here. The game still fills this window.',
+      );
+    }
   }
   useEffect(() => {
     setEdit(editing);
@@ -190,7 +202,10 @@ export default function Game({
         }
       } else accum = 0;
       const bounds = l.cameraBounds;
-      const base = (s.edit ? Math.min : Math.max)(w / bounds.width, h / bounds.height),
+      const base = (s.edit ? Math.min : Math.max)(
+          w / bounds.width,
+          h / bounds.height,
+        ),
         scale = base * (s.edit ? 1 : s.zoom);
       const contentW = bounds.width * scale,
         contentH = bounds.height * scale;
@@ -214,12 +229,20 @@ export default function Game({
             : ty;
       }
       const v = view.current;
-      v.scale = s.edit ? scale : Math.max(base, v.scale + (scale - v.scale) * 0.15);
+      v.scale = s.edit
+        ? scale
+        : Math.max(base, v.scale + (scale - v.scale) * 0.15);
       v.x += (tx - v.x) * 0.1;
       v.y += (ty - v.y) * 0.1;
       if (!s.edit) {
-        v.x = Math.max(w - (bounds.x + bounds.width) * v.scale, Math.min(-bounds.x * v.scale, v.x));
-        v.y = Math.max(h - (bounds.y + bounds.height) * v.scale, Math.min(-bounds.y * v.scale, v.y));
+        v.x = Math.max(
+          w - (bounds.x + bounds.width) * v.scale,
+          Math.min(-bounds.x * v.scale, v.x),
+        );
+        v.y = Math.max(
+          h - (bounds.y + bounds.height) * v.scale,
+          Math.min(-bounds.y * v.scale, v.y),
+        );
       }
       draw(
         ctx,
@@ -270,7 +293,6 @@ export default function Game({
     const key = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).matches('input,textarea,select')) return;
       if (e.key === 'Escape') {
-        
         game.current?.end(true);
         active.current = null;
         gesture.current = null;
@@ -614,37 +636,41 @@ export default function Game({
     reset();
   };
   return (
-    <div className={"game-shell " + (edit ? "workshop-stage" : "immersive-stage")}>
-      {edit && <div className="game-topbar">
-        <button onClick={onBack}>
-          <ArrowLeft size={15} /> Back to climb
-        </button>
-        <div>
-          <span className="eyebrow">
-            {editing ? 'LEVEL WORKSHOP' : 'JOB NO. 001'}
-          </span>
-          <strong>{level.current.name}</strong>
-        </div>
-        <div className="game-top-actions">
-          {editing && (
-            <Button onClick={toggle}>
-              <Play size={13} />
-              {edit ? 'Play test' : 'Return to editor'}
-            </Button>
-          )}
-          <button onClick={reset} aria-label="Restart job">
-            <RotateCcw size={16} />
+    <div
+      className={'game-shell ' + (edit ? 'workshop-stage' : 'immersive-stage')}
+    >
+      {edit && (
+        <div className="game-topbar">
+          <button onClick={onBack}>
+            <ArrowLeft size={15} /> Back to climb
           </button>
-          {!edit && (
-            <button
-              onClick={() => setPaused((v) => !v)}
-              aria-label={paused ? 'Resume' : 'Pause'}
-            >
-              {paused ? <Play size={16} /> : <Pause size={16} />}
+          <div>
+            <span className="eyebrow">
+              {editing ? 'LEVEL WORKSHOP' : 'JOB NO. 001'}
+            </span>
+            <strong>{level.current.name}</strong>
+          </div>
+          <div className="game-top-actions">
+            {editing && (
+              <Button onClick={toggle}>
+                <Play size={13} />
+                {edit ? 'Play test' : 'Return to editor'}
+              </Button>
+            )}
+            <button onClick={reset} aria-label="Restart job">
+              <RotateCcw size={16} />
             </button>
-          )}
+            {!edit && (
+              <button
+                onClick={() => setPaused((v) => !v)}
+                aria-label={paused ? 'Resume' : 'Pause'}
+              >
+                {paused ? <Play size={16} /> : <Pause size={16} />}
+              </button>
+            )}
+          </div>
         </div>
-      </div>}
+      )}
       <div className={'play-layout ' + (edit ? 'with-editor' : '')}>
         <div className="canvas-wrap">
           <canvas
@@ -804,7 +830,6 @@ export default function Game({
           </aside>
         )}
       </div>
-
     </div>
   );
 }

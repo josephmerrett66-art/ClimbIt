@@ -152,11 +152,16 @@ export class Climber {
         limb.endsWith('Hand') &&
         distance(p, this.cat) < 31
       ) {
-        this.carrying = limb;
-        this.p[limb].mass += this.cat.mass;
         this.collected = true;
-        this.message =
-          'Pickles secured! One hand is busy. Bring them safely back to the ground.';
+        if (this.level.objectives[0].type === 'repair') {
+          this.complete = true;
+          this.message = 'Cross straightened. That should hold.';
+        } else {
+          this.carrying = limb;
+          this.p[limb].mass += this.cat.mass;
+          this.message =
+            'Pickles secured! One hand is busy. Bring them safely back to the ground.';
+        }
       } else {
         const g = this.nearest(p, 27);
         if (g && distance(g, this.root(limb)) <= this.reach(limb) + 8) {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { Climber, LIMBS, distance } from '../lib/game/physics';
-import { catLevel, parseLevel } from '../lib/game/level';
+import { catLevel, churchLevel, parseLevel } from '../lib/game/level';
 const g = new Climber(structuredClone(catLevel));
 for (let i = 0; i < 300; i++) g.step();
 assert.ok(
@@ -290,3 +290,36 @@ assert.equal(
   'A nearby reachable hold attracts and catches the dragged limb',
 );
 console.log('PASS nearby-hold attraction and catch');
+
+const church = new Climber(structuredClone(churchLevel));
+for (let i = 0; i < 240; i++) church.step();
+for (let cycle = 0; cycle < 48 && !church.complete; cycle++) {
+  for (const limb of LIMBS) {
+    if (
+      limb.endsWith('Hand') &&
+      distance(church.root(limb), church.cat) < church.reach(limb) + 8
+    ) {
+      church.begin(limb, church.cat);
+      for (let i = 0; i < 55; i++) church.step();
+      church.end();
+      if (church.complete) break;
+    }
+    const root = church.root(limb),
+      endpoint = church.p[limb],
+      next = church.level.gripPoints
+        .filter(
+          (grip) =>
+            distance(grip, root) < church.reach(limb) - 3 &&
+            grip.y < endpoint.y - 10,
+        )
+        .sort((a, b) => a.y - b.y)[0];
+    if (!next) continue;
+    church.begin(limb, next);
+    for (let i = 0; i < 55; i++) church.step();
+    church.end();
+    for (let i = 0; i < 30; i++) church.step();
+  }
+}
+assert.ok(church.complete, 'Church route reaches and straightens the cross');
+assert.equal(church.carrying, null, 'Repair objective leaves both hands free');
+console.log('PASS church climb and cross-straightening objective');

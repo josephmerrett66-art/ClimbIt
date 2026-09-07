@@ -8,6 +8,11 @@ export type Collider = {
   x2: number;
   y2: number;
 };
+export type Objective = Point & {
+  id: string;
+  type: 'carry' | 'repair';
+  name: string;
+};
 export type Level = {
   version: 1;
   id: string;
@@ -19,7 +24,7 @@ export type Level = {
   playerSpawn: Point;
   gripPoints: Grip[];
   colliders: Collider[];
-  objectives: (Point & { id: string; type: 'carry'; name: string })[];
+  objectives: Objective[];
   interactiveObjects: (Point & { id: string; type: string })[];
   ropeAnchors: Point[];
   cameraBounds: { x: number; y: number; width: number; height: number };
@@ -119,6 +124,113 @@ export const catLevel: Level = {
   completionTrigger: { x: 550, y: 865, width: 255, height: 100 },
   pay: 40,
 };
+
+const churchGrips: Grip[] = [];
+const churchRoute = (points: number[][]) =>
+  points.forEach(([x, y], i) => {
+    if (i) {
+      const [ax, ay] = points[i - 1],
+        steps = Math.ceil(Math.hypot(x - ax, y - ay) / 28);
+      for (let j = 1; j < steps; j++)
+        churchGrips.push({
+          id: `church-grip-${churchGrips.length}`,
+          x: ax + ((x - ax) * j) / steps,
+          y: ay + ((y - ay) * j) / steps,
+        });
+    }
+    churchGrips.push({
+      id: `church-grip-${churchGrips.length}`,
+      x,
+      y,
+    });
+  });
+
+// Main route follows the central buttresses, window ledges and bell-tower trim.
+churchRoute([
+  [548, 926],
+  [632, 918],
+  [532, 866],
+  [650, 838],
+  [518, 785],
+  [662, 754],
+  [508, 702],
+  [664, 671],
+  [510, 620],
+  [656, 590],
+  [518, 536],
+  [648, 505],
+  [522, 455],
+  [646, 424],
+  [526, 372],
+  [640, 344],
+  [532, 292],
+  [634, 265],
+  [544, 216],
+  [622, 190],
+  [580, 153],
+  [612, 122],
+]);
+// Optional side routes let players swing around the large lower window and roof.
+churchRoute([
+  [506, 812],
+  [458, 786],
+  [424, 742],
+  [454, 692],
+  [502, 662],
+]);
+churchRoute([
+  [672, 802],
+  [718, 770],
+  [755, 724],
+  [710, 682],
+  [665, 650],
+]);
+churchRoute([
+  [520, 525],
+  [480, 485],
+  [448, 448],
+  [492, 418],
+  [530, 388],
+]);
+churchRoute([
+  [646, 514],
+  [688, 478],
+  [724, 438],
+  [686, 404],
+  [642, 376],
+]);
+
+export const churchLevel: Level = {
+  version: 1,
+  id: 'church-cross',
+  name: 'Straighten the church cross',
+  backgroundImage: '/assets/church-cross.png',
+  worldWidth: 1200,
+  worldHeight: 1000,
+  playerSpawn: { x: 590, y: 878 },
+  gripPoints: churchGrips,
+  colliders: [
+    { id: 'church-ground', type: 'edge', x: 0, y: 958, x2: 1200, y2: 958 },
+    { id: 'left-roof', type: 'edge', x: 190, y: 675, x2: 505, y2: 432 },
+    { id: 'right-roof', type: 'edge', x: 690, y: 432, x2: 1000, y2: 675 },
+  ],
+  objectives: [
+    {
+      id: 'church-cross',
+      type: 'repair',
+      name: 'Crooked cross',
+      x: 612,
+      y: 122,
+    },
+  ],
+  interactiveObjects: [
+    { id: 'cross-hinge', type: 'straighten', x: 612, y: 122 },
+  ],
+  ropeAnchors: [{ x: 612, y: 100 }],
+  cameraBounds: { x: 0, y: 0, width: 1200, height: 1000 },
+  completionTrigger: { x: 520, y: 850, width: 180, height: 110 },
+  pay: 55,
+};
 export function parseLevel(raw: string): Level {
   const l = JSON.parse(raw);
   const point = (p: any) =>
@@ -167,9 +279,11 @@ export function parseLevel(raw: string): Level {
   if (
     !Array.isArray(l.objectives) ||
     !l.objectives.length ||
-    !l.objectives.every((o: any) => point(o) && o.type === 'carry')
+    !l.objectives.every(
+      (o: any) => point(o) && ['carry', 'repair'].includes(o.type),
+    )
   )
-    throw Error('Add at least one carry objective.');
+    throw Error('Add at least one supported objective.');
   if (
     !Array.isArray(l.ropeAnchors) ||
     !l.ropeAnchors.length ||
