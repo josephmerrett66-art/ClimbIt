@@ -125,45 +125,219 @@ export function draw(
     );
     ctx.stroke();
     circle(a, 5, '#d3cda1');
-    const line = (a: string, b: string, color: string, width: number) => {
-      ctx.strokeStyle = '#1e2a27';
-      ctx.lineWidth = width + 4;
-      ctx.lineCap = 'round';
+    const polygon = (points: Point[], fill: string, stroke = '#26372f') => {
       ctx.beginPath();
-      ctx.moveTo(g.p[a].x, g.p[a].y);
-      ctx.lineTo(g.p[b].x, g.p[b].y);
-      ctx.stroke();
-      ctx.strokeStyle = color;
-      ctx.lineWidth = width;
+      points.forEach((p, i) =>
+        i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y),
+      );
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2.2;
+      ctx.lineJoin = 'round';
       ctx.stroke();
     };
-    for (const s of ['left', 'right']) {
-      line('hip', s + 'Knee', '#3e4946', 16);
-      line(s + 'Knee', s + 'Foot', '#47514b', 12);
+    const taperedLimb = (
+      from: Point,
+      to: Point,
+      fromWidth: number,
+      toWidth: number,
+      light: string,
+      dark: string,
+    ) => {
+      const dx = to.x - from.x,
+        dy = to.y - from.y,
+        length = Math.hypot(dx, dy) || 1,
+        nx = -dy / length,
+        ny = dx / length;
+      const a = { x: from.x + nx * fromWidth, y: from.y + ny * fromWidth },
+        b = { x: to.x + nx * toWidth, y: to.y + ny * toWidth },
+        c = { x: to.x - nx * toWidth, y: to.y - ny * toWidth },
+        d = { x: from.x - nx * fromWidth, y: from.y - ny * fromWidth },
+        middle = {
+          x: (from.x + to.x) / 2 + nx * 1.5,
+          y: (from.y + to.y) / 2 + ny * 1.5,
+        };
+      polygon([a, b, c, d], dark);
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.lineTo(middle.x, middle.y);
+      ctx.closePath();
+      ctx.fillStyle = light;
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(middle.x, middle.y);
+      ctx.lineTo(d.x, d.y);
+      ctx.closePath();
+      ctx.fillStyle = '#ffffff18';
+      ctx.fill();
+    };
+    const facetedJoint = (
+      p: Point,
+      radius: number,
+      light: string,
+      dark: string,
+    ) => {
+      polygon(
+        [
+          { x: p.x, y: p.y - radius },
+          { x: p.x + radius, y: p.y },
+          { x: p.x, y: p.y + radius },
+          { x: p.x - radius, y: p.y },
+        ],
+        dark,
+      );
+      ctx.beginPath();
+      ctx.moveTo(p.x, p.y - radius);
+      ctx.lineTo(p.x + radius, p.y);
+      ctx.lineTo(p.x, p.y);
+      ctx.lineTo(p.x - radius, p.y);
+      ctx.closePath();
+      ctx.fillStyle = light;
+      ctx.fill();
+    };
+
+    // Limbs sit behind a rigid torso and visibly originate at its shoulder and hip corners.
+    for (const side of ['left', 'right']) {
+      taperedLimb(
+        g.p[side + 'Hip'],
+        g.p[side + 'Knee'],
+        8.5,
+        7,
+        '#465550',
+        '#303d39',
+      );
+      taperedLimb(
+        g.p[side + 'Knee'],
+        g.p[side + 'Foot'],
+        7,
+        5.5,
+        '#59635d',
+        '#3b4842',
+      );
+      facetedJoint(g.p[side + 'Knee'], 7.2, '#58655f', '#35433e');
     }
-    line('hip', 'neck', '#db9f42', 29);
-    for (const s of ['left', 'right']) {
-      line(s + 'Shoulder', s + 'Elbow', '#dea144', 14);
-      line(s + 'Elbow', s + 'Hand', '#eeb455', 11);
+    for (const side of ['left', 'right']) {
+      taperedLimb(
+        g.p[side + 'Shoulder'],
+        g.p[side + 'Elbow'],
+        7.2,
+        5.8,
+        '#f0b44e',
+        '#c98731',
+      );
+      taperedLimb(
+        g.p[side + 'Elbow'],
+        g.p[side + 'Hand'],
+        5.8,
+        4.2,
+        '#e8a648',
+        '#c6812e',
+      );
+      facetedJoint(g.p[side + 'Elbow'], 6, '#e7a33e', '#b87328');
     }
-    line('leftShoulder', 'rightShoulder', '#efb750', 14);
-    circle(g.p.head, 14, '#edd3a6', '#293f37');
-    ctx.fillStyle = '#f2f2e4';
+
+    const leftShoulder = g.p.leftShoulder,
+      rightShoulder = g.p.rightShoulder,
+      leftHip = g.p.leftHip,
+      rightHip = g.p.rightHip,
+      torsoCenter = {
+        x: (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4,
+        y: (leftShoulder.y + rightShoulder.y + leftHip.y + rightHip.y) / 4,
+      };
+    polygon([leftShoulder, rightShoulder, rightHip, leftHip], '#d69234');
+    const torsoFacets = [
+      [leftShoulder, rightShoulder, torsoCenter, '#efb54d'],
+      [rightShoulder, rightHip, torsoCenter, '#bd7629'],
+      [rightHip, leftHip, torsoCenter, '#cc842e'],
+      [leftHip, leftShoulder, torsoCenter, '#e4a03a'],
+    ] as const;
+    for (const [p1, p2, p3, color] of torsoFacets) {
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.lineTo(p3.x, p3.y);
+      ctx.closePath();
+      ctx.fillStyle = color;
+      ctx.fill();
+    }
+    polygon(
+      [
+        { x: leftHip.x - 2, y: leftHip.y - 2 },
+        { x: rightHip.x + 2, y: rightHip.y - 2 },
+        { x: rightHip.x + 4, y: rightHip.y + 9 },
+        { x: leftHip.x - 4, y: leftHip.y + 9 },
+      ],
+      '#293a34',
+    );
+
+    // Neck and head follow the torso instead of floating above it.
+    taperedLimb(g.p.neck, g.p.head, 6, 7, '#e9c795', '#c89d6d');
+    const head = g.p.head,
+      headAngle = Math.atan2(
+        rightShoulder.y - leftShoulder.y,
+        rightShoulder.x - leftShoulder.x,
+      );
+    ctx.save();
+    ctx.translate(head.x, head.y);
+    ctx.rotate(headAngle);
+    polygon(
+      [
+        { x: -11, y: -13 },
+        { x: 8, y: -15 },
+        { x: 14, y: -3 },
+        { x: 10, y: 12 },
+        { x: -7, y: 14 },
+        { x: -14, y: 4 },
+      ],
+      '#d9b47f',
+    );
     ctx.beginPath();
-    ctx.arc(g.p.head.x, g.p.head.y - 5, 16, Math.PI, 0);
-    ctx.lineTo(g.p.head.x + 18, g.p.head.y - 2);
-    ctx.lineTo(g.p.head.x - 18, g.p.head.y - 2);
+    ctx.moveTo(-11, -3);
+    ctx.lineTo(14, -3);
+    ctx.lineTo(8, -15);
+    ctx.lineTo(-6, -15);
+    ctx.closePath();
+    ctx.fillStyle = '#f1eee3';
     ctx.fill();
-    line('hip', 'hip', '#263830', 23);
-    ctx.strokeStyle = '#bccb73';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(hip.x - 7, hip.y - 6, 14, 12);
+    ctx.beginPath();
+    ctx.moveTo(-14, -2);
+    ctx.lineTo(15, -2);
+    ctx.lineTo(11, 2);
+    ctx.lineTo(-13, 2);
+    ctx.closePath();
+    ctx.fillStyle = '#d8d9d1';
+    ctx.fill();
+    ctx.restore();
+
+    // Harness connects the torso, pelvis and rope into one readable body.
+    ctx.strokeStyle = '#bfcd72';
+    ctx.lineWidth = 2.6;
+    ctx.beginPath();
+    ctx.moveTo(leftShoulder.x, leftShoulder.y + 4);
+    ctx.lineTo(rightHip.x, rightHip.y + 3);
+    ctx.moveTo(rightShoulder.x, rightShoulder.y + 4);
+    ctx.lineTo(leftHip.x, leftHip.y + 3);
+    ctx.stroke();
+    polygon(
+      [
+        { x: hip.x - 6, y: hip.y - 5 },
+        { x: hip.x + 6, y: hip.y - 5 },
+        { x: hip.x + 7, y: hip.y + 5 },
+        { x: hip.x - 7, y: hip.y + 5 },
+      ],
+      '#aebc64',
+      '#334239',
+    );
     for (const limb of LIMBS) {
       const p = g.p[limb];
       circle(
         p,
-        limb.endsWith('Hand') ? 7 : 9,
-        limb.endsWith('Hand') ? '#edd2a2' : '#28362f',
+        limb.endsWith('Hand') ? 5.5 : 7,
+        limb.endsWith('Hand') ? '#d9b47f' : '#26352f',
       );
       if (g.grips[limb]) circle(p, 3, '#ccdda8');
       if (g.drag?.limb === limb) {

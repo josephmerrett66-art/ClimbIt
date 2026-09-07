@@ -56,9 +56,10 @@ for (let cycle = 0; cycle < 20 && !g.collected; cycle++) {
         (p) =>
           distance(p, root) < g.reach(limb) + 3 &&
           p.x > curr.x + 12 &&
+          p.x <= g.cat.x + 10 &&
           p.y < 400,
       )
-      .sort((a, b) => b.x - a.x);
+      .sort((a, b) => distance(a, g.cat) - distance(b, g.cat));
     if (!targets[0]) continue;
     g.begin(limb, targets[0]);
     for (let i = 0; i < 60; i++) g.step();
@@ -137,7 +138,7 @@ console.log(
 for (const rotation of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
   const rig = new Climber(structuredClone(catLevel));
   for (const side of ['left', 'right']) {
-    const hip = rig.p.hip,
+    const hip = rig.p[side + 'Hip'],
       foot = rig.p[side + 'Foot'],
       knee = rig.p[side + 'Knee'];
     const dx = foot.x - hip.x,
@@ -159,12 +160,12 @@ for (const rotation of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
     p.py = p.y;
   }
   const lengths = ['left', 'right'].map((s) => [
-    distance(rig.p.hip, rig.p[s + 'Knee']),
+    distance(rig.p[s + 'Hip'], rig.p[s + 'Knee']),
     distance(rig.p[s + 'Knee'], rig.p[s + 'Foot']),
   ]);
   rig.constrainKnees();
   for (const [i, side] of ['left', 'right'].entries()) {
-    const hip = rig.p.hip,
+    const hip = rig.p[side + 'Hip'],
       foot = rig.p[side + 'Foot'],
       knee = rig.p[side + 'Knee'];
     const cross =
@@ -250,3 +251,23 @@ for (const rotation of [0, Math.PI / 2, Math.PI, -Math.PI / 2]) {
   }
 }
 console.log('PASS one-way elbow hinges, rotation, and arm segment lengths');
+
+const body = new Climber(structuredClone(catLevel));
+assert.equal(body.root('leftFoot'), body.p.leftHip);
+assert.equal(body.root('rightFoot'), body.p.rightHip);
+for (const particle of [
+  'leftShoulder',
+  'rightShoulder',
+  'leftHip',
+  'rightHip',
+]) {
+  assert.ok(
+    body.bones.some(
+      (bone) =>
+        (bone.a === particle && ['neck', 'hip'].includes(bone.b)) ||
+        (bone.b === particle && ['neck', 'hip'].includes(bone.a)),
+    ),
+    `${particle} must be physically connected to the torso`,
+  );
+}
+console.log('PASS shoulders and hips connect limbs to the physical torso');

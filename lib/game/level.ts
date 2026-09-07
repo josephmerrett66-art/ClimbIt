@@ -111,7 +111,7 @@ export const catLevel: Level = {
   gripPoints: grips,
   colliders: [{ id: 'ground', type: 'edge', x: 0, y: 954, x2: 1200, y2: 954 }],
   objectives: [
-    { id: 'pickles', type: 'carry', name: 'Pickles', x: 856, y: 203 },
+    { id: 'pickles', type: 'carry', name: 'Pickles', x: 856, y: 190 },
   ],
   interactiveObjects: [],
   ropeAnchors: [{ x: 625, y: 140 }],

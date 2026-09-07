@@ -49,6 +49,7 @@ export class Climber {
       ['right', 1],
     ] as const) {
       add(side + 'Shoulder', s * 17, -44, 8, 2);
+      add(side + 'Hip', s * 11, -2, 8, 2.2);
       add(side + 'Elbow', s * 33, -73, 6);
       add(side + 'Hand', s * 30, -106, 8);
       add(side + 'Knee', s * 24, 38, 7, 1.4);
@@ -72,16 +73,21 @@ export class Climber {
     link('neck', 'head', 22);
     link('head', 'hip', 70);
     link('leftShoulder', 'rightShoulder', 34);
+    link('leftHip', 'rightHip', 22);
+    link('hip', 'leftHip', 11.2);
+    link('hip', 'rightHip', 11.2);
     for (const side of ['left', 'right']) {
       link('neck', side + 'Shoulder');
       link('hip', side + 'Shoulder');
+      link('neck', side + 'Hip', 49.2);
+      link(side + 'Shoulder', side + 'Hip', 45.3);
       link(side + 'Shoulder', side + 'Elbow', 39);
       link(side + 'Elbow', side + 'Hand', 39);
       link(side + 'Shoulder', side + 'Hand', 77, 1, true);
-      link('hip', side + 'Knee', 43);
+      link(side + 'Hip', side + 'Knee', 42.1);
       link(side + 'Knee', side + 'Foot', 43);
-      link('hip', side + 'Foot', 85, 1, true);
-      link('hip', side + 'Foot', 77, 0.025);
+      link(side + 'Hip', side + 'Foot', 84, 1, true);
+      link(side + 'Hip', side + 'Foot', 76, 0.025);
       link(side + 'Shoulder', side + 'Hand', 68, 0.018);
     }
     this.ropeLength = distance(this.p.hip, level.ropeAnchors[0]) + 55;
@@ -94,7 +100,9 @@ export class Climber {
   }
   root(limb: Limb) {
     return this.p[
-      limb.endsWith('Hand') ? limb.replace('Hand', 'Shoulder') : 'hip'
+      limb.endsWith('Hand')
+        ? limb.replace('Hand', 'Shoulder')
+        : limb.replace('Foot', 'Hip')
     ];
   }
   reach(limb: Limb) {
@@ -146,12 +154,12 @@ export class Climber {
     this.message = 'Rope catch! Drag a free limb back to the tree.';
   }
   constrainKnees() {
-    const hip = this.p.hip;
     for (const [side, sign] of [
       ['left', 1],
       ['right', -1],
     ] as const) {
-      const knee = this.p[side + 'Knee'],
+      const hip = this.p[side + 'Hip'],
+        knee = this.p[side + 'Knee'],
         foot = this.p[side + 'Foot'];
       const dx = foot.x - hip.x,
         dy = foot.y - hip.y;
@@ -220,8 +228,8 @@ export class Climber {
       neck.y += (hip.y - 48 - neck.y) * 0.3 * h;
     }
     for (const p of Object.values(this.p)) {
-      const vx = (p.x - p.px) * 0.975,
-        vy = (p.y - p.py) * 0.975;
+      const vx = (p.x - p.px) * 0.982,
+        vy = (p.y - p.py) * 0.982;
       p.px = p.x;
       p.py = p.y;
       p.x += vx * h;
@@ -252,8 +260,8 @@ export class Climber {
           d = distance(root, target) || 1,
           k = Math.min(1, this.reach(limb) / d);
         const p = this.p[limb];
-        p.x += (root.x + (target.x - root.x) * k - p.x) * 0.45;
-        p.y += (root.y + (target.y - root.y) * k - p.y) * 0.45;
+        p.x += (root.x + (target.x - root.x) * k - p.x) * 0.36;
+        p.y += (root.y + (target.y - root.y) * k - p.y) * 0.36;
       }
       if (this.carrying) {
         const hand = this.p[this.carrying],
