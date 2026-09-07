@@ -199,6 +199,41 @@ export function draw(
       ctx.fillStyle = light;
       ctx.fill();
     };
+    const extremity = (
+      from: Point,
+      to: Point,
+      length: number,
+      width: number,
+      fill: string,
+      toe = 0,
+    ) => {
+      const dx = to.x - from.x,
+        dy = to.y - from.y,
+        d = Math.hypot(dx, dy) || 1,
+        ux = dx / d,
+        uy = dy / d,
+        nx = -uy,
+        ny = ux,
+        tip = {
+          x: to.x + ux * length + nx * toe,
+          y: to.y + uy * length + ny * toe,
+        };
+      polygon(
+        [
+          { x: to.x + nx * width, y: to.y + ny * width },
+          {
+            x: tip.x + nx * width * 0.45,
+            y: tip.y + ny * width * 0.45,
+          },
+          {
+            x: tip.x - nx * width * 0.75,
+            y: tip.y - ny * width * 0.75,
+          },
+          { x: to.x - nx * width, y: to.y - ny * width },
+        ],
+        fill,
+      );
+    };
 
     // Limbs sit behind a rigid torso and visibly originate at its shoulder and hip corners.
     for (const side of ['left', 'right']) {
@@ -219,6 +254,14 @@ export function draw(
         '#3b4842',
       );
       facetedJoint(g.p[side + 'Knee'], 7.2, '#58655f', '#35433e');
+      extremity(
+        g.p[side + 'Knee'],
+        g.p[side + 'Foot'],
+        9,
+        6.5,
+        '#22312d',
+        side === 'left' ? 3 : -3,
+      );
     }
     for (const side of ['left', 'right']) {
       taperedLimb(
@@ -234,10 +277,11 @@ export function draw(
         g.p[side + 'Hand'],
         5.8,
         4.2,
-        '#e8a648',
-        '#c6812e',
+        '#e9c795',
+        '#c89d6d',
       );
-      facetedJoint(g.p[side + 'Elbow'], 6, '#e7a33e', '#b87328');
+      facetedJoint(g.p[side + 'Elbow'], 5.6, '#e5bd87', '#b98d60');
+      extremity(g.p[side + 'Elbow'], g.p[side + 'Hand'], 3.5, 5.2, '#d8ad78');
     }
 
     const leftShoulder = g.p.leftShoulder,
@@ -334,11 +378,6 @@ export function draw(
     );
     for (const limb of LIMBS) {
       const p = g.p[limb];
-      circle(
-        p,
-        limb.endsWith('Hand') ? 5.5 : 7,
-        limb.endsWith('Hand') ? '#d9b47f' : '#26352f',
-      );
       if (g.grips[limb]) circle(p, 3, '#ccdda8');
       if (g.drag?.limb === limb) {
         circle(p, 13, '#fff0', '#fff6ce');

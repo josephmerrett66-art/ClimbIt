@@ -12,9 +12,9 @@ Node 22.13+ and pnpm. `pnpm install`, then `pnpm dev`. `pnpm build` creates the 
 
 ## Architecture
 
-- `lib/game/physics.ts`: position-based weighted ragdoll with a physical torso frame, separate shoulder and hip joints, fixed bone lengths, limited endpoint reach, anchored grips, one-way elbow/knee hinges and an auto-belay harness constraint. Slightly softer dragging and retained momentum keep repositioning fluid while grip anchors remain precise.
+- `lib/game/physics.ts`: position-based weighted ragdoll with a physical torso frame, separate shoulder and hip joints, fixed bone lengths, limited endpoint reach, anchored grips, one-way elbow/knee hinges and an auto-belay harness constraint. Soft dragging, nearby-hold attraction and capped release momentum keep repositioning fluid while grip anchors remain precise.
 - `lib/game/level.ts`: separate authored level data and JSON validation. No owner entity in the default level.
-- `lib/game/render.ts`: PNG background/foreground layers, a connected low-poly climber built from tapered faceted limbs, joint pieces, torso, pelvis, head and harness, plus the low-poly cat PNG and editor overlays. Gameplay geometry is invisible.
+- `lib/game/render.ts`: PNG background/foreground layers, a connected low-poly climber built from tapered faceted limbs, joint pieces, skin forearms, shaped hands and boots, torso, pelvis, head and harness, plus the low-poly cat PNG and editor overlays. Gameplay geometry is invisible.
 - `app/game.tsx`: fixed timestep, bounded camera, unified mouse/touch Pointer Events and workshop tools. Gameplay covers the viewport, cropping the world rather than letterboxing it.
 - `app/page.tsx`: direct climbing entry, with no app shell.
 - `app/workshop/page.tsx`: separate developer entry.

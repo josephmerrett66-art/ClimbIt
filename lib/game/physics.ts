@@ -25,7 +25,12 @@ export class Climber {
   p: Record<string, Particle> = {};
   bones: Bone[] = [];
   grips: Partial<Record<Limb, Grip>> = {};
-  drag: { limb: Limb; target: Point } | null = null;
+  drag: {
+    limb: Limb;
+    target: Point;
+    previousTarget: Point;
+    velocity: Point;
+  } | null = null;
   carrying: Limb | null = null;
   cat: Particle;
   collected = false;
@@ -116,15 +121,30 @@ export class Climber {
   begin(limb: Limb, target: Point) {
     if (this.complete || this.carrying === limb) return false;
     delete this.grips[limb];
-    this.drag = { limb, target };
+    this.drag = {
+      limb,
+      target: { ...target },
+      previousTarget: { ...target },
+      velocity: { x: 0, y: 0 },
+    };
     return true;
   }
   move(target: Point) {
-    if (this.drag) this.drag.target = target;
+    if (!this.drag) return;
+    const dx = target.x - this.drag.previousTarget.x,
+      dy = target.y - this.drag.previousTarget.y,
+      length = Math.hypot(dx, dy) || 1,
+      cap = Math.min(14, length),
+      vx = (dx / length) * cap,
+      vy = (dy / length) * cap;
+    this.drag.velocity.x = this.drag.velocity.x * 0.55 + vx * 0.45;
+    this.drag.velocity.y = this.drag.velocity.y * 0.55 + vy * 0.45;
+    this.drag.previousTarget = { ...target };
+    this.drag.target = { ...target };
   }
   end(cancel = false) {
     if (!this.drag) return;
-    const { limb } = this.drag,
+    const { limb, velocity } = this.drag,
       p = this.p[limb];
     if (!cancel) {
       if (
@@ -142,8 +162,13 @@ export class Climber {
         if (g && distance(g, this.root(limb)) <= this.reach(limb) + 8) {
           this.grips[limb] = g;
           this.message = 'Good grip. Move another limb to shift your weight.';
-        } else
+        } else {
+          // Preserve a small, capped flick without storing the full drag
+          // correction as an explosive Verlet impulse.
+          p.px = p.x - velocity.x * 0.38;
+          p.py = p.y - velocity.y * 0.38;
           this.message = 'No grip caught. Aim for the trunk or a solid branch.';
+        }
       }
     }
     this.drag = null;
@@ -170,8 +195,8 @@ export class Climber {
       const nx = -dy / length,
         ny = dx / length;
       const bend = (knee.x - hip.x) * nx + (knee.y - hip.y) * ny;
-      if (bend * sign < 0.5) {
-        const correction = sign * Math.max(Math.abs(bend), 0.5) - bend;
+      if (bend * sign < 2) {
+        const correction = sign * Math.max(Math.abs(bend), 2) - bend;
         knee.x += nx * correction;
         knee.y += ny * correction;
         // Moving the constraint must not inject a kick into Verlet velocity.
@@ -195,8 +220,8 @@ export class Climber {
       const nx = -dy / length,
         ny = dx / length;
       const bend = (elbow.x - shoulder.x) * nx + (elbow.y - shoulder.y) * ny;
-      if (bend * sign < 0.5) {
-        const correction = sign * Math.max(Math.abs(bend), 0.5) - bend;
+      if (bend * sign < 2) {
+        const correction = sign * Math.max(Math.abs(bend), 2) - bend;
         elbow.x += nx * correction;
         elbow.y += ny * correction;
         elbow.px += nx * correction;
@@ -215,7 +240,7 @@ export class Climber {
         ty = 0,
         w = 0;
       for (const [limb, g] of anchors) {
-        let k = limb.endsWith('Hand') ? 1 : 1.2;
+        const k = limb.endsWith('Hand') ? 1 : 1.2;
         tx += g.x * k;
         ty += (g.y + (limb.endsWith('Hand') ? 102 : -65)) * k;
         w += k;
@@ -257,11 +282,20 @@ export class Climber {
       if (this.drag) {
         const { limb, target } = this.drag,
           root = this.root(limb),
-          d = distance(root, target) || 1,
+          nearbyGrip = this.nearest(target, 38),
+          canReachGrip =
+            nearbyGrip && distance(nearbyGrip, root) <= this.reach(limb) + 8,
+          guidedTarget = canReachGrip
+            ? {
+                x: target.x + (nearbyGrip.x - target.x) * 0.72,
+                y: target.y + (nearbyGrip.y - target.y) * 0.72,
+              }
+            : target,
+          d = distance(root, guidedTarget) || 1,
           k = Math.min(1, this.reach(limb) / d);
         const p = this.p[limb];
-        p.x += (root.x + (target.x - root.x) * k - p.x) * 0.36;
-        p.y += (root.y + (target.y - root.y) * k - p.y) * 0.36;
+        p.x += (root.x + (guidedTarget.x - root.x) * k - p.x) * 0.32;
+        p.y += (root.y + (guidedTarget.y - root.y) * k - p.y) * 0.32;
       }
       if (this.carrying) {
         const hand = this.p[this.carrying],
@@ -289,6 +323,11 @@ export class Climber {
     }
     this.constrainKnees();
     this.constrainElbows();
+    if (this.drag) {
+      const p = this.p[this.drag.limb];
+      p.px += (p.x - p.px) * 0.7;
+      p.py += (p.y - p.py) * 0.7;
+    }
     // Auto-belay feeds out during deliberate descent, but catches unanchored falls.
     if (anchors.length) {
       const d = distance(this.p.hip, this.level.ropeAnchors[0]);

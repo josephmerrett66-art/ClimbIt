@@ -271,3 +271,22 @@ for (const particle of [
   );
 }
 console.log('PASS shoulders and hips connect limbs to the physical torso');
+
+const assisted = new Climber(structuredClone(catLevel));
+const assistedLimb = LIMBS.find((limb) => assisted.grips[limb]);
+assert.ok(assistedLimb, 'Test rig starts on at least one hold');
+const assistedGrip = assisted.grips[assistedLimb];
+assert.ok(assistedGrip);
+const assistedCursor = { x: assistedGrip.x + 28, y: assistedGrip.y };
+const expectedGrip = assisted.nearest(assistedCursor, 38);
+assert.ok(expectedGrip, 'Cursor is inside the attraction radius of a hold');
+assisted.begin(assistedLimb, assisted.p[assistedLimb]);
+assisted.move(assistedCursor);
+for (let i = 0; i < 45; i++) assisted.step();
+assisted.end();
+assert.equal(
+  assisted.grips[assistedLimb]?.id,
+  expectedGrip.id,
+  'A nearby reachable hold attracts and catches the dragged limb',
+);
+console.log('PASS nearby-hold attraction and catch');
