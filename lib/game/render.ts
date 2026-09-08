@@ -255,6 +255,69 @@ export function draw(
         );
         if (g.complete)
           circle({ x: objective.x - 3, y: objective.y + 7 }, 3, '#fffbd0');
+      } else if (objective.kind && objective.kind !== 'cross') {
+        ctx.save();
+        ctx.translate(objective.x, objective.y);
+        const repaired = g.complete;
+        const metal = repaired ? '#b0c5c4' : '#98694c';
+        ctx.lineWidth = 3;
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = '#253438';
+        if (objective.kind === 'valve' || objective.kind === 'gear') {
+          ctx.fillStyle = '#55696a';
+          ctx.fillRect(-7, -24, 14, 48);
+          ctx.rotate(repaired ? Math.PI / 2 : -0.3);
+          const count = objective.kind === 'gear' ? 16 : 8;
+          const points = Array.from({ length: count }, (_, i) => {
+            const angle = (i * Math.PI * 2) / count;
+            const r = objective.kind === 'gear' && i % 2 ? 14 : 21;
+            return { x: Math.cos(angle) * r, y: Math.sin(angle) * r };
+          });
+          polygon(points, metal);
+          for (let i = 0; i < 4; i++) {
+            ctx.rotate(Math.PI / 2);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(16, 0);
+            ctx.stroke();
+          }
+          circle({ x: 0, y: 0 }, 5, '#e4d7b3');
+        } else if (objective.kind === 'cap') {
+          ctx.rotate(repaired ? 0 : 0.22);
+          polygon(
+            [
+              { x: -30, y: 6 },
+              { x: -24, y: -8 },
+              { x: 0, y: -15 },
+              { x: 24, y: -8 },
+              { x: 30, y: 6 },
+            ],
+            metal,
+          );
+          ctx.fillStyle = '#45595b';
+          ctx.fillRect(-21, 6, 5, 15);
+          ctx.fillRect(16, 6, 5, 15);
+        } else {
+          polygon(
+            [
+              { x: -17, y: -23 },
+              { x: 17, y: -23 },
+              { x: 19, y: 23 },
+              { x: -19, y: 23 },
+            ],
+            '#637777',
+          );
+          ctx.fillStyle = '#243b3b';
+          ctx.fillRect(-11, -15, 22, 12);
+          ctx.fillStyle = repaired ? '#ffdf85' : '#b5533c';
+          ctx.fillRect(-7, -11, 14, 4);
+          ctx.save();
+          ctx.rotate(repaired ? 0 : 0.6);
+          ctx.fillStyle = '#e2d1a8';
+          ctx.fillRect(-3, 1, 6, 16);
+          ctx.restore();
+        }
+        ctx.restore();
       } else {
         ctx.save();
         ctx.translate(objective.x, objective.y);

@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import Game from '@/app/game';
+import { EXTRA_JOBS } from '@/lib/game/extra-jobs';
 import '@/app/globals.css';
 import {
   catLevel,
@@ -12,11 +13,12 @@ import {
 const basePath = '/ClimbIt';
 const route = location.pathname.replace(basePath, '').replace(/\/$/, '') || '/';
 const source =
-  route === '/church'
+  EXTRA_JOBS.find((job) => job.href === route)?.level ??
+  (route === '/church'
     ? churchLevel
     : route === '/tower'
       ? towerLevel
-      : catLevel;
+      : catLevel);
 const level = structuredClone(source) as Level;
 
 for (const key of ['backgroundImage', 'foregroundImage'] as const) {

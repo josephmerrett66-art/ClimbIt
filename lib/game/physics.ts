@@ -41,7 +41,7 @@ export class Climber {
   unanchoredStartY: number | null = null;
   gripFocus: Grip | null = null;
   catches: { x: number; y: number; age: number }[] = [];
-  message = 'Drag a hand or boot onto the bark. Small moves work best.';
+  message = 'Drag a hand or boot onto a solid edge. Small moves work best.';
   constructor(
     public level: Level,
     public completionEnabled = true,
@@ -198,9 +198,10 @@ export class Climber {
         if (this.level.objectives[0].type === 'repair') {
           this.complete = true;
           this.message =
-            this.level.objectives[0].kind === 'bulb'
+            this.level.objectives[0].successMessage ??
+            (this.level.objectives[0].kind === 'bulb'
               ? 'New bulb fitted. Tower light restored.'
-              : 'Cross straightened. That should hold.';
+              : 'Cross straightened. That should hold.');
         } else {
           this.carrying = limb;
           this.p[limb].mass += this.cat.mass;

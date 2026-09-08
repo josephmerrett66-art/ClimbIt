@@ -12,7 +12,8 @@ export type Objective = Point & {
   id: string;
   type: 'carry' | 'repair';
   name: string;
-  kind?: 'cross' | 'bulb';
+  kind?: 'cross' | 'bulb' | 'gear' | 'cap' | 'valve' | 'fuse';
+  successMessage?: string;
 };
 export type Level = {
   version: 1;

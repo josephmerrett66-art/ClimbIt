@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { catLevel, parseLevel, type Level, type Point } from '@/lib/game/level';
 import { Climber, LIMBS, distance, type Limb } from '@/lib/game/physics';
 import { draw, type View } from '@/lib/game/render';
+import { EXTRA_JOBS } from '@/lib/game/extra-jobs';
 type Tool =
   | 'select'
   | 'grip'
@@ -87,6 +88,7 @@ const JOBS = [
     href: '/tower',
     image: '/assets/telephone-tower.png',
   },
+  ...EXTRA_JOBS,
 ] as const;
 const money = (amount: number) =>
   new Intl.NumberFormat('en-AU', {
@@ -125,7 +127,7 @@ export default function Game({
       complete: false,
       failed: false,
       grips: 0,
-      message: 'Drag a hand or boot onto the bark.',
+      message: 'Drag a hand or boot onto a solid edge.',
     }),
     [paused, setPaused] = useState(false),
     [zoom, setZoom] = useState(1),
@@ -179,7 +181,7 @@ export default function Game({
       complete: false,
       failed: false,
       grips: 0,
-      message: 'Drag a hand or boot onto the bark.',
+      message: 'Drag a hand or boot onto a solid edge.',
     });
     setChosen(null);
     setPayout(null);
@@ -1124,6 +1126,9 @@ export default function Game({
                                 {money(job.pay)}
                                 {complete && <em>COMPLETED</em>}
                               </span>
+                              <small>
+                                {activeJob ? 'ON SITE' : 'ACCEPT JOB'}
+                              </small>
                             </span>
                             <ChevronRight size={17} />
                           </a>

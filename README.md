@@ -1,4 +1,4 @@
-# Odd Jobs — tree climbing prototype
+# Odd Jobs — climbing game prototype
 
 **[Play Odd Jobs in your browser](https://josephmerrett66-art.github.io/ClimbIt/)**
 
@@ -12,11 +12,23 @@ The main page opens directly into a full-window climbing scene. The environment,
 
 Drag a hand or boot onto the tree to climb. Keys 1–4 select individual limbs; R restarts the climb; F requests browser fullscreen. Pickles can still be carried in one hand. Gravity acts on the full body, and falling from the climb ends the job without payment.
 
-The phone contains the Odd Jobs app and Common Cents online banking. Jobs launch the three full-screen routes directly. Completing a job opens an animated payment screen with the amount earned and the account balance before and after the deposit. Banking tracks the available balance, lifetime earnings, completed jobs and the remaining $12,000 career-pivot loan. The available balance can be transferred toward the debt.
+The phone contains the Odd Jobs app and Common Cents online banking. Jobs launch eight full-screen routes directly. Completing a job opens an animated payment screen with the amount earned and the account balance before and after the deposit. Banking tracks the available balance, lifetime earnings, completed jobs and the remaining $12,000 career-pivot loan. The available balance can be transferred toward the debt.
 
 The second full-window climb is available at `/church`. It uses a separate low-poly PNG environment and authored route up a stone church. Reaching the crooked cross with either hand straightens it in place.
 
 The third climb is available at `/tower`. It follows the lattice, maintenance platforms and antenna braces of a telecommunications tower. Reaching the dead summit bulb replaces and illuminates it.
+
+Five more jobs are available through the phone, each with its own low-poly background and summit repair:
+
+| Route | Job | Payment |
+| --- | --- | --- |
+| `/lighthouse` | Restore the lighthouse beacon | $120 |
+| `/windmill` | Repair the windmill drive | $95 |
+| `/chimney` | Secure the chimney cap | $110 |
+| `/water-tower` | Fix the water tower valve | $135 |
+| `/cable-car` | Repair the cable-car signal | $150 |
+
+Their holds follow the visible front service ladder rails. Repairs change the object in place and use the same payment screen and persistent banking system as the original jobs. All eight routes are included in both the Sites build and GitHub Pages build.
 
 The developer workshop is retained separately at `/workshop`: import background/foreground PNGs, trace grips and edge/rectangle colliders, place spawn/objective/return-zone/camera geometry, play test, undo, save locally and export/reload portable JSON with embedded artwork.
 
@@ -37,6 +49,8 @@ The complete carry-and-return system remains available to editor play tests. Nor
 
 ## Validation
 
+`pnpm exec jiti tests/physics.test.ts` runs the original climb regressions. `pnpm exec jiti tests/extra-jobs.test.ts` verifies all five additional routes by moving limbs from their starting holds to their actual summit repair, including artwork/entry-point checks and the hand-support requirement.
+
 Automated tests exercise ascent, branch traversal, actual cat pickup, three-limb descent, complete church and tower ascents, both repair objectives, gravity-driven fall failure, carrying lockout and JSON validation. Scale regression checks verify that body geometry, reach, collision radii, snap zones and nearest-hold spacing change together for each background. Hinge tests intentionally reverse both knees and rotate the body, then verify bend direction and unchanged leg segment lengths. Mouse/touch feel still needs hands-on tuning.
 
 ## Artwork
@@ -48,3 +62,5 @@ Automated tests exercise ascent, branch traversal, actual cat pickup, three-limb
 `public/assets/telephone-tower.png` is built-in ImageGen artwork for the third climb. The centered low-poly structure exposes a continuous ladder-and-lattice route, with wider platform detours and an empty lamp fitting at the summit. The bulb and its completion glow are rendered as the interactive object.
 
 All three environment textures are stored at 2400×2000 while retaining a 1200×1000 gameplay coordinate system. This supplies 2× artwork resolution for high-density displays without moving the authored grips, collisions or objectives.
+
+The five new scene assets and their generation prompts are documented in [docs/job-artwork.md](docs/job-artwork.md).

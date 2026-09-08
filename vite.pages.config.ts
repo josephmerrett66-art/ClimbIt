@@ -17,6 +17,16 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
+        ...Object.fromEntries(
+          ['lighthouse', 'windmill', 'chimney', 'water-tower', 'cable-car'].map(
+            (slug) => [
+              slug,
+              fileURLToPath(
+                new URL(`github-pages/${slug}/index.html`, import.meta.url),
+              ),
+            ],
+          ),
+        ),
         main: fileURLToPath(
           new URL('github-pages/index.html', import.meta.url),
         ),
