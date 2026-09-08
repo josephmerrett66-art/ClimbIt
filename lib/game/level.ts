@@ -28,7 +28,6 @@ export type Level = {
   colliders: Collider[];
   objectives: Objective[];
   interactiveObjects: (Point & { id: string; type: string })[];
-  ropeAnchors: Point[];
   cameraBounds: { x: number; y: number; width: number; height: number };
   completionTrigger: { x: number; y: number; width: number; height: number };
   pay: number;
@@ -122,7 +121,6 @@ export const catLevel: Level = {
     { id: 'pickles', type: 'carry', name: 'Pickles', x: 856, y: 190 },
   ],
   interactiveObjects: [],
-  ropeAnchors: [{ x: 625, y: 140 }],
   cameraBounds: { x: 0, y: 0, width: 1200, height: 1000 },
   completionTrigger: { x: 550, y: 865, width: 255, height: 100 },
   pay: 40,
@@ -234,7 +232,6 @@ export const churchLevel: Level = {
   interactiveObjects: [
     { id: 'cross-hinge', type: 'straighten', x: 612, y: 122 },
   ],
-  ropeAnchors: [{ x: 612, y: 100 }],
   cameraBounds: { x: 0, y: 0, width: 1200, height: 1000 },
   completionTrigger: { x: 520, y: 850, width: 180, height: 110 },
   pay: 55,
@@ -359,7 +356,6 @@ export const towerLevel: Level = {
   interactiveObjects: [
     { id: 'tower-lamp', type: 'replace-bulb', x: 602, y: 62 },
   ],
-  ropeAnchors: [{ x: 602, y: 42 }],
   cameraBounds: { x: 0, y: 0, width: 1200, height: 1000 },
   completionTrigger: { x: 520, y: 850, width: 180, height: 110 },
   pay: 85,
@@ -421,12 +417,8 @@ export function parseLevel(raw: string): Level {
     )
   )
     throw Error('Add at least one supported objective.');
-  if (
-    !Array.isArray(l.ropeAnchors) ||
-    !l.ropeAnchors.length ||
-    !l.ropeAnchors.every(point)
-  )
-    throw Error('A rope anchor is required.');
+  // Accept old exports, but discard the retired rope configuration.
+  delete l.ropeAnchors;
   for (const key of ['cameraBounds', 'completionTrigger'])
     if (
       !point(l[key]) ||

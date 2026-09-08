@@ -35,10 +35,10 @@ export class Climber {
   cat: Particle;
   collected = false;
   complete = false;
+  failed = false;
   elapsed = 0;
   scale: number;
-  ropeLength: number;
-  ropeCaught = false;
+  unanchoredStartY: number | null = null;
   message = 'Drag a hand or boot onto the bark. Small moves work best.';
   constructor(
     public level: Level,
@@ -105,7 +105,6 @@ export class Climber {
       link(side + 'Hip', side + 'Foot', 76 * s, 0.025);
       link(side + 'Shoulder', side + 'Hand', 68 * s, 0.018);
     }
-    this.ropeLength = distance(this.p.hip, level.ropeAnchors[0]) + 55 * s;
     const o = level.objectives[0];
     this.cat = { x: o.x, y: o.y, px: o.x, py: o.y, r: 13, mass: 1.5 };
     for (const limb of LIMBS) {
@@ -129,7 +128,7 @@ export class Climber {
       .sort((a, b) => distance(a, pos) - distance(b, pos))[0];
   }
   begin(limb: Limb, target: Point) {
-    if (this.complete || this.carrying === limb) return false;
+    if (this.complete || this.failed || this.carrying === limb) return false;
     delete this.grips[limb];
     this.drag = {
       limb,
@@ -197,7 +196,7 @@ export class Climber {
   releaseAll() {
     this.grips = {};
     this.drag = null;
-    this.message = 'Rope catch! Drag a free limb back to the tree.';
+    this.message = 'No holds. Grab something before you hit the ground!';
   }
   constrainKnees() {
     for (const [side, sign] of [
@@ -253,7 +252,7 @@ export class Climber {
     }
   }
   step(dt = 1 / 60) {
-    if (this.complete) return;
+    if (this.complete || this.failed) return;
     this.elapsed += dt;
     const h = dt * 60;
     const anchors = Object.entries(this.grips) as [Limb, Grip][];
@@ -283,7 +282,6 @@ export class Climber {
       p.x += vx * h;
       p.y += vy * h + 0.42 * h * h;
     }
-    this.ropeCaught = false;
     for (let pass = 0; pass < 18; pass++) {
       for (const b of this.bones) {
         const a = this.p[b.a],
@@ -331,14 +329,6 @@ export class Climber {
         this.p[limb].x = g.x;
         this.p[limb].y = g.y;
       }
-      const hip = this.p.hip,
-        a = this.level.ropeAnchors[0],
-        d = distance(hip, a);
-      if (d > this.ropeLength) {
-        hip.x = a.x + ((hip.x - a.x) * this.ropeLength) / d;
-        hip.y = a.y + ((hip.y - a.y) * this.ropeLength) / d;
-        this.ropeCaught = true;
-      }
       for (const p of Object.values(this.p)) {
         this.collide(p);
         p.x = Math.max(p.r, Math.min(this.level.worldWidth - p.r, p.x));
@@ -352,10 +342,30 @@ export class Climber {
       p.px += (p.x - p.px) * 0.7;
       p.py += (p.y - p.py) * 0.7;
     }
-    // Auto-belay feeds out during deliberate descent, but catches unanchored falls.
     if (anchors.length) {
-      const d = distance(this.p.hip, this.level.ropeAnchors[0]);
-      this.ropeLength += (d + 65 * this.scale - this.ropeLength) * 0.08;
+      this.unanchoredStartY = null;
+    } else {
+      if (this.unanchoredStartY === null) this.unanchoredStartY = this.p.hip.y;
+      const groundY = this.level.colliders
+          .filter(
+            (c) =>
+              c.type === 'edge' &&
+              Math.abs(c.y2 - c.y) < 2 &&
+              Math.max(c.y, c.y2) > this.level.worldHeight * 0.75,
+          )
+          .reduce(
+            (lowest, c) => Math.min(lowest, Math.min(c.y, c.y2)),
+            this.level.worldHeight,
+          ),
+        hitGround = Object.values(this.p).some(
+          (p) => p.y + p.r >= groundY - 1.5,
+        ),
+        fallDistance = this.p.hip.y - this.unanchoredStartY;
+      if (hitGround && fallDistance > 55 * this.scale) {
+        this.failed = true;
+        this.drag = null;
+        this.message = 'You fell. The job is over.';
+      }
     }
     if (this.carrying) {
       const hand = this.p[this.carrying];

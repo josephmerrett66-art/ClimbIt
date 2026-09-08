@@ -81,10 +81,6 @@ export function draw(
       circle(o, 13 / v.scale, '#ffdc67');
       label({ x: o.x, y: o.y - 20 }, o.name.toUpperCase());
     }
-    for (const a of l.ropeAnchors) {
-      circle(a, 8 / v.scale, '#d2adff');
-      label({ x: a.x, y: a.y - 15 }, 'ROPE');
-    }
     const z = l.completionTrigger;
     ctx.fillStyle = '#77fbbb30';
     ctx.fillRect(z.x, z.y, z.width, z.height);

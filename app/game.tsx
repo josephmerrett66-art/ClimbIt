@@ -36,7 +36,6 @@ type Tool =
   | 'spawn'
   | 'objective'
   | 'zone'
-  | 'rope'
   | 'camera';
 const clone = <T,>(x: T): T => JSON.parse(JSON.stringify(x));
 const time = (s: number) =>
@@ -122,9 +121,9 @@ export default function Game({
       seconds: 0,
       carrying: false,
       complete: false,
+      failed: false,
       grips: 0,
       message: 'Drag a hand or boot onto the bark.',
-      rope: false,
     }),
     [paused, setPaused] = useState(false),
     [zoom, setZoom] = useState(1),
@@ -176,9 +175,9 @@ export default function Game({
       seconds: 0,
       carrying: false,
       complete: false,
+      failed: false,
       grips: 0,
       message: 'Drag a hand or boot onto the bark.',
-      rope: false,
     });
     setChosen(null);
     setPayout(null);
@@ -327,7 +326,7 @@ export default function Game({
         l = level.current;
       const dt = Math.min((now - last) / 1000 || 0, 0.05);
       last = now;
-      if (!s.edit && !s.paused && !g.complete) {
+      if (!s.edit && !s.paused && !g.complete && !g.failed) {
         accum += dt;
         while (accum >= 1 / 60) {
           g.step();
@@ -397,9 +396,9 @@ export default function Game({
           seconds: g.elapsed,
           carrying: g.collected,
           complete: g.complete,
+          failed: g.failed,
           grips: Object.keys(g.grips).length,
           message: g.message,
-          rope: g.ropeCaught,
         });
       }
       if (g.complete && !paid.current) {
@@ -483,6 +482,7 @@ export default function Game({
               mode: settings.current.edit ? 'edit' : 'play',
               carrying: g.collected,
               complete: g.complete,
+              failed: g.failed,
               seconds: Math.floor(g.elapsed),
               grips: Object.keys(g.grips),
             };
@@ -523,7 +523,12 @@ export default function Game({
     };
   };
   function down(e: React.PointerEvent<HTMLCanvasElement>) {
-    if (active.current !== null || paused || (hud.complete && !edit)) return;
+    if (
+      active.current !== null ||
+      paused ||
+      ((hud.complete || hud.failed) && !edit)
+    )
+      return;
     const p = world(e);
     active.current = e.pointerId;
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -634,7 +639,6 @@ export default function Game({
         if (s.tool === 'spawn') l.playerSpawn = p;
         if (s.tool === 'objective')
           l.objectives[0] = { ...l.objectives[0], ...p };
-        if (s.tool === 'rope') l.ropeAnchors[0] = p;
         if (['edge', 'rect'].includes(s.tool) && distance(s.a, p) > 8) {
           l.colliders.push({
             id,
@@ -692,7 +696,6 @@ export default function Game({
           scale(l.playerSpawn);
           l.gripPoints.forEach(scale);
           l.objectives.forEach(scale);
-          l.ropeAnchors.forEach(scale);
           l.interactiveObjects.forEach(scale);
           l.colliders.forEach((c) => {
             scale(c);
@@ -876,7 +879,6 @@ export default function Game({
                   ['spawn', '◎', 'Player spawn'],
                   ['objective', '★', 'Pickles'],
                   ['zone', '▣', 'Return zone'],
-                  ['rope', '⌁', 'Rope anchor'],
                   ['camera', '⊞', 'Camera bounds'],
                 ] as [Tool, string, string][]
               ).map(([t, i, n]) => (
@@ -972,6 +974,27 @@ export default function Game({
       </div>
       {!edit && (
         <>
+          {hud.failed && !phoneOpen && (
+            <div
+              className="failure-layer"
+              role="dialog"
+              aria-label="Job failed"
+            >
+              <section className="failure-card">
+                <span>JOB FAILED</span>
+                <h2>You fell.</h2>
+                <p>
+                  No payment this time. Get back up there and finish the job.
+                </p>
+                <button onClick={reset}>
+                  <RotateCcw size={15} /> Try again
+                </button>
+                <button onClick={() => openPhoneTo('jobs')}>
+                  Choose another job
+                </button>
+              </section>
+            </div>
+          )}
           {payout && !phoneOpen && (
             <div
               className="completion-layer"

@@ -104,17 +104,12 @@ for (const p of Object.values(falling.p)) {
   p.y -= 400;
   p.py -= 400;
 }
-falling.ropeLength = distance(falling.p.hip, catLevel.ropeAnchors[0]) + 65;
 falling.releaseAll();
-for (let i = 0; i < 500; i++) falling.step();
+for (let i = 0; i < 500 && !falling.failed; i++) falling.step();
+assert.equal(falling.failed, true, 'An unanchored fall must fail the job');
 assert.ok(
-  distance(falling.p.hip, catLevel.ropeAnchors[0]) < falling.ropeLength + 3,
-);
-g.releaseAll();
-for (let i = 0; i < 500; i++) g.step();
-assert.ok(
-  distance(g.p.hip, catLevel.ropeAnchors[0]) < g.ropeLength + 3,
-  'Rope limits a fall',
+  falling.p.hip.y > 700,
+  'Gravity must carry the climber down without a rope constraint',
 );
 for (const b of g.bones.filter((b) => b.stiffness === 1)) {
   assert.ok(
@@ -136,7 +131,7 @@ assert.equal(carrier.complete, false);
 carrier.step();
 assert.equal(carrier.complete, true);
 console.log(
-  'PASS physics reach, ascent, rope, carry, return trigger, JSON round trip and rejection',
+  'PASS physics reach, ascent, gravity fall failure, carry, return trigger, JSON round trip and rejection',
 );
 
 // Deliberately invert the knees, then check the one-way hinge under rotation.

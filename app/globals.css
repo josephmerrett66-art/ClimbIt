@@ -188,18 +188,6 @@ a {
 .zoom-tools button + button {
   border-top: 1px solid #cfdbc3;
 }
-.belay {
-  position: absolute;
-  bottom: 25px;
-  left: 25px;
-  font-size: 8px;
-  letter-spacing: 1px;
-  color: #fff8d3;
-  background: #284637bd;
-  padding: 8px;
-  border-radius: 3px;
-  pointer-events: none;
-}
 .controls-bar {
   background: #fbfaf2;
   padding: 16px 24px;
@@ -705,17 +693,6 @@ body {
   border: 0;
   padding: 3px;
 }
-.rope-catch {
-  position: absolute;
-  bottom: 80px;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #fff0b6;
-  font: italic 22px Georgia;
-  text-shadow: 0 2px 10px #1c2f20;
-  pointer-events: none;
-  z-index: 2;
-}
 .immersive-stage .game-overlay {
   z-index: 3;
   background: #10281ece;
@@ -887,6 +864,66 @@ body {
   background: #071710ad;
   backdrop-filter: blur(7px);
   animation: completion-fade 0.35s ease;
+}
+.failure-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 16;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: #fff5df;
+  background: #170d09b8;
+  backdrop-filter: blur(8px);
+  animation: completion-fade 0.3s ease;
+}
+.failure-card {
+  width: min(390px, calc(100vw - 30px));
+  padding: 36px 32px 28px;
+  text-align: center;
+  background: linear-gradient(155deg, #43271f, #291a16);
+  border: 1px solid #f4c79b35;
+  border-radius: 22px;
+  box-shadow: 0 30px 90px #070302cc;
+}
+.failure-card > span {
+  color: #e6b68e;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 3px;
+}
+.failure-card h2 {
+  margin: 12px 0 6px;
+  color: #fff0cf;
+  font:
+    italic 48px Georgia,
+    serif;
+}
+.failure-card p {
+  margin: 0 auto 23px;
+  color: #d7c0ae;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.failure-card button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 45px;
+  border: 0;
+  border-radius: 11px;
+  color: #3a241d;
+  background: #f0d5a8;
+  font-size: 10px;
+  font-weight: 850;
+}
+.failure-card button + button {
+  min-height: 36px;
+  margin-top: 5px;
+  color: #d7c0ae;
+  background: transparent;
 }
 .completion-card {
   position: relative;
