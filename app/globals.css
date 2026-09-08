@@ -1520,3 +1520,68 @@ body {
     bottom: max(16px, env(safe-area-inset-bottom));
   }
 }
+
+/* Small in-game touch controls, kept clear of the phone and the climb. */
+.touch-climb-controls {
+  position: absolute;
+  left: max(12px, env(safe-area-inset-left));
+  bottom: max(16px, env(safe-area-inset-bottom));
+  z-index: 4;
+  color: #fff8df;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.touch-climb-controls p {
+  margin: 0 0 7px;
+  font-size: 11px;
+  text-shadow: 0 1px 5px #102419;
+}
+.touch-climb-controls > div {
+  display: flex;
+  gap: 5px;
+}
+.touch-climb-controls button {
+  width: 52px;
+  height: 54px;
+  border: 1px solid #f2ebcf66;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  color: #fff8df;
+  background: #142c25dc;
+  backdrop-filter: blur(6px);
+  touch-action: manipulation;
+}
+.touch-climb-controls button span {
+  font-size: 10px;
+}
+.touch-climb-controls button.chosen {
+  background: #f0d6a0;
+  color: #20382e;
+}
+.touch-climb-controls button:disabled {
+  opacity: 0.45;
+}
+.touch-climb-controls button:focus-visible {
+  outline: 2px solid #fff5d0;
+  outline-offset: 3px;
+}
+.canvas-wrap canvas {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+@media (any-pointer: coarse) {
+  .phone-launch {
+    width: 54px;
+    height: 54px;
+    right: max(12px, env(safe-area-inset-right));
+  }
+  .phone-header button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

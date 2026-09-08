@@ -188,7 +188,18 @@ export class Climber {
     if (!this.drag) return;
     const { limb, velocity } = this.drag,
       p = this.p[limb];
-    if (!cancel) {
+    if (cancel) {
+      // Interrupted touch gestures may catch a reachable edge, but never
+      // complete an objective or add a release impulse.
+      const grip = this.grabPreview();
+      if (grip) {
+        this.grips[limb] = grip;
+        p.x = grip.x;
+        p.y = grip.y;
+      }
+      p.px = p.x;
+      p.py = p.y;
+    } else {
       if (
         !this.collected &&
         limb.endsWith('Hand') &&

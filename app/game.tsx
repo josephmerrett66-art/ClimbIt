@@ -29,6 +29,12 @@ import { catLevel, parseLevel, type Level, type Point } from '@/lib/game/level';
 import { Climber, LIMBS, distance, type Limb } from '@/lib/game/physics';
 import { draw, type View } from '@/lib/game/render';
 import { EXTRA_JOBS } from '@/lib/game/extra-jobs';
+import {
+  START_ZOOM,
+  cameraTarget,
+  selectLimb,
+  dragTarget,
+} from '@/lib/game/controls';
 type Tool =
   | 'select'
   | 'grip'
@@ -130,7 +136,8 @@ export default function Game({
       message: 'Drag a hand or boot onto a solid edge.',
     }),
     [paused, setPaused] = useState(false),
-    [zoom, setZoom] = useState(1),
+    [zoom] = useState(START_ZOOM),
+    [touchControls, setTouchControls] = useState(false),
     [fullscreen, setFullscreen] = useState(false),
     [hintVisible, setHintVisible] = useState(true),
     [selected, setSelected] = useState<string | null>(null),
@@ -151,7 +158,10 @@ export default function Game({
     chosen,
   });
   settings.current = { edit, editing, tool, paused, zoom, selected, chosen };
-  const active = useRef<number | null>(null),
+  const cameraReady = useRef(false),
+    viewport = useRef({ width: 0, height: 0 }),
+    dragOffset = useRef<Point>({ x: 0, y: 0 }),
+    active = useRef<number | null>(null),
     gesture = useRef<{
       a: Point;
       b: Point;
@@ -173,6 +183,7 @@ export default function Game({
     if (history.current.length > 40) history.current.shift();
   };
   const reset = () => {
+    cameraReady.current = false;
     game.current = new Climber(level.current, !editing);
     paid.current = false;
     setHud({
@@ -215,6 +226,9 @@ export default function Game({
     setPhoneUnread(true);
   };
   const openPhone = () => {
+    game.current?.end(true);
+    active.current = null;
+    setChosen(null);
     setPhoneOpen(true);
     setPaused(true);
     setPhoneUnread(false);
@@ -278,10 +292,15 @@ export default function Game({
     } catch {}
   }, []);
   useEffect(() => {
+    const coarse = window.matchMedia('(any-pointer: coarse)');
+    const updateTouch = () => setTouchControls(coarse.matches);
+    updateTouch();
+    coarse.addEventListener('change', updateTouch);
     const timer = window.setTimeout(() => setHintVisible(false), 12000);
     const changed = () => setFullscreen(!!document.fullscreenElement);
     document.addEventListener('fullscreenchange', changed);
     return () => {
+      coarse.removeEventListener('change', updateTouch);
       window.clearTimeout(timer);
       document.removeEventListener('fullscreenchange', changed);
     };
@@ -337,48 +356,25 @@ export default function Game({
           accum -= 1 / 60;
         }
       } else accum = 0;
-      const bounds = l.cameraBounds;
-      const base = (s.edit ? Math.min : Math.max)(
-          w / bounds.width,
-          h / bounds.height,
-        ),
-        scale = base * (s.edit ? 1 : s.zoom);
-      const contentW = bounds.width * scale,
-        contentH = bounds.height * scale;
-      let tx = (w - contentW) / 2 - bounds.x * scale,
-        ty = (h - contentH) / 2 - bounds.y * scale;
-      if (!s.edit) {
-        const focus = g.p.hip;
-        tx =
-          contentW > w
-            ? Math.max(
-                w - (bounds.x + bounds.width) * scale,
-                Math.min(-bounds.x * scale, w / 2 - focus.x * scale),
-              )
-            : tx;
-        ty =
-          contentH > h
-            ? Math.max(
-                h - (bounds.y + bounds.height) * scale,
-                Math.min(-bounds.y * scale, h * 0.58 - focus.y * scale),
-              )
-            : ty;
+      const resized =
+        viewport.current.width !== w || viewport.current.height !== h;
+      if (resized && g.drag) {
+        g.end(true);
+        active.current = null;
+        setChosen(null);
       }
+      viewport.current = { width: w, height: h };
+      const target = cameraTarget(w, h, l, g.p.hip, s.zoom, s.edit);
       const v = view.current;
-      v.scale = s.edit
-        ? scale
-        : Math.max(base, v.scale + (scale - v.scale) * 0.15);
-      v.x += (tx - v.x) * 0.1;
-      v.y += (ty - v.y) * 0.1;
-      if (!s.edit) {
-        v.x = Math.max(
-          w - (bounds.x + bounds.width) * v.scale,
-          Math.min(-bounds.x * v.scale, v.x),
-        );
-        v.y = Math.max(
-          h - (bounds.y + bounds.height) * v.scale,
-          Math.min(-bounds.y * v.scale, v.y),
-        );
+      if (!cameraReady.current || resized || s.edit) {
+        Object.assign(v, target);
+        cameraReady.current = true;
+      } else if (!g.drag) {
+        // Keep the surface still under a finger; follow the body after release.
+        const ease = 1 - Math.exp(-8 * dt);
+        v.scale = target.scale;
+        v.x += (target.x - v.x) * ease;
+        v.y += (target.y - v.y) * ease;
       }
       draw(
         ctx,
@@ -582,23 +578,26 @@ export default function Game({
       gesture.current = { a: p, b: p, tool, id, original };
     } else {
       const g = game.current!;
-      const limb =
-        chosen ||
-        LIMBS.filter((l) => l !== g.carrying).sort(
-          (a, b) => distance(g.p[a], p) - distance(g.p[b], p),
-        )[0];
-      if (
-        limb &&
-        (chosen ||
-          distance(g.p[limb], p) < Math.max(22, 30 / view.current.scale))
-      ) {
-        g.begin(limb, p);
-        setChosen(limb);
-      } else {
-        active.current = null;
-        if (e.currentTarget.hasPointerCapture(e.pointerId))
-          e.currentTarget.releasePointerCapture(e.pointerId);
+      const touch = e.pointerType === 'touch';
+      if (touch) setTouchControls(true);
+      const limb = selectLimb(g, p, view.current.scale, touch, chosen);
+      if (limb) {
+        // Touch and selected-limb controls drag relative to the endpoint,
+        // allowing thumb movement away from the artwork without a jump.
+        const relative = touch || Boolean(chosen);
+        const endpoint = g.p[limb];
+        dragOffset.current = relative
+          ? { x: endpoint.x - p.x, y: endpoint.y - p.y }
+          : { x: 0, y: 0 };
+        if (g.begin(limb, dragTarget(p, dragOffset.current))) {
+          setChosen(limb);
+          e.preventDefault();
+          return;
+        }
       }
+      active.current = null;
+      if (e.currentTarget.hasPointerCapture(e.pointerId))
+        e.currentTarget.releasePointerCapture(e.pointerId);
     }
   }
   function move(e: React.PointerEvent<HTMLCanvasElement>) {
@@ -620,7 +619,7 @@ export default function Game({
           }
         }
       }
-    } else game.current?.move(p);
+    } else game.current?.move(dragTarget(p, dragOffset.current));
   }
   function up(e: React.PointerEvent<HTMLCanvasElement>, cancel = false) {
     if (active.current !== e.pointerId) return;
@@ -832,7 +831,7 @@ export default function Game({
             aria-label={
               edit
                 ? 'Level artwork editor. Choose a tool and click or drag to place geometry.'
-                : 'Climbing game. Drag individual hands and feet to the tree. Use limb buttons for easier selection.'
+                : 'Climbing game. Drag hands and feet onto solid edges. On touch screens, select a limb then drag anywhere to move it; release to grab.'
             }
           />
           {edit && (
@@ -986,6 +985,44 @@ export default function Game({
       </div>
       {!edit && (
         <>
+          {touchControls && !phoneOpen && !hud.complete && !hud.failed && (
+            <div
+              className="touch-climb-controls"
+              aria-label="Choose a climbing limb"
+            >
+              <p>
+                {chosen
+                  ? 'Drag anywhere · release to grab'
+                  : 'Drag a limb, or select one below'}
+              </p>
+              <div>
+                {LIMBS.map((limb) => (
+                  <button
+                    key={limb}
+                    type="button"
+                    className={chosen === limb ? 'chosen' : ''}
+                    aria-label={`Select ${limb.replace(/([A-Z])/g, ' $1').toLowerCase()}`}
+                    aria-pressed={chosen === limb}
+                    disabled={hud.carrying && game.current?.carrying === limb}
+                    onClick={() => {
+                      if (active.current === null)
+                        setChosen(chosen === limb ? null : limb);
+                    }}
+                  >
+                    {limb.endsWith('Hand') ? (
+                      <Hand size={18} />
+                    ) : (
+                      <Footprints size={18} />
+                    )}
+                    <span>
+                      {limb.startsWith('left') ? 'L' : 'R'}{' '}
+                      {limb.endsWith('Hand') ? 'hand' : 'foot'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {hud.failed && !phoneOpen && (
             <div
               className="failure-layer"

@@ -8,6 +8,10 @@ Moving a foot requires at least one hand securely attached. Planted feet can sup
 
 The church routes follow projecting buttresses, stone courses and roof coping, avoiding window glass. The tower routes follow its front ladder, structural beams and maintenance platforms. The tree's upper rescue branch follows the visible wood. Grips remain spaced for each character scale; no rope recovery is present.
 
+Every map starts at 1.6× the previous camera zoom, framed on the climber immediately. The camera holds still during a limb drag and smoothly follows again after release. Portrait and landscape layouts keep the background covering the viewport.
+
+On touchscreens, hands and feet have generous 88-pixel selection areas. Four compact limb selectors let you select a hand or foot and drag anywhere on the canvas to move it relative to your finger, keeping the artwork visible. Lifting your finger grabs a reachable edge. Interrupted gestures can safely reattach to a nearby reachable hold without awarding a repair or adding a fling.
+
 The main page opens directly into a full-window climbing scene. The environment, climber and objective fill the viewport. A small handset button opens the in-game phone over the paused climb.
 
 Drag a hand or boot onto the tree to climb. Keys 1–4 select individual limbs; R restarts the climb; F requests browser fullscreen. Pickles can still be carried in one hand. Gravity acts on the full body, and falling from the climb ends the job without payment.
@@ -48,6 +52,8 @@ Node 22.13+ and pnpm. `pnpm install`, then `pnpm dev`. `pnpm build` creates the 
 The complete carry-and-return system remains available to editor play tests. Normal routes stop on completion and present the payment screen; editor play tests do not award money.
 
 ## Validation
+
+`pnpm exec jiti tests/controls.test.ts` checks camera coverage at portrait, landscape and desktop sizes for all eight maps, touch targeting, relative dragging and gesture cancellation.
 
 `pnpm exec jiti tests/physics.test.ts` runs the original climb regressions. `pnpm exec jiti tests/extra-jobs.test.ts` verifies all five additional routes by moving limbs from their starting holds to their actual summit repair, including artwork/entry-point checks and the hand-support requirement.
 
