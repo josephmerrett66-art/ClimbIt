@@ -358,6 +358,21 @@ for (let cycle = 0; cycle < 52 && !tower.complete; cycle++) {
     for (let i = 0; i < 30; i++) tower.step();
   }
 }
+console.log('Tower ascent', tower.p.hip, tower.grips, tower.complete);
 assert.ok(tower.complete, 'Tower route reaches and replaces the summit bulb');
 assert.equal(tower.carrying, null, 'Bulb replacement leaves both hands free');
 console.log('PASS tower climb and summit light replacement');
+
+const treeScaleRig = new Climber(structuredClone(catLevel));
+const churchScaleRig = new Climber(structuredClone(churchLevel));
+const towerScaleRig = new Climber(structuredClone(towerLevel));
+assert.equal(treeScaleRig.scale, 1);
+assert.equal(churchScaleRig.scale, 0.82);
+assert.equal(towerScaleRig.scale, 0.62);
+assert.ok(
+  towerScaleRig.bones[0].length < churchScaleRig.bones[0].length &&
+    churchScaleRig.bones[0].length < treeScaleRig.bones[0].length,
+  'Skeleton, reach and collision body scale with each background',
+);
+assert.equal(towerScaleRig.reach('leftHand'), 78 * 0.62);
+console.log('PASS per-level player scale changes the complete physics body');

@@ -125,6 +125,7 @@ export function draw(
     );
     ctx.stroke();
     circle(a, 5, '#d3cda1');
+    let shapeScale = 1;
     const polygon = (points: Point[], fill: string, stroke = '#26372f') => {
       ctx.beginPath();
       points.forEach((p, i) =>
@@ -134,7 +135,7 @@ export function draw(
       ctx.fillStyle = fill;
       ctx.fill();
       ctx.strokeStyle = stroke;
-      ctx.lineWidth = 2.2;
+      ctx.lineWidth = 2.2 * shapeScale;
       ctx.lineJoin = 'round';
       ctx.stroke();
     };
@@ -310,53 +311,62 @@ export function draw(
       }
     }
 
+    const bodyScale = g.scale;
+    shapeScale = bodyScale;
+
     // Limbs sit behind a rigid torso and visibly originate at its shoulder and hip corners.
     for (const side of ['left', 'right']) {
       taperedLimb(
         g.p[side + 'Hip'],
         g.p[side + 'Knee'],
-        8.5,
-        7,
+        8.5 * bodyScale,
+        7 * bodyScale,
         '#465550',
         '#303d39',
       );
       taperedLimb(
         g.p[side + 'Knee'],
         g.p[side + 'Foot'],
-        7,
-        5.5,
+        7 * bodyScale,
+        5.5 * bodyScale,
         '#59635d',
         '#3b4842',
       );
-      facetedJoint(g.p[side + 'Knee'], 7.2, '#58655f', '#35433e');
+      facetedJoint(g.p[side + 'Knee'], 7.2 * bodyScale, '#58655f', '#35433e');
       extremity(
         g.p[side + 'Knee'],
         g.p[side + 'Foot'],
-        9,
-        6.5,
+        9 * bodyScale,
+        6.5 * bodyScale,
         '#22312d',
-        side === 'left' ? 3 : -3,
+        (side === 'left' ? 3 : -3) * bodyScale,
       );
     }
     for (const side of ['left', 'right']) {
       taperedLimb(
         g.p[side + 'Shoulder'],
         g.p[side + 'Elbow'],
-        7.2,
-        5.8,
+        7.2 * bodyScale,
+        5.8 * bodyScale,
         '#f0b44e',
         '#c98731',
       );
       taperedLimb(
         g.p[side + 'Elbow'],
         g.p[side + 'Hand'],
-        5.8,
-        4.2,
+        5.8 * bodyScale,
+        4.2 * bodyScale,
         '#e9c795',
         '#c89d6d',
       );
-      facetedJoint(g.p[side + 'Elbow'], 5.6, '#e5bd87', '#b98d60');
-      extremity(g.p[side + 'Elbow'], g.p[side + 'Hand'], 3.5, 5.2, '#d8ad78');
+      facetedJoint(g.p[side + 'Elbow'], 5.6 * bodyScale, '#e5bd87', '#b98d60');
+      extremity(
+        g.p[side + 'Elbow'],
+        g.p[side + 'Hand'],
+        3.5 * bodyScale,
+        5.2 * bodyScale,
+        '#d8ad78',
+      );
     }
 
     const leftShoulder = g.p.leftShoulder,
@@ -385,16 +395,23 @@ export function draw(
     }
     polygon(
       [
-        { x: leftHip.x - 2, y: leftHip.y - 2 },
-        { x: rightHip.x + 2, y: rightHip.y - 2 },
-        { x: rightHip.x + 4, y: rightHip.y + 9 },
-        { x: leftHip.x - 4, y: leftHip.y + 9 },
+        { x: leftHip.x - 2 * bodyScale, y: leftHip.y - 2 * bodyScale },
+        { x: rightHip.x + 2 * bodyScale, y: rightHip.y - 2 * bodyScale },
+        { x: rightHip.x + 4 * bodyScale, y: rightHip.y + 9 * bodyScale },
+        { x: leftHip.x - 4 * bodyScale, y: leftHip.y + 9 * bodyScale },
       ],
       '#293a34',
     );
 
     // Neck and head follow the torso instead of floating above it.
-    taperedLimb(g.p.neck, g.p.head, 6, 7, '#e9c795', '#c89d6d');
+    taperedLimb(
+      g.p.neck,
+      g.p.head,
+      6 * bodyScale,
+      7 * bodyScale,
+      '#e9c795',
+      '#c89d6d',
+    );
     const head = g.p.head,
       headAngle = Math.atan2(
         rightShoulder.y - leftShoulder.y,
@@ -403,6 +420,7 @@ export function draw(
     ctx.save();
     ctx.translate(head.x, head.y);
     ctx.rotate(headAngle);
+    ctx.scale(bodyScale, bodyScale);
     polygon(
       [
         { x: -11, y: -13 },
@@ -434,26 +452,26 @@ export function draw(
 
     // Harness connects the torso, pelvis and rope into one readable body.
     ctx.strokeStyle = '#bfcd72';
-    ctx.lineWidth = 2.6;
+    ctx.lineWidth = 2.6 * bodyScale;
     ctx.beginPath();
-    ctx.moveTo(leftShoulder.x, leftShoulder.y + 4);
-    ctx.lineTo(rightHip.x, rightHip.y + 3);
-    ctx.moveTo(rightShoulder.x, rightShoulder.y + 4);
-    ctx.lineTo(leftHip.x, leftHip.y + 3);
+    ctx.moveTo(leftShoulder.x, leftShoulder.y + 4 * bodyScale);
+    ctx.lineTo(rightHip.x, rightHip.y + 3 * bodyScale);
+    ctx.moveTo(rightShoulder.x, rightShoulder.y + 4 * bodyScale);
+    ctx.lineTo(leftHip.x, leftHip.y + 3 * bodyScale);
     ctx.stroke();
     polygon(
       [
-        { x: hip.x - 6, y: hip.y - 5 },
-        { x: hip.x + 6, y: hip.y - 5 },
-        { x: hip.x + 7, y: hip.y + 5 },
-        { x: hip.x - 7, y: hip.y + 5 },
+        { x: hip.x - 6 * bodyScale, y: hip.y - 5 * bodyScale },
+        { x: hip.x + 6 * bodyScale, y: hip.y - 5 * bodyScale },
+        { x: hip.x + 7 * bodyScale, y: hip.y + 5 * bodyScale },
+        { x: hip.x - 7 * bodyScale, y: hip.y + 5 * bodyScale },
       ],
       '#aebc64',
       '#334239',
     );
     for (const limb of LIMBS) {
       const p = g.p[limb];
-      if (g.grips[limb]) circle(p, 3, '#ccdda8');
+      if (g.grips[limb]) circle(p, 3 * bodyScale, '#ccdda8');
       if (g.drag?.limb === limb) {
         circle(p, 13, '#fff0', '#fff6ce');
       }

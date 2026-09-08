@@ -22,6 +22,7 @@ export type Level = {
   foregroundImage?: string;
   worldWidth: number;
   worldHeight: number;
+  playerScale?: number;
   playerSpawn: Point;
   gripPoints: Grip[];
   colliders: Collider[];
@@ -113,6 +114,7 @@ export const catLevel: Level = {
   backgroundImage: '/assets/cat-tree.png',
   worldWidth: 1200,
   worldHeight: 1000,
+  playerScale: 1,
   playerSpawn: { x: 603, y: 873 },
   gripPoints: grips,
   colliders: [{ id: 'ground', type: 'edge', x: 0, y: 954, x2: 1200, y2: 954 }],
@@ -208,6 +210,7 @@ export const churchLevel: Level = {
   backgroundImage: '/assets/church-cross.png',
   worldWidth: 1200,
   worldHeight: 1000,
+  playerScale: 0.82,
   playerSpawn: { x: 590, y: 878 },
   gripPoints: churchGrips,
   colliders: [
@@ -331,13 +334,11 @@ export const towerLevel: Level = {
   backgroundImage: '/assets/telephone-tower.png',
   worldWidth: 1200,
   worldHeight: 1000,
+  playerScale: 0.62,
   playerSpawn: { x: 590, y: 872 },
   gripPoints: towerGrips,
   colliders: [
     { id: 'tower-ground', type: 'edge', x: 0, y: 960, x2: 1200, y2: 960 },
-    { id: 'platform-low', type: 'edge', x: 430, y: 682, x2: 772, y2: 682 },
-    { id: 'platform-mid', type: 'edge', x: 460, y: 424, x2: 744, y2: 424 },
-    { id: 'platform-high', type: 'edge', x: 496, y: 132, x2: 706, y2: 132 },
   ],
   objectives: [
     {
@@ -375,6 +376,10 @@ export function parseLevel(raw: string): Level {
     l.worldHeight < 200 ||
     l.worldWidth > 8000 ||
     l.worldHeight > 8000 ||
+    (l.playerScale !== undefined &&
+      (!Number.isFinite(l.playerScale) ||
+        l.playerScale < 0.4 ||
+        l.playerScale > 1.5)) ||
     !point(l.playerSpawn)
   )
     throw Error('Invalid level dimensions or spawn.');

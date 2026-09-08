@@ -36,6 +36,7 @@ export class Climber {
   collected = false;
   complete = false;
   elapsed = 0;
+  scale: number;
   ropeLength: number;
   ropeCaught = false;
   message = 'Drag a hand or boot onto the bark. Small moves work best.';
@@ -43,22 +44,31 @@ export class Climber {
     public level: Level,
     public completionEnabled = true,
   ) {
-    const { x, y } = level.playerSpawn;
+    this.scale = level.playerScale ?? 1;
+    const { x, y } = level.playerSpawn,
+      s = this.scale;
     const add = (n: string, dx: number, dy: number, r: number, mass = 1) =>
-      (this.p[n] = { x: x + dx, y: y + dy, px: x + dx, py: y + dy, r, mass });
+      (this.p[n] = {
+        x: x + dx * s,
+        y: y + dy * s,
+        px: x + dx * s,
+        py: y + dy * s,
+        r: r * s,
+        mass,
+      });
     add('neck', 0, -48, 12, 3);
     add('hip', 0, 0, 13, 4);
     add('head', 0, -70, 15, 1.5);
-    for (const [side, s] of [
+    for (const [side, sideSign] of [
       ['left', -1],
       ['right', 1],
     ] as const) {
-      add(side + 'Shoulder', s * 17, -44, 8, 2);
-      add(side + 'Hip', s * 11, -2, 8, 2.2);
-      add(side + 'Elbow', s * 33, -73, 6);
-      add(side + 'Hand', s * 30, -106, 8);
-      add(side + 'Knee', s * 24, 38, 7, 1.4);
-      add(side + 'Foot', s * 30, 78, 9, 1.3);
+      add(side + 'Shoulder', sideSign * 17, -44, 8, 2);
+      add(side + 'Hip', sideSign * 11, -2, 8, 2.2);
+      add(side + 'Elbow', sideSign * 33, -73, 6);
+      add(side + 'Hand', sideSign * 30, -106, 8);
+      add(side + 'Knee', sideSign * 24, 38, 7, 1.4);
+      add(side + 'Foot', sideSign * 30, 78, 9, 1.3);
     }
     const link = (
       a: string,
@@ -74,32 +84,32 @@ export class Climber {
         stiffness,
         max,
       });
-    link('neck', 'hip', 48);
-    link('neck', 'head', 22);
-    link('head', 'hip', 70);
-    link('leftShoulder', 'rightShoulder', 34);
-    link('leftHip', 'rightHip', 22);
-    link('hip', 'leftHip', 11.2);
-    link('hip', 'rightHip', 11.2);
+    link('neck', 'hip', 48 * s);
+    link('neck', 'head', 22 * s);
+    link('head', 'hip', 70 * s);
+    link('leftShoulder', 'rightShoulder', 34 * s);
+    link('leftHip', 'rightHip', 22 * s);
+    link('hip', 'leftHip', 11.2 * s);
+    link('hip', 'rightHip', 11.2 * s);
     for (const side of ['left', 'right']) {
       link('neck', side + 'Shoulder');
       link('hip', side + 'Shoulder');
-      link('neck', side + 'Hip', 49.2);
-      link(side + 'Shoulder', side + 'Hip', 45.3);
-      link(side + 'Shoulder', side + 'Elbow', 39);
-      link(side + 'Elbow', side + 'Hand', 39);
-      link(side + 'Shoulder', side + 'Hand', 77, 1, true);
-      link(side + 'Hip', side + 'Knee', 42.1);
-      link(side + 'Knee', side + 'Foot', 43);
-      link(side + 'Hip', side + 'Foot', 84, 1, true);
-      link(side + 'Hip', side + 'Foot', 76, 0.025);
-      link(side + 'Shoulder', side + 'Hand', 68, 0.018);
+      link('neck', side + 'Hip', 49.2 * s);
+      link(side + 'Shoulder', side + 'Hip', 45.3 * s);
+      link(side + 'Shoulder', side + 'Elbow', 39 * s);
+      link(side + 'Elbow', side + 'Hand', 39 * s);
+      link(side + 'Shoulder', side + 'Hand', 77 * s, 1, true);
+      link(side + 'Hip', side + 'Knee', 42.1 * s);
+      link(side + 'Knee', side + 'Foot', 43 * s);
+      link(side + 'Hip', side + 'Foot', 84 * s, 1, true);
+      link(side + 'Hip', side + 'Foot', 76 * s, 0.025);
+      link(side + 'Shoulder', side + 'Hand', 68 * s, 0.018);
     }
-    this.ropeLength = distance(this.p.hip, level.ropeAnchors[0]) + 55;
+    this.ropeLength = distance(this.p.hip, level.ropeAnchors[0]) + 55 * s;
     const o = level.objectives[0];
     this.cat = { x: o.x, y: o.y, px: o.x, py: o.y, r: 13, mass: 1.5 };
     for (const limb of LIMBS) {
-      const g = this.nearest(this.p[limb], 36);
+      const g = this.nearest(this.p[limb], Math.max(22, 36 * s));
       if (g) this.grips[limb] = g;
     }
   }
@@ -111,7 +121,7 @@ export class Climber {
     ];
   }
   reach(limb: Limb) {
-    return limb.endsWith('Hand') ? 78 : 86;
+    return (limb.endsWith('Hand') ? 78 : 86) * this.scale;
   }
   nearest(pos: Point, r = 24) {
     return this.level.gripPoints
@@ -134,7 +144,7 @@ export class Climber {
     const dx = target.x - this.drag.previousTarget.x,
       dy = target.y - this.drag.previousTarget.y,
       length = Math.hypot(dx, dy) || 1,
-      cap = Math.min(14, length),
+      cap = Math.min(14 * this.scale, length),
       vx = (dx / length) * cap,
       vy = (dy / length) * cap;
     this.drag.velocity.x = this.drag.velocity.x * 0.55 + vx * 0.45;
@@ -150,7 +160,7 @@ export class Climber {
       if (
         !this.collected &&
         limb.endsWith('Hand') &&
-        distance(p, this.cat) < 31
+        distance(p, this.cat) < 31 * this.scale
       ) {
         this.collected = true;
         if (this.level.objectives[0].type === 'repair') {
@@ -203,8 +213,9 @@ export class Climber {
       const nx = -dy / length,
         ny = dx / length;
       const bend = (knee.x - hip.x) * nx + (knee.y - hip.y) * ny;
-      if (bend * sign < 2) {
-        const correction = sign * Math.max(Math.abs(bend), 2) - bend;
+      if (bend * sign < 2 * this.scale) {
+        const correction =
+          sign * Math.max(Math.abs(bend), 2 * this.scale) - bend;
         knee.x += nx * correction;
         knee.y += ny * correction;
         // Moving the constraint must not inject a kick into Verlet velocity.
@@ -228,8 +239,9 @@ export class Climber {
       const nx = -dy / length,
         ny = dx / length;
       const bend = (elbow.x - shoulder.x) * nx + (elbow.y - shoulder.y) * ny;
-      if (bend * sign < 2) {
-        const correction = sign * Math.max(Math.abs(bend), 2) - bend;
+      if (bend * sign < 2 * this.scale) {
+        const correction =
+          sign * Math.max(Math.abs(bend), 2 * this.scale) - bend;
         elbow.x += nx * correction;
         elbow.y += ny * correction;
         elbow.px += nx * correction;
@@ -250,7 +262,7 @@ export class Climber {
       for (const [limb, g] of anchors) {
         const k = limb.endsWith('Hand') ? 1 : 1.2;
         tx += g.x * k;
-        ty += (g.y + (limb.endsWith('Hand') ? 102 : -65)) * k;
+        ty += (g.y + (limb.endsWith('Hand') ? 102 : -65) * this.scale) * k;
         w += k;
       }
       const hip = this.p.hip;
@@ -258,7 +270,7 @@ export class Climber {
       hip.y += (ty / w - hip.y) * 0.35 * h;
       const neck = this.p.neck;
       neck.x += (hip.x - neck.x) * 0.1 * h;
-      neck.y += (hip.y - 48 - neck.y) * 0.3 * h;
+      neck.y += (hip.y - 48 * this.scale - neck.y) * 0.3 * h;
     }
     for (const p of Object.values(this.p)) {
       const vx = (p.x - p.px) * 0.982,
@@ -308,8 +320,8 @@ export class Climber {
       if (this.carrying) {
         const hand = this.p[this.carrying],
           hip = this.p.hip;
-        hand.x += (hip.x + 24 - hand.x) * 0.1;
-        hand.y += (hip.y - 24 - hand.y) * 0.1;
+        hand.x += (hip.x + 24 * this.scale - hand.x) * 0.1;
+        hand.y += (hip.y - 24 * this.scale - hand.y) * 0.1;
       }
       for (const [limb, g] of anchors) {
         this.p[limb].x = g.x;
@@ -339,14 +351,14 @@ export class Climber {
     // Auto-belay feeds out during deliberate descent, but catches unanchored falls.
     if (anchors.length) {
       const d = distance(this.p.hip, this.level.ropeAnchors[0]);
-      this.ropeLength += (d + 65 - this.ropeLength) * 0.08;
+      this.ropeLength += (d + 65 * this.scale - this.ropeLength) * 0.08;
     }
     if (this.carrying) {
       const hand = this.p[this.carrying];
       this.cat.px = this.cat.x;
       this.cat.py = this.cat.y;
-      this.cat.x += (hand.x + 5 - this.cat.x) * 0.35;
-      this.cat.y += (hand.y + 12 - this.cat.y) * 0.35;
+      this.cat.x += (hand.x + 5 * this.scale - this.cat.x) * 0.35;
+      this.cat.y += (hand.y + 12 * this.scale - this.cat.y) * 0.35;
       const z = this.level.completionTrigger;
       if (
         this.completionEnabled &&
