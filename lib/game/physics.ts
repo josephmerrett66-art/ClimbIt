@@ -176,8 +176,11 @@ export class Climber {
             'Pickles secured! One hand is busy. Bring them safely back to the ground.';
         }
       } else {
-        const g = this.nearest(p, 27);
-        if (g && distance(g, this.root(limb)) <= this.reach(limb) + 8) {
+        const g = this.nearest(p, 27 * this.scale);
+        if (
+          g &&
+          distance(g, this.root(limb)) <= this.reach(limb) + 8 * this.scale
+        ) {
           this.grips[limb] = g;
           this.message = 'Good grip. Move another limb to shift your weight.';
         } else {
@@ -302,9 +305,10 @@ export class Climber {
       if (this.drag) {
         const { limb, target } = this.drag,
           root = this.root(limb),
-          nearbyGrip = this.nearest(target, 38),
+          nearbyGrip = this.nearest(target, 38 * this.scale),
           canReachGrip =
-            nearbyGrip && distance(nearbyGrip, root) <= this.reach(limb) + 8,
+            nearbyGrip &&
+            distance(nearbyGrip, root) <= this.reach(limb) + 8 * this.scale,
           guidedTarget = canReachGrip
             ? {
                 x: target.x + (nearbyGrip.x - target.x) * 0.72,

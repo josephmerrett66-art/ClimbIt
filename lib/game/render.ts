@@ -479,7 +479,7 @@ export function draw(
     if (g.drag) {
       const near = g.nearest(g.p[g.drag.limb], 27);
       if (near) {
-        circle(near, 10, '#b4e17e70', '#f3ffd3');
+        circle(near, 10 * bodyScale, '#b4e17e70', '#f3ffd3');
       }
     }
     // Only the currently available interaction is highlighted; editor geometry stays hidden.

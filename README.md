@@ -17,7 +17,7 @@ Node 22.13+ and pnpm. `pnpm install`, then `pnpm dev`. `pnpm build` creates the 
 ## Architecture
 
 - `lib/game/physics.ts`: position-based weighted ragdoll with a physical torso frame, separate shoulder and hip joints, fixed bone lengths, limited endpoint reach, anchored grips, one-way elbow/knee hinges and an auto-belay harness constraint. Soft dragging, nearby-hold attraction and capped release momentum keep repositioning fluid while grip anchors remain precise.
-- `lib/game/level.ts`: separate authored tree, church and tower level data plus JSON validation. Each level carries a calibrated player scale alongside its independent geometry.
+- `lib/game/level.ts`: separate authored tree, church and tower level data plus JSON validation. Each level carries a calibrated player scale; generated grip spacing follows that scale so smaller characters receive proportionally denser holds.
 - `lib/game/render.ts`: PNG background/foreground layers, a connected low-poly climber built from tapered faceted limbs, joint pieces, skin forearms, shaped hands and boots, torso, pelvis, head and harness, plus the low-poly cat PNG and editor overlays. Gameplay geometry is invisible.
 - `app/game.tsx`: fixed timestep, bounded camera, unified mouse/touch Pointer Events and workshop tools. Gameplay covers the viewport, cropping the world rather than letterboxing it.
 - `app/page.tsx`, `app/church/page.tsx` and `app/tower/page.tsx`: direct full-screen climbing entries, with no app shell.
@@ -27,7 +27,7 @@ The complete carry-and-return system remains available to editor play tests. The
 
 ## Validation
 
-Automated tests exercise ascent, branch traversal, actual cat pickup, three-limb descent, complete church and tower ascents, both repair objectives, safety-rope catch, carrying lockout and JSON validation. Scale regression checks verify that body geometry, reach and collision radii change together for each background. Hinge tests intentionally reverse both knees and rotate the body, then verify bend direction and unchanged leg segment lengths. Continuous mode is checked to avoid freezing at a hidden completion menu. Mouse/touch feel still needs hands-on tuning.
+Automated tests exercise ascent, branch traversal, actual cat pickup, three-limb descent, complete church and tower ascents, both repair objectives, safety-rope catch, carrying lockout and JSON validation. Scale regression checks verify that body geometry, reach, collision radii, snap zones and nearest-hold spacing change together for each background. Hinge tests intentionally reverse both knees and rotate the body, then verify bend direction and unchanged leg segment lengths. Continuous mode is checked to avoid freezing at a hidden completion menu. Mouse/touch feel still needs hands-on tuning.
 
 ## Artwork
 
@@ -36,3 +36,5 @@ Automated tests exercise ascent, branch traversal, actual cat pickup, three-limb
 `public/assets/church-cross.png` is built-in ImageGen artwork created for the second climb, with the church filling the playfield and readable routes formed by buttresses, masonry, windows, gutters and tower ledges. The generated background excludes the cross itself because the cross is rendered as the interactive repair object.
 
 `public/assets/telephone-tower.png` is built-in ImageGen artwork for the third climb. The centered low-poly structure exposes a continuous ladder-and-lattice route, with wider platform detours and an empty lamp fitting at the summit. The bulb and its completion glow are rendered as the interactive object.
+
+All three environment textures are stored at 2400×2000 while retaining a 1200×1000 gameplay coordinate system. This supplies 2× artwork resolution for high-density displays without moving the authored grips, collisions or objectives.

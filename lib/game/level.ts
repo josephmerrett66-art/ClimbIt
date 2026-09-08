@@ -128,12 +128,15 @@ export const catLevel: Level = {
   pay: 40,
 };
 
+const CHURCH_PLAYER_SCALE = 0.82;
 const churchGrips: Grip[] = [];
 const churchRoute = (points: number[][]) =>
   points.forEach(([x, y], i) => {
     if (i) {
       const [ax, ay] = points[i - 1],
-        steps = Math.ceil(Math.hypot(x - ax, y - ay) / 28);
+        steps = Math.ceil(
+          Math.hypot(x - ax, y - ay) / (28 * CHURCH_PLAYER_SCALE),
+        );
       for (let j = 1; j < steps; j++)
         churchGrips.push({
           id: `church-grip-${churchGrips.length}`,
@@ -210,7 +213,7 @@ export const churchLevel: Level = {
   backgroundImage: '/assets/church-cross.png',
   worldWidth: 1200,
   worldHeight: 1000,
-  playerScale: 0.82,
+  playerScale: CHURCH_PLAYER_SCALE,
   playerSpawn: { x: 590, y: 878 },
   gripPoints: churchGrips,
   colliders: [
@@ -237,12 +240,15 @@ export const churchLevel: Level = {
   pay: 55,
 };
 
+const TOWER_PLAYER_SCALE = 0.62;
 const towerGrips: Grip[] = [];
 const towerRoute = (points: number[][]) =>
   points.forEach(([x, y], i) => {
     if (i) {
       const [ax, ay] = points[i - 1],
-        steps = Math.ceil(Math.hypot(x - ax, y - ay) / 27);
+        steps = Math.ceil(
+          Math.hypot(x - ax, y - ay) / (27 * TOWER_PLAYER_SCALE),
+        );
       for (let j = 1; j < steps; j++)
         towerGrips.push({
           id: `tower-grip-${towerGrips.length}`,
@@ -334,7 +340,7 @@ export const towerLevel: Level = {
   backgroundImage: '/assets/telephone-tower.png',
   worldWidth: 1200,
   worldHeight: 1000,
-  playerScale: 0.62,
+  playerScale: TOWER_PLAYER_SCALE,
   playerSpawn: { x: 590, y: 872 },
   gripPoints: towerGrips,
   colliders: [

@@ -376,3 +376,23 @@ assert.ok(
 );
 assert.equal(towerScaleRig.reach('leftHand'), 78 * 0.62);
 console.log('PASS per-level player scale changes the complete physics body');
+
+const widestNearestHoldGap = (level: typeof churchLevel) =>
+  Math.max(
+    ...level.gripPoints.map((grip, index) =>
+      Math.min(
+        ...level.gripPoints
+          .filter((_, otherIndex) => otherIndex !== index)
+          .map((other) => distance(grip, other)),
+      ),
+    ),
+  );
+assert.ok(
+  widestNearestHoldGap(churchLevel) <= 24,
+  'Church hold density follows its smaller player scale',
+);
+assert.ok(
+  widestNearestHoldGap(towerLevel) <= 18,
+  'Tower hold density follows its smaller player scale',
+);
+console.log('PASS per-level hold density scales with the climber');
