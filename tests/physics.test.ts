@@ -448,3 +448,52 @@ assert.ok(
   'Tower hold density follows its smaller player scale',
 );
 console.log('PASS per-level hold density scales with the climber');
+
+for (const level of [catLevel, churchLevel, towerLevel]) {
+  const rig = new Climber(structuredClone(level));
+  delete rig.grips.leftHand;
+  delete rig.grips.rightHand;
+  const feet = structuredClone(rig.grips);
+  for (let attempt = 0; attempt < 30; attempt++) {
+    for (const limb of ['leftFoot', 'rightFoot'] as const) {
+      assert.equal(
+        rig.begin(limb, {
+          x: rig.p[limb].x,
+          y: rig.p[limb].y - 50 * rig.scale,
+        }),
+        false,
+        'Boot-only climbing cannot start a step',
+      );
+      rig.move({ x: rig.p[limb].x, y: rig.p[limb].y - 100 });
+      rig.step();
+      rig.end();
+    }
+  }
+  assert.deepEqual(
+    rig.grips,
+    feet,
+    'Boot-only attempts cannot ratchet footholds upwards',
+  );
+  assert.equal(rig.complete, false);
+
+  const supported = new Climber(structuredClone(level));
+  assert.ok(supported.hasHandSupport());
+  assert.ok(
+    supported.begin('leftFoot', supported.p.leftFoot),
+    'A planted hand allows a normal foot step',
+  );
+  delete supported.grips.leftHand;
+  delete supported.grips.rightHand;
+  assert.equal(
+    supported.grabPreview(),
+    undefined,
+    'Losing the last hand invalidates the foot catch immediately',
+  );
+  supported.step();
+  assert.equal(
+    supported.drag,
+    null,
+    'No foot-driven lift after losing hand support',
+  );
+}
+console.log('PASS hand support required for foot steps on all three climbs');

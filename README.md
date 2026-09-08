@@ -4,6 +4,8 @@
 
 Holds use small surface-aligned edge highlights: nearby reachable edges appear while dragging, the actual catch target brightens, and a brief dust flick confirms attachment. Stable targeting prevents adjacent holds flickering under the pointer. Planting feet supports the hips; hanging from an arm leaves more weight and sway in the body. Catching a hold clears stored drag momentum.
 
+Moving a foot requires at least one hand securely attached. Planted feet can support a stationary stance, but cannot pull the body up the wall or advance between holds by themselves. Losing the last hand during a foot step cancels that step and lets the free foot fall.
+
 The church routes follow projecting buttresses, stone courses and roof coping, avoiding window glass. The tower routes follow its front ladder, structural beams and maintenance platforms. The tree's upper rescue branch follows the visible wood. Grips remain spaced for each character scale; no rope recovery is present.
 
 The main page opens directly into a full-window climbing scene. The environment, climber and objective fill the viewport. A small handset button opens the in-game phone over the paused climb.

@@ -131,7 +131,12 @@ export class Climber {
   }
   begin(limb: Limb, target: Point) {
     if (this.complete || this.failed || this.carrying === limb) return false;
+    if (limb.endsWith('Foot') && !this.hasHandSupport()) {
+      this.message = 'Grab with a hand before moving your feet.';
+      return false;
+    }
     delete this.grips[limb];
+    this.message = 'Reach for a solid edge and release to grip.';
     this.gripFocus = null;
     this.drag = {
       limb,
@@ -154,6 +159,9 @@ export class Climber {
     this.drag.previousTarget = { ...target };
     this.drag.target = { ...target };
   }
+  hasHandSupport() {
+    return Boolean(this.grips.leftHand || this.grips.rightHand);
+  }
   reachableHold(limb: Limb, pos: Point, radius: number) {
     return this.level.gripPoints
       .filter(
@@ -166,6 +174,7 @@ export class Climber {
   grabPreview() {
     if (!this.drag) return undefined;
     const { limb } = this.drag;
+    if (limb.endsWith('Foot') && !this.hasHandSupport()) return undefined;
     const focus = this.gripFocus;
     if (
       focus &&
@@ -286,6 +295,12 @@ export class Climber {
     this.catches = this.catches.filter((event) => (event.age += dt) < 0.38);
     const h = dt * 60;
     const anchors = Object.entries(this.grips) as [Limb, Grip][];
+    // A boot cannot pull the body up a wall. If hand support is lost mid-step,
+    // let that foot drop naturally rather than keeping a mouse-driven anchor.
+    if (this.drag?.limb.endsWith('Foot') && !this.hasHandSupport()) {
+      this.end(true);
+      this.message = 'Grab with a hand before moving your feet.';
+    }
     if (this.drag) {
       const { limb, target } = this.drag;
       // A little hysteresis keeps adjacent holds from flickering under the cursor.
@@ -313,7 +328,8 @@ export class Climber {
       const feet = anchors.filter(([limb]) => limb.endsWith('Foot')).length;
       const support = feet ? 1 : anchors.length === 1 ? 0.3 : 0.65;
       const dx = (tx / w - hip.x) * 0.16 * support * h;
-      const dy = (ty / w - hip.y) * 0.35 * support * h;
+      const desiredDy = (ty / w - hip.y) * 0.35 * support * h;
+      const dy = this.hasHandSupport() ? desiredDy : Math.max(0, desiredDy);
       hip.x += dx;
       hip.y += dy;
       // Muscle corrections should shift weight without storing an extra launch impulse.

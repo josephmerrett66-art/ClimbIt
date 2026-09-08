@@ -840,6 +840,14 @@ export default function Game({
               {level.current.colliders.length} COLLIDERS
             </span>
           )}
+          {!edit &&
+            !hud.failed &&
+            !hud.complete &&
+            hud.message === 'Grab with a hand before moving your feet.' && (
+              <div className="hand-support-hint" role="status">
+                <Hand size={17} /> Grab with a hand before moving your feet.
+              </div>
+            )}
         </div>
         {edit && (
           <aside className="editor-panel">
