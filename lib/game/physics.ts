@@ -39,6 +39,8 @@ export class Climber {
   elapsed = 0;
   scale: number;
   unanchoredStartY: number | null = null;
+  gripFocus: Grip | null = null;
+  catches: { x: number; y: number; age: number }[] = [];
   message = 'Drag a hand or boot onto the bark. Small moves work best.';
   constructor(
     public level: Level,
@@ -130,6 +132,7 @@ export class Climber {
   begin(limb: Limb, target: Point) {
     if (this.complete || this.failed || this.carrying === limb) return false;
     delete this.grips[limb];
+    this.gripFocus = null;
     this.drag = {
       limb,
       target: { ...target },
@@ -150,6 +153,27 @@ export class Climber {
     this.drag.velocity.y = this.drag.velocity.y * 0.55 + vy * 0.45;
     this.drag.previousTarget = { ...target };
     this.drag.target = { ...target };
+  }
+  reachableHold(limb: Limb, pos: Point, radius: number) {
+    return this.level.gripPoints
+      .filter(
+        (g) =>
+          distance(g, pos) < radius &&
+          distance(g, this.root(limb)) <= this.reach(limb) + 8 * this.scale,
+      )
+      .sort((a, b) => distance(a, pos) - distance(b, pos))[0];
+  }
+  grabPreview() {
+    if (!this.drag) return undefined;
+    const { limb } = this.drag;
+    const focus = this.gripFocus;
+    if (
+      focus &&
+      distance(focus, this.p[limb]) < 27 * this.scale &&
+      distance(focus, this.root(limb)) <= this.reach(limb) + 8 * this.scale
+    )
+      return focus;
+    return this.reachableHold(limb, this.p[limb], 27 * this.scale);
   }
   end(cancel = false) {
     if (!this.drag) return;
@@ -175,12 +199,15 @@ export class Climber {
             'Pickles secured! One hand is busy. Bring them safely back to the ground.';
         }
       } else {
-        const g = this.nearest(p, 27 * this.scale);
+        const g = this.grabPreview();
         if (
           g &&
           distance(g, this.root(limb)) <= this.reach(limb) + 8 * this.scale
         ) {
           this.grips[limb] = g;
+          p.x = p.px = g.x;
+          p.y = p.py = g.y;
+          this.catches.push({ x: g.x, y: g.y, age: 0 });
           this.message = 'Good grip. Move another limb to shift your weight.';
         } else {
           // Preserve a small, capped flick without storing the full drag
@@ -192,10 +219,12 @@ export class Climber {
       }
     }
     this.drag = null;
+    this.gripFocus = null;
   }
   releaseAll() {
     this.grips = {};
     this.drag = null;
+    this.gripFocus = null;
     this.message = 'No holds. Grab something before you hit the ground!';
   }
   constrainKnees() {
@@ -254,8 +283,21 @@ export class Climber {
   step(dt = 1 / 60) {
     if (this.complete || this.failed) return;
     this.elapsed += dt;
+    this.catches = this.catches.filter((event) => (event.age += dt) < 0.38);
     const h = dt * 60;
     const anchors = Object.entries(this.grips) as [Limb, Grip][];
+    if (this.drag) {
+      const { limb, target } = this.drag;
+      // A little hysteresis keeps adjacent holds from flickering under the cursor.
+      if (
+        !this.gripFocus ||
+        distance(this.gripFocus, target) > 43 * this.scale ||
+        distance(this.gripFocus, this.root(limb)) >
+          this.reach(limb) + 8 * this.scale
+      )
+        this.gripFocus =
+          this.reachableHold(limb, target, 38 * this.scale) ?? null;
+    }
     // Gentle muscle support shifts body weight toward holds, while the joints and gravity remain active.
     if (anchors.length) {
       let tx = 0,
@@ -268,11 +310,26 @@ export class Climber {
         w += k;
       }
       const hip = this.p.hip;
-      hip.x += (tx / w - hip.x) * 0.16 * h;
-      hip.y += (ty / w - hip.y) * 0.35 * h;
+      const feet = anchors.filter(([limb]) => limb.endsWith('Foot')).length;
+      const support = feet ? 1 : anchors.length === 1 ? 0.3 : 0.65;
+      const dx = (tx / w - hip.x) * 0.16 * support * h;
+      const dy = (ty / w - hip.y) * 0.35 * support * h;
+      hip.x += dx;
+      hip.y += dy;
+      // Muscle corrections should shift weight without storing an extra launch impulse.
+      hip.px += dx * 0.15;
+      hip.py += dy * 0.15;
       const neck = this.p.neck;
-      neck.x += (hip.x - neck.x) * 0.1 * h;
-      neck.y += (hip.y - 48 * this.scale - neck.y) * 0.3 * h;
+      const lean = Math.max(
+        -16 * this.scale,
+        Math.min(16 * this.scale, (tx / w - hip.x) * 0.25),
+      );
+      const nx = (hip.x + lean - neck.x) * 0.1 * support * h;
+      const ny = (hip.y - 48 * this.scale - neck.y) * 0.3 * support * h;
+      neck.x += nx;
+      neck.y += ny;
+      neck.px += nx * 0.15;
+      neck.py += ny * 0.15;
     }
     for (const p of Object.values(this.p)) {
       const vx = (p.x - p.px) * 0.982,
@@ -303,7 +360,7 @@ export class Climber {
       if (this.drag) {
         const { limb, target } = this.drag,
           root = this.root(limb),
-          nearbyGrip = this.nearest(target, 38 * this.scale),
+          nearbyGrip = this.gripFocus,
           canReachGrip =
             nearbyGrip &&
             distance(nearbyGrip, root) <= this.reach(limb) + 8 * this.scale,
@@ -376,6 +433,9 @@ export class Climber {
       const z = this.level.completionTrigger;
       if (
         this.completionEnabled &&
+        !this.failed &&
+        (this.unanchoredStartY === null ||
+          this.p.hip.y - this.unanchoredStartY < 55 * this.scale) &&
         this.p.hip.x > z.x &&
         this.p.hip.x < z.x + z.width &&
         this.p.hip.y > z.y &&

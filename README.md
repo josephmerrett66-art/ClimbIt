@@ -2,6 +2,10 @@
 
 **[Play Odd Jobs in your browser](https://josephmerrett66-art.github.io/ClimbIt/)**
 
+Holds use small surface-aligned edge highlights: nearby reachable edges appear while dragging, the actual catch target brightens, and a brief dust flick confirms attachment. Stable targeting prevents adjacent holds flickering under the pointer. Planting feet supports the hips; hanging from an arm leaves more weight and sway in the body. Catching a hold clears stored drag momentum.
+
+The church routes follow projecting buttresses, stone courses and roof coping, avoiding window glass. The tower routes follow its front ladder, structural beams and maintenance platforms. The tree's upper rescue branch follows the visible wood. Grips remain spaced for each character scale; no rope recovery is present.
+
 The main page opens directly into a full-window climbing scene. The environment, climber and objective fill the viewport. A small handset button opens the in-game phone over the paused climb.
 
 Drag a hand or boot onto the tree to climb. Keys 1–4 select individual limbs; R restarts the climb; F requests browser fullscreen. Pickles can still be carried in one hand. Gravity acts on the full body, and falling from the climb ends the job without payment.

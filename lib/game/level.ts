@@ -1,5 +1,5 @@
 export type Point = { x: number; y: number };
-export type Grip = Point & { id: string };
+export type Grip = Point & { id: string; angle?: number; surface?: string };
 export type Collider = {
   id: string;
   type: 'edge' | 'rect';
@@ -43,9 +43,11 @@ const route = (points: number[][]) =>
           id: `grip-${grips.length}`,
           x: ax + ((x - ax) * j) / n,
           y: ay + ((y - ay) * j) / n,
+          angle: Math.atan2(y - ay, x - ax),
+          surface: 'bark',
         });
     }
-    grips.push({ id: `grip-${grips.length}`, x, y });
+    grips.push({ id: `grip-${grips.length}`, x, y, surface: 'bark' });
   });
 // Coordinates are traced over cat-tree.png, independent of the physics engine.
 route([
@@ -91,12 +93,12 @@ route([
   [338, 382],
 ]);
 route([
-  [713, 270],
-  [761, 251],
-  [808, 235],
-  [854, 221],
-  [900, 207],
-  [943, 190],
+  [713, 255],
+  [761, 236],
+  [808, 217],
+  [854, 200],
+  [900, 183],
+  [943, 170],
 ]);
 route([
   [589, 289],
@@ -140,6 +142,7 @@ const churchRoute = (points: number[][]) =>
           id: `church-grip-${churchGrips.length}`,
           x: ax + ((x - ax) * j) / steps,
           y: ay + ((y - ay) * j) / steps,
+          angle: Math.atan2(y - ay, x - ax),
         });
     }
     churchGrips.push({
@@ -149,59 +152,86 @@ const churchRoute = (points: number[][]) =>
     });
   });
 
-// Main route follows the central buttresses, window ledges and bell-tower trim.
+// Trace the two projecting stone buttresses. No route crosses the window glass.
 churchRoute([
-  [548, 926],
-  [632, 918],
-  [532, 866],
-  [650, 838],
-  [518, 785],
-  [662, 754],
-  [508, 702],
-  [664, 671],
-  [510, 620],
-  [656, 590],
-  [518, 536],
-  [648, 505],
-  [522, 455],
-  [646, 424],
-  [526, 372],
-  [640, 344],
-  [532, 292],
-  [634, 265],
-  [544, 216],
-  [622, 190],
-  [580, 153],
-  [612, 122],
-]);
-// Optional side routes let players swing around the large lower window and roof.
-churchRoute([
-  [506, 812],
-  [458, 786],
-  [424, 742],
-  [454, 692],
-  [502, 662],
+  [475, 927],
+  [487, 879],
+  [487, 819],
+  [481, 746],
+  [479, 688],
+  [484, 627],
+  [490, 568],
+  [493, 518],
+  [495, 473],
+  [502, 448],
+  [505, 398],
+  [505, 363],
+  [503, 337],
+  [507, 295],
+  [512, 261],
+  [512, 231],
+  [512, 200],
 ]);
 churchRoute([
-  [672, 802],
-  [718, 770],
-  [755, 724],
-  [710, 682],
-  [665, 650],
+  [718, 927],
+  [714, 879],
+  [716, 815],
+  [719, 748],
+  [718, 684],
+  [705, 627],
+  [704, 580],
+  [702, 534],
+  [701, 487],
+  [699, 451],
+  [696, 397],
+  [695, 362],
+  [695, 339],
+  [690, 294],
+  [686, 260],
+  [690, 229],
+  [690, 200],
+]);
+// Actual horizontal stone courses and projecting sills join the pillars.
+churchRoute([
+  [490, 840],
+  [535, 840],
+  [600, 842],
+  [674, 840],
+  [714, 840],
 ]);
 churchRoute([
-  [520, 525],
-  [480, 485],
-  [448, 448],
-  [492, 418],
-  [530, 388],
+  [490, 563],
+  [553, 563],
+  [621, 564],
+  [704, 563],
 ]);
 churchRoute([
-  [646, 514],
-  [688, 478],
-  [724, 438],
-  [686, 404],
-  [642, 376],
+  [505, 346],
+  [548, 346],
+  [603, 347],
+  [659, 346],
+  [695, 346],
+]);
+churchRoute([
+  [512, 201],
+  [558, 201],
+  [611, 201],
+  [652, 201],
+  [690, 201],
+]);
+// Sloped stone coping leads to the cross plinth, rather than floating above it.
+churchRoute([
+  [532, 190],
+  [553, 173],
+  [577, 151],
+  [597, 133],
+  [612, 132],
+]);
+churchRoute([
+  [675, 190],
+  [654, 171],
+  [633, 151],
+  [612, 132],
 ]);
 
 export const churchLevel: Level = {
@@ -212,12 +242,12 @@ export const churchLevel: Level = {
   worldWidth: 1200,
   worldHeight: 1000,
   playerScale: CHURCH_PLAYER_SCALE,
-  playerSpawn: { x: 590, y: 878 },
+  playerSpawn: { x: 495, y: 878 },
   gripPoints: churchGrips,
   colliders: [
     { id: 'church-ground', type: 'edge', x: 0, y: 958, x2: 1200, y2: 958 },
-    { id: 'left-roof', type: 'edge', x: 190, y: 675, x2: 505, y2: 432 },
-    { id: 'right-roof', type: 'edge', x: 690, y: 432, x2: 1000, y2: 675 },
+    { id: 'left-roof', type: 'edge', x: 250, y: 648, x2: 447, y2: 455 },
+    { id: 'right-roof', type: 'edge', x: 752, y: 455, x2: 938, y2: 648 },
   ],
   objectives: [
     {
@@ -251,6 +281,7 @@ const towerRoute = (points: number[][]) =>
           id: `tower-grip-${towerGrips.length}`,
           x: ax + ((x - ax) * j) / steps,
           y: ay + ((y - ay) * j) / steps,
+          angle: Math.atan2(y - ay, x - ax),
         });
     }
     towerGrips.push({
@@ -260,74 +291,100 @@ const towerRoute = (points: number[][]) =>
     });
   });
 
-// The central route follows ladders and alternating diagonal lattice braces.
+// Front ladder rails and rungs, traced through the maintenance platforms.
 towerRoute([
-  [556, 925],
-  [638, 920],
-  [536, 866],
-  [660, 838],
-  [525, 784],
-  [668, 754],
-  [516, 704],
-  [678, 672],
-  [520, 622],
-  [670, 590],
-  [528, 538],
-  [660, 506],
-  [536, 458],
-  [650, 426],
-  [542, 376],
-  [642, 344],
-  [548, 296],
-  [634, 264],
-  [556, 216],
-  [626, 184],
-  [570, 142],
-  [610, 96],
-  [602, 62],
-]);
-// Maintenance platforms provide wider, swing-friendly detours.
-towerRoute([
-  [522, 690],
-  [472, 676],
-  [432, 646],
-  [474, 616],
-  [526, 604],
+  [614, 928],
+  [614, 854],
+  [613, 748],
+  [612, 650],
+  [612, 579],
+  [610, 491],
+  [610, 378],
+  [612, 283],
+  [614, 192],
+  [614, 88],
 ]);
 towerRoute([
-  [674, 690],
-  [724, 676],
-  [770, 650],
-  [726, 618],
-  [670, 606],
+  [632, 928],
+  [632, 854],
+  [633, 748],
+  [634, 650],
+  [633, 579],
+  [631, 491],
+  [631, 378],
+  [630, 283],
+  [631, 192],
+  [636, 88],
+]);
+for (let y = 917; y >= 93; y -= 15)
+  towerRoute([
+    [615, y],
+    [624, y],
+    [632, y],
+  ]);
+// Structural uprights taper towards the summit; the empty bays are not grabbable.
+towerRoute([
+  [438, 884],
+  [463, 745],
+  [487, 580],
+  [516, 378],
+  [538, 218],
+  [551, 133],
 ]);
 towerRoute([
-  [536, 432],
-  [492, 410],
-  [462, 376],
-  [502, 350],
-  [546, 334],
+  [770, 884],
+  [748, 745],
+  [724, 580],
+  [698, 378],
+  [678, 218],
+  [668, 133],
+]);
+// Platforms and the visible diagonal steel members connect to the ladder.
+towerRoute([
+  [477, 578],
+  [612, 578],
+  [760, 578],
 ]);
 towerRoute([
-  [652, 428],
-  [698, 410],
-  [742, 380],
-  [700, 350],
-  [644, 332],
+  [513, 374],
+  [613, 374],
+  [742, 374],
 ]);
 towerRoute([
-  [552, 206],
-  [514, 180],
-  [496, 145],
-  [544, 126],
-  [576, 106],
+  [519, 120],
+  [617, 120],
+  [706, 134],
 ]);
 towerRoute([
-  [626, 204],
-  [672, 184],
-  [704, 150],
-  [660, 126],
-  [624, 106],
+  [450, 852],
+  [740, 609],
+]);
+towerRoute([
+  [460, 609],
+  [744, 852],
+]);
+towerRoute([
+  [494, 568],
+  [685, 391],
+]);
+towerRoute([
+  [503, 391],
+  [717, 568],
+]);
+towerRoute([
+  [524, 369],
+  [678, 225],
+]);
+towerRoute([
+  [538, 225],
+  [692, 369],
+]);
+towerRoute([
+  [616, 120],
+  [626, 88],
+  [626, 53],
+  [614, 26],
+  [605, 20],
 ]);
 
 export const towerLevel: Level = {
@@ -338,7 +395,7 @@ export const towerLevel: Level = {
   worldWidth: 1200,
   worldHeight: 1000,
   playerScale: TOWER_PLAYER_SCALE,
-  playerSpawn: { x: 590, y: 872 },
+  playerSpawn: { x: 624, y: 872 },
   gripPoints: towerGrips,
   colliders: [
     { id: 'tower-ground', type: 'edge', x: 0, y: 960, x2: 1200, y2: 960 },

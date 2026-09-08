@@ -1,5 +1,5 @@
-import { Climber, LIMBS } from './physics';
-import type { Level, Point } from './level';
+import { Climber } from './physics';
+import type { Level, Point, Grip } from './level';
 export type View = { scale: number; x: number; y: number };
 export function draw(
   ctx: CanvasRenderingContext2D,
@@ -429,18 +429,73 @@ export function draw(
       '#2c2924',
     );
     ctx.restore();
-    for (const limb of LIMBS) {
-      const p = g.p[limb];
-      if (g.grips[limb]) circle(p, 3 * bodyScale, '#ccdda8');
-      if (g.drag?.limb === limb) {
-        circle(p, 13, '#fff0', '#fff6ce');
-      }
-    }
+    // Short surface-edge highlights replace floating targets and range rings.
+    const edgeMark = (p: Grip, strength: number, width = 8) => {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.angle ?? 0);
+      ctx.scale(bodyScale, bodyScale);
+      ctx.globalAlpha = strength;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-width, 2);
+      ctx.lineTo(-width * 0.2, -1);
+      ctx.lineTo(width, 0);
+      ctx.strokeStyle = '#201b16';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ctx.translate(0, -1);
+      ctx.strokeStyle = l.id === 'telephone-tower-bulb' ? '#e7f0f3' : '#fff2cf';
+      ctx.lineWidth = 1.7;
+      ctx.stroke();
+      ctx.restore();
+    };
     if (g.drag) {
-      const near = g.nearest(g.p[g.drag.limb], 27);
-      if (near) {
-        circle(near, 10 * bodyScale, '#b4e17e70', '#f3ffd3');
+      const ready = g.grabPreview();
+      const { limb, target } = g.drag;
+      const nearby = l.gripPoints
+        .filter(
+          (hold) =>
+            Math.hypot(hold.x - target.x, hold.y - target.y) < 75 * bodyScale &&
+            Math.hypot(hold.x - g.root(limb).x, hold.y - g.root(limb).y) <=
+              g.reach(limb) + 8 * bodyScale,
+        )
+        .sort(
+          (a, b) =>
+            Math.hypot(a.x - target.x, a.y - target.y) -
+            Math.hypot(b.x - target.x, b.y - target.y),
+        )
+        .slice(0, 8);
+      for (const hold of nearby) {
+        const proximity = Math.hypot(hold.x - target.x, hold.y - target.y);
+        if (
+          proximity < 75 * bodyScale &&
+          Math.hypot(hold.x - g.root(limb).x, hold.y - g.root(limb).y) <=
+            g.reach(limb) + 8 * bodyScale
+        ) {
+          edgeMark(hold, 0.12 + 0.28 * (1 - proximity / (75 * bodyScale)), 5);
+        }
       }
+      if (ready) edgeMark(ready, 1, 10);
+    }
+    for (const hold of Object.values(g.grips)) edgeMark(hold, 0.55, 5);
+    for (const event of g.catches) {
+      const t = event.age / 0.38;
+      ctx.save();
+      ctx.globalAlpha = (1 - t) * 0.85;
+      ctx.fillStyle = '#f8e5bb';
+      for (let i = 0; i < 5; i++) {
+        const angle = Math.PI * (1.1 + i * 0.2);
+        const travel = (4 + t * 17) * bodyScale;
+        ctx.fillRect(
+          event.x + Math.cos(angle) * travel,
+          event.y + Math.sin(angle) * travel + t * t * 14 * bodyScale,
+          2 * bodyScale,
+          2 * bodyScale,
+        );
+      }
+      ctx.restore();
     }
     // Only the currently available interaction is highlighted; editor geometry stays hidden.
     const cat = g.cat;

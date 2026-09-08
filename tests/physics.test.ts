@@ -291,6 +291,63 @@ assert.equal(
 );
 console.log('PASS nearby-hold attraction and catch');
 
+// A preview is a promise: releasing must attach to that exact surface.
+for (const level of [catLevel, churchLevel, towerLevel]) {
+  const rig = new Climber(structuredClone(level));
+  const limb = LIMBS.find((limb) => rig.grips[limb]);
+  assert.ok(limb);
+  const hold = rig.grips[limb]!;
+  rig.begin(limb, hold);
+  for (let i = 0; i < 30; i++) rig.step();
+  const preview = rig.grabPreview();
+  assert.ok(preview, 'An in-reach surface must produce a ready preview');
+  rig.move({ x: hold.x + rig.scale, y: hold.y });
+  rig.step();
+  assert.equal(
+    rig.grabPreview()?.id,
+    preview.id,
+    'Small pointer jitter keeps the same hold',
+  );
+  rig.end();
+  assert.equal(rig.grips[limb]?.id, preview.id);
+  assert.equal(
+    rig.p[limb].x,
+    rig.p[limb].px,
+    'Catching removes stored release velocity',
+  );
+  assert.equal(rig.p[limb].y, rig.p[limb].py);
+  assert.equal(rig.catches.length, 1);
+}
+
+const selectionRig = new Climber(structuredClone(catLevel));
+const root = selectionRig.root('leftHand');
+selectionRig.level.gripPoints = [
+  { id: 'unreachable', x: root.x + 90, y: root.y },
+  { id: 'reachable', x: root.x + 76, y: root.y },
+];
+assert.equal(
+  selectionRig.reachableHold('leftHand', { x: root.x + 89, y: root.y }, 38)?.id,
+  'reachable',
+  'A closer unreachable hold cannot hide a valid reachable one',
+);
+
+// Guard the two large church windows against future automatic zigzag routes.
+assert.ok(
+  churchLevel.gripPoints.every(
+    (hold) =>
+      !(hold.x > 550 && hold.x < 637 && hold.y > 636 && hold.y < 813) &&
+      !(hold.x > 590 && hold.x < 617 && hold.y > 436 && hold.y < 510),
+  ),
+  'Church routes must avoid window glass',
+);
+assert.ok(
+  towerLevel.gripPoints.every((hold) => hold.x >= 430 && hold.x <= 780),
+  'Tower holds stay on the traced structure, away from sky and antennas',
+);
+console.log(
+  'PASS honest grab previews, stable targeting, clean catches and route exclusions',
+);
+
 const church = new Climber(structuredClone(churchLevel));
 for (let i = 0; i < 240; i++) church.step();
 for (let cycle = 0; cycle < 48 && !church.complete; cycle++) {
