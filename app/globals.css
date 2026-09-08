@@ -876,6 +876,241 @@ body {
     transform 0.18s ease,
     background 0.18s ease;
 }
+.completion-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 16;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  color: #fff7d8;
+  background: #071710ad;
+  backdrop-filter: blur(7px);
+  animation: completion-fade 0.35s ease;
+}
+.completion-card {
+  position: relative;
+  width: min(430px, calc(100vw - 30px));
+  overflow: hidden;
+  padding: 38px 34px 28px;
+  text-align: center;
+  background: linear-gradient(155deg, #173e35, #102b25);
+  border: 1px solid #f6e7b942;
+  border-radius: 25px;
+  box-shadow: 0 30px 90px #020906cc;
+}
+.completion-kicker {
+  position: relative;
+  z-index: 2;
+  color: #d9dfaebb;
+  font-size: 9px;
+  font-weight: 850;
+  letter-spacing: 3px;
+}
+.completion-card h2 {
+  position: relative;
+  z-index: 2;
+  margin: 12px 0 4px;
+  color: #ffe99b;
+  font:
+    italic 58px Georgia,
+    serif;
+  letter-spacing: -2px;
+  text-shadow: 0 5px 25px #f1bb4966;
+  animation: payment-pop 0.55s cubic-bezier(0.2, 0.9, 0.25, 1.25);
+}
+.completion-card > p {
+  position: relative;
+  z-index: 2;
+  width: 280px;
+  max-width: 100%;
+  margin: 0 auto 22px;
+  color: #cad7c5;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.deposit-account {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 4px 10px;
+  align-items: center;
+  padding: 16px;
+  color: #1f675d;
+  text-align: left;
+  background: #f3f3e9;
+  border-radius: 15px;
+  box-shadow: 0 9px 28px #03140d55;
+  animation: account-credit 0.6s 0.35s both cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.deposit-account > span {
+  display: flex;
+  flex-direction: column;
+}
+.deposit-account small {
+  color: #708078;
+  font-size: 7px;
+  font-weight: 850;
+  letter-spacing: 1px;
+}
+.deposit-account strong {
+  color: #173f37;
+  font:
+    24px Georgia,
+    serif;
+}
+.deposit-account em {
+  grid-column: 2;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #4c8668;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 750;
+}
+.completion-actions {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-top: 18px;
+}
+.completion-actions button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 11px;
+  color: #193b31;
+  background: #f0e4b7;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.3px;
+}
+.completion-actions button:nth-child(2) {
+  color: #f9f1d8;
+  background: #4c865e;
+}
+.completion-actions .completion-replay {
+  grid-column: 1 / -1;
+  min-height: 30px;
+  color: #c6d4c5;
+  background: transparent;
+  font-weight: 650;
+}
+.deposit-coins {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.deposit-coins span {
+  position: absolute;
+  top: -35px;
+  left: 50%;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  color: #604b18;
+  background: #f2c75b;
+  border: 2px solid #ffe994;
+  border-radius: 50%;
+  font: 800 11px Arial;
+  opacity: 0;
+  box-shadow: 0 3px 9px #05120b66;
+  animation: coin-deposit 1.25s ease-in forwards;
+}
+.deposit-coins span:nth-child(1) {
+  left: 8%;
+  animation-delay: 0.02s;
+}
+.deposit-coins span:nth-child(2) {
+  left: 18%;
+  animation-delay: 0.22s;
+  transform: scale(0.8);
+}
+.deposit-coins span:nth-child(3) {
+  left: 29%;
+  animation-delay: 0.08s;
+}
+.deposit-coins span:nth-child(4) {
+  left: 39%;
+  animation-delay: 0.3s;
+  transform: scale(0.7);
+}
+.deposit-coins span:nth-child(5) {
+  left: 48%;
+  animation-delay: 0.15s;
+}
+.deposit-coins span:nth-child(6) {
+  left: 58%;
+  animation-delay: 0.38s;
+  transform: scale(0.8);
+}
+.deposit-coins span:nth-child(7) {
+  left: 67%;
+  animation-delay: 0.12s;
+}
+.deposit-coins span:nth-child(8) {
+  left: 78%;
+  animation-delay: 0.27s;
+  transform: scale(0.7);
+}
+.deposit-coins span:nth-child(9) {
+  left: 88%;
+  animation-delay: 0.04s;
+}
+.deposit-coins span:nth-child(10) {
+  left: 24%;
+  animation-delay: 0.44s;
+  transform: scale(0.65);
+}
+.deposit-coins span:nth-child(11) {
+  left: 63%;
+  animation-delay: 0.5s;
+  transform: scale(0.65);
+}
+.deposit-coins span:nth-child(12) {
+  left: 83%;
+  animation-delay: 0.56s;
+  transform: scale(0.8);
+}
+@keyframes completion-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes payment-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.65);
+  }
+}
+@keyframes account-credit {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+@keyframes coin-deposit {
+  0% {
+    opacity: 0;
+    translate: 0 -10px;
+    rotate: 0deg;
+  }
+  12% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 0 335px;
+    rotate: 420deg;
+  }
+}
 .phone-launch:hover {
   transform: translateY(-2px);
   background: #25463b;

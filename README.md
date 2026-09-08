@@ -1,10 +1,10 @@
 # Odd Jobs — tree climbing prototype
 
-The main page opens directly into a full-window climbing scene. The environment, climber, safety rope and objective fill the viewport. A small handset button opens the in-game phone over the paused climb.
+The main page opens directly into a full-window climbing scene. The environment, climber and objective fill the viewport. A small handset button opens the in-game phone over the paused climb.
 
 Drag a hand or boot onto the tree to climb. Keys 1–4 select individual limbs; R restarts the climb; F requests browser fullscreen. Pickles can still be carried in one hand. Reaching the ground keeps the climbing simulation running.
 
-The phone contains the Odd Jobs app and Common Cents online banking. Jobs launch the three full-screen routes directly. Completed jobs add their pay to a persistent local account, while banking tracks the available balance, lifetime earnings, completed jobs and the remaining $12,000 career-pivot loan. The available balance can be transferred toward the debt.
+The phone contains the Odd Jobs app and Common Cents online banking. Jobs launch the three full-screen routes directly. Completing a job opens an animated payment screen with the amount earned and the account balance before and after the deposit. Banking tracks the available balance, lifetime earnings, completed jobs and the remaining $12,000 career-pivot loan. The available balance can be transferred toward the debt.
 
 The second full-window climb is available at `/church`. It uses a separate low-poly PNG environment and authored route up a stone church. Reaching the crooked cross with either hand straightens it in place.
 
@@ -18,18 +18,18 @@ Node 22.13+ and pnpm. `pnpm install`, then `pnpm dev`. `pnpm build` creates the 
 
 ## Architecture
 
-- `lib/game/physics.ts`: position-based weighted ragdoll with a physical torso frame, separate shoulder and hip joints, fixed bone lengths, limited endpoint reach, anchored grips, one-way elbow/knee hinges and an auto-belay harness constraint. Soft dragging, nearby-hold attraction and capped release momentum keep repositioning fluid while grip anchors remain precise.
+- `lib/game/physics.ts`: position-based weighted ragdoll with a physical torso frame, separate shoulder and hip joints, fixed bone lengths, limited endpoint reach, anchored grips, one-way elbow/knee hinges and an invisible fall-recovery constraint. Soft dragging, nearby-hold attraction and capped release momentum keep repositioning fluid while grip anchors remain precise.
 - `lib/game/level.ts`: separate authored tree, church and tower level data plus JSON validation. Each level carries a calibrated player scale; generated grip spacing follows that scale so smaller characters receive proportionally denser holds.
-- `lib/game/render.ts`: PNG background/foreground layers, a connected low-poly climber built from tapered faceted limbs, joint pieces, skin forearms, shaped hands and boots, torso, pelvis, head and harness, plus the low-poly cat PNG and editor overlays. Gameplay geometry is invisible.
+- `lib/game/render.ts`: PNG background/foreground layers, a connected low-poly climber built from tapered faceted limbs, joint pieces, skin forearms, shaped hands and boots, torso, pelvis, face and hair, plus the low-poly cat PNG and editor overlays. The climber has no helmet, harness or visible rope, and gameplay geometry is invisible.
 - `app/game.tsx`: fixed timestep, bounded camera, unified mouse/touch Pointer Events, persistent finances, the in-game phone and workshop tools. Gameplay covers the viewport, cropping the world rather than letterboxing it.
 - `app/page.tsx`, `app/church/page.tsx` and `app/tower/page.tsx`: direct full-screen climbing entries, with no app shell.
 - `app/workshop/page.tsx`: separate developer entry.
 
-The complete carry-and-return system remains available to editor play tests. The main page uses continuous climbing mode while we focus on movement.
+The complete carry-and-return system remains available to editor play tests. Normal routes stop on completion and present the payment screen; editor play tests do not award money.
 
 ## Validation
 
-Automated tests exercise ascent, branch traversal, actual cat pickup, three-limb descent, complete church and tower ascents, both repair objectives, safety-rope catch, carrying lockout and JSON validation. Scale regression checks verify that body geometry, reach, collision radii, snap zones and nearest-hold spacing change together for each background. Hinge tests intentionally reverse both knees and rotate the body, then verify bend direction and unchanged leg segment lengths. Continuous mode is checked to avoid freezing at a hidden completion menu. Mouse/touch feel still needs hands-on tuning.
+Automated tests exercise ascent, branch traversal, actual cat pickup, three-limb descent, complete church and tower ascents, both repair objectives, the invisible fall catch, carrying lockout and JSON validation. Scale regression checks verify that body geometry, reach, collision radii, snap zones and nearest-hold spacing change together for each background. Hinge tests intentionally reverse both knees and rotate the body, then verify bend direction and unchanged leg segment lengths. Mouse/touch feel still needs hands-on tuning.
 
 ## Artwork
 

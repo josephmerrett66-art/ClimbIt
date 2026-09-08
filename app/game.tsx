@@ -52,6 +52,11 @@ type Finances = {
   lifetimeEarnings: number;
   completedJobs: string[];
 };
+type Payout = {
+  amount: number;
+  balanceBefore: number;
+  balanceAfter: number;
+};
 const EMPTY_FINANCES: Finances = {
   balance: 0,
   debt: STARTING_DEBT,
@@ -131,7 +136,8 @@ export default function Game({
     [phoneOpen, setPhoneOpen] = useState(false),
     [phoneTab, setPhoneTab] = useState<'jobs' | 'bank'>('jobs'),
     [finances, setFinances] = useState<Finances>(EMPTY_FINANCES),
-    [phoneUnread, setPhoneUnread] = useState(false);
+    [phoneUnread, setPhoneUnread] = useState(false),
+    [payout, setPayout] = useState<Payout | null>(null);
   const settings = useRef({
     edit,
     editing,
@@ -152,8 +158,10 @@ export default function Game({
     } | null>(null),
     history = useRef<Level[]>([]),
     paid = useRef(false),
-    paidCallback = useRef(onPaid);
+    paidCallback = useRef(onPaid),
+    financesRef = useRef<Finances>(EMPTY_FINANCES);
   paidCallback.current = onPaid;
+  financesRef.current = finances;
   const bgUpload = useRef<HTMLInputElement>(null),
     jsonUpload = useRef<HTMLInputElement>(null),
     fgUpload = useRef<HTMLInputElement>(null);
@@ -173,19 +181,21 @@ export default function Game({
       rope: false,
     });
     setChosen(null);
+    setPayout(null);
     setPaused(false);
     active.current = null;
     gesture.current = null;
   };
   const saveFinances = (next: Finances) => {
+    financesRef.current = next;
     setFinances(next);
     try {
       localStorage.setItem('oddjobs-finances', JSON.stringify(next));
     } catch {}
   };
   const recordPay = (jobId: string, amount: number) => {
-    setFinances((current) => {
-      const next = {
+    const current = financesRef.current,
+      next = {
         balance: current.balance + amount,
         debt: current.debt,
         lifetimeEarnings: current.lifetimeEarnings + amount,
@@ -193,10 +203,11 @@ export default function Game({
           ? current.completedJobs
           : [...current.completedJobs, jobId],
       };
-      try {
-        localStorage.setItem('oddjobs-finances', JSON.stringify(next));
-      } catch {}
-      return next;
+    saveFinances(next);
+    setPayout({
+      amount,
+      balanceBefore: current.balance,
+      balanceAfter: next.balance,
     });
     setPhoneUnread(true);
   };
@@ -208,6 +219,11 @@ export default function Game({
   const closePhone = () => {
     setPhoneOpen(false);
     setPaused(false);
+  };
+  const openPhoneTo = (tab: 'jobs' | 'bank') => {
+    setPayout(null);
+    setPhoneTab(tab);
+    openPhone();
   };
   const payDebt = () => {
     const payment = Math.min(finances.balance, finances.debt);
@@ -248,7 +264,7 @@ export default function Game({
         Number.isFinite(saved.lifetimeEarnings) &&
         Array.isArray(saved.completedJobs)
       )
-        setFinances({
+        saveFinances({
           balance: Math.max(0, saved.balance),
           debt: Math.max(0, saved.debt),
           lifetimeEarnings: Math.max(0, saved.lifetimeEarnings),
@@ -956,6 +972,54 @@ export default function Game({
       </div>
       {!edit && (
         <>
+          {payout && !phoneOpen && (
+            <div
+              className="completion-layer"
+              role="dialog"
+              aria-label="Job payment complete"
+            >
+              <section className="completion-card">
+                <div className="deposit-coins" aria-hidden="true">
+                  {Array.from({ length: 12 }, (_, index) => (
+                    <span key={index}>$</span>
+                  ))}
+                </div>
+                <span className="completion-kicker">JOB COMPLETE</span>
+                <h2>{money(payout.amount)}</h2>
+                <p>
+                  Payment received and deposited into your everyday account.
+                </p>
+                <div className="deposit-account">
+                  <Landmark size={21} />
+                  <span>
+                    <small>COMMON CENTS · EVERYDAY</small>
+                    <strong>{money(payout.balanceAfter)}</strong>
+                  </span>
+                  <em>
+                    {money(payout.balanceBefore)} <ChevronRight size={12} />{' '}
+                    {money(payout.balanceAfter)}
+                  </em>
+                </div>
+                <div className="completion-actions">
+                  <button onClick={() => openPhoneTo('bank')}>
+                    View banking
+                  </button>
+                  <button onClick={() => openPhoneTo('jobs')}>
+                    Find next job
+                  </button>
+                  <button
+                    className="completion-replay"
+                    onClick={() => {
+                      setPayout(null);
+                      reset();
+                    }}
+                  >
+                    Replay job
+                  </button>
+                </div>
+              </section>
+            </div>
+          )}
           <button
             className="phone-launch"
             onClick={openPhone}

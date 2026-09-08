@@ -1,4 +1,4 @@
-import { Climber, LIMBS, distance } from './physics';
+import { Climber, LIMBS } from './physics';
 import type { Level, Point } from './level';
 export type View = { scale: number; x: number; y: number };
 export function draw(
@@ -110,21 +110,6 @@ export function draw(
       ctx.setLineDash([]);
     }
   } else {
-    const a = l.ropeAnchors[0],
-      hip = g.p.hip;
-    ctx.strokeStyle = '#dbd387';
-    ctx.lineWidth = 2.5;
-    ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    const slack = Math.max(0, g.ropeLength - distance(a, hip));
-    ctx.quadraticCurveTo(
-      (a.x + hip.x) / 2 - slack * 0.4,
-      (a.y + hip.y) / 2 + slack * 0.4,
-      hip.x,
-      hip.y,
-    );
-    ctx.stroke();
-    circle(a, 5, '#d3cda1');
     let shapeScale = 1;
     const polygon = (points: Point[], fill: string, stroke = '#26372f') => {
       ctx.beginPath();
@@ -432,43 +417,22 @@ export function draw(
       ],
       '#d9b47f',
     );
-    ctx.beginPath();
-    ctx.moveTo(-11, -3);
-    ctx.lineTo(14, -3);
-    ctx.lineTo(8, -15);
-    ctx.lineTo(-6, -15);
-    ctx.closePath();
-    ctx.fillStyle = '#f1eee3';
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(-14, -2);
-    ctx.lineTo(15, -2);
-    ctx.lineTo(11, 2);
-    ctx.lineTo(-13, 2);
-    ctx.closePath();
-    ctx.fillStyle = '#d8d9d1';
-    ctx.fill();
-    ctx.restore();
-
-    // Harness connects the torso, pelvis and rope into one readable body.
-    ctx.strokeStyle = '#bfcd72';
-    ctx.lineWidth = 2.6 * bodyScale;
-    ctx.beginPath();
-    ctx.moveTo(leftShoulder.x, leftShoulder.y + 4 * bodyScale);
-    ctx.lineTo(rightHip.x, rightHip.y + 3 * bodyScale);
-    ctx.moveTo(rightShoulder.x, rightShoulder.y + 4 * bodyScale);
-    ctx.lineTo(leftHip.x, leftHip.y + 3 * bodyScale);
-    ctx.stroke();
     polygon(
       [
-        { x: hip.x - 6 * bodyScale, y: hip.y - 5 * bodyScale },
-        { x: hip.x + 6 * bodyScale, y: hip.y - 5 * bodyScale },
-        { x: hip.x + 7 * bodyScale, y: hip.y + 5 * bodyScale },
-        { x: hip.x - 7 * bodyScale, y: hip.y + 5 * bodyScale },
+        { x: -12, y: -5 },
+        { x: -9, y: -14 },
+        { x: -2, y: -17 },
+        { x: 3, y: -14 },
+        { x: 9, y: -16 },
+        { x: 12, y: -8 },
+        { x: 7, y: -10 },
+        { x: 2, y: -6 },
+        { x: -4, y: -10 },
       ],
-      '#aebc64',
-      '#334239',
+      '#49362b',
+      '#2c2924',
     );
+    ctx.restore();
     for (const limb of LIMBS) {
       const p = g.p[limb];
       if (g.grips[limb]) circle(p, 3 * bodyScale, '#ccdda8');
