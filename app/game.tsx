@@ -18,6 +18,11 @@ import {
   Maximize,
   Minimize,
   X,
+  Smartphone,
+  BriefcaseBusiness,
+  Landmark,
+  MapPin,
+  ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { catLevel, parseLevel, type Level, type Point } from '@/lib/game/level';
@@ -40,6 +45,51 @@ const time = (s: number) =>
     .padStart(2, '0')}:${Math.floor(s % 60)
     .toString()
     .padStart(2, '0')}`;
+const STARTING_DEBT = 12000;
+type Finances = {
+  balance: number;
+  debt: number;
+  lifetimeEarnings: number;
+  completedJobs: string[];
+};
+const EMPTY_FINANCES: Finances = {
+  balance: 0,
+  debt: STARTING_DEBT,
+  lifetimeEarnings: 0,
+  completedJobs: [],
+};
+const JOBS = [
+  {
+    id: 'cat-tree',
+    name: 'Cat stuck in tree',
+    client: 'Sarah, next door',
+    pay: 40,
+    href: '/',
+    image: '/assets/cat-tree.png',
+  },
+  {
+    id: 'church-cross',
+    name: 'Straighten church cross',
+    client: 'St Mark’s parish',
+    pay: 55,
+    href: '/church',
+    image: '/assets/church-cross.png',
+  },
+  {
+    id: 'telephone-tower-bulb',
+    name: 'Replace tower light',
+    client: 'Regional Telecom',
+    pay: 85,
+    href: '/tower',
+    image: '/assets/telephone-tower.png',
+  },
+] as const;
+const money = (amount: number) =>
+  new Intl.NumberFormat('en-AU', {
+    style: 'currency',
+    currency: 'AUD',
+    maximumFractionDigits: 0,
+  }).format(amount);
 export default function Game({
   editing,
   onBack,
@@ -77,7 +127,11 @@ export default function Game({
     [hintVisible, setHintVisible] = useState(true),
     [selected, setSelected] = useState<string | null>(null),
     [notice, setNotice] = useState(''),
-    [chosen, setChosen] = useState<Limb | null>(null);
+    [chosen, setChosen] = useState<Limb | null>(null),
+    [phoneOpen, setPhoneOpen] = useState(false),
+    [phoneTab, setPhoneTab] = useState<'jobs' | 'bank'>('jobs'),
+    [finances, setFinances] = useState<Finances>(EMPTY_FINANCES),
+    [phoneUnread, setPhoneUnread] = useState(false);
   const settings = useRef({
     edit,
     editing,
@@ -108,7 +162,7 @@ export default function Game({
     if (history.current.length > 40) history.current.shift();
   };
   const reset = () => {
-    game.current = new Climber(level.current, editing);
+    game.current = new Climber(level.current, !editing);
     paid.current = false;
     setHud({
       seconds: 0,
@@ -122,6 +176,47 @@ export default function Game({
     setPaused(false);
     active.current = null;
     gesture.current = null;
+  };
+  const saveFinances = (next: Finances) => {
+    setFinances(next);
+    try {
+      localStorage.setItem('oddjobs-finances', JSON.stringify(next));
+    } catch {}
+  };
+  const recordPay = (jobId: string, amount: number) => {
+    setFinances((current) => {
+      const next = {
+        balance: current.balance + amount,
+        debt: current.debt,
+        lifetimeEarnings: current.lifetimeEarnings + amount,
+        completedJobs: current.completedJobs.includes(jobId)
+          ? current.completedJobs
+          : [...current.completedJobs, jobId],
+      };
+      try {
+        localStorage.setItem('oddjobs-finances', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+    setPhoneUnread(true);
+  };
+  const openPhone = () => {
+    setPhoneOpen(true);
+    setPaused(true);
+    setPhoneUnread(false);
+  };
+  const closePhone = () => {
+    setPhoneOpen(false);
+    setPaused(false);
+  };
+  const payDebt = () => {
+    const payment = Math.min(finances.balance, finances.debt);
+    if (!payment) return;
+    saveFinances({
+      ...finances,
+      balance: finances.balance - payment,
+      debt: finances.debt - payment,
+    });
   };
   const loadImages = () => {
     const bg = new Image();
@@ -141,6 +236,28 @@ export default function Game({
     }
     images.current = { bg, fg, cat };
   };
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(
+        localStorage.getItem('oddjobs-finances') || 'null',
+      );
+      if (
+        saved &&
+        Number.isFinite(saved.balance) &&
+        Number.isFinite(saved.debt) &&
+        Number.isFinite(saved.lifetimeEarnings) &&
+        Array.isArray(saved.completedJobs)
+      )
+        setFinances({
+          balance: Math.max(0, saved.balance),
+          debt: Math.max(0, saved.debt),
+          lifetimeEarnings: Math.max(0, saved.lifetimeEarnings),
+          completedJobs: saved.completedJobs.filter(
+            (id: unknown): id is string => typeof id === 'string',
+          ),
+        });
+    } catch {}
+  }, []);
   useEffect(() => {
     const timer = window.setTimeout(() => setHintVisible(false), 12000);
     const changed = () => setFullscreen(!!document.fullscreenElement);
@@ -271,7 +388,10 @@ export default function Game({
       }
       if (g.complete && !paid.current) {
         paid.current = true;
-        if (!s.editing) paidCallback.current(l.pay);
+        if (!s.editing) {
+          recordPay(l.id, l.pay);
+          paidCallback.current(l.pay);
+        }
       }
       frame = requestAnimationFrame(tick);
     };
@@ -293,6 +413,10 @@ export default function Game({
     const key = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).matches('input,textarea,select')) return;
       if (e.key === 'Escape') {
+        if (phoneOpen) {
+          closePhone();
+          return;
+        }
         game.current?.end(true);
         active.current = null;
         gesture.current = null;
@@ -830,6 +954,138 @@ export default function Game({
           </aside>
         )}
       </div>
+      {!edit && (
+        <>
+          <button
+            className="phone-launch"
+            onClick={openPhone}
+            aria-label="Open phone"
+          >
+            <Smartphone size={21} />
+            {phoneUnread && <span className="phone-unread" />}
+          </button>
+          {phoneOpen && (
+            <div className="phone-layer" role="dialog" aria-label="Phone">
+              <button
+                className="phone-dismiss"
+                onClick={closePhone}
+                aria-label="Close phone"
+              />
+              <section className="phone-device">
+                <div className="phone-speaker" />
+                <header className="phone-header">
+                  <span>9:41</span>
+                  <strong>Odd Jobs</strong>
+                  <button onClick={closePhone} aria-label="Close phone">
+                    <X size={17} />
+                  </button>
+                </header>
+                <nav className="phone-tabs" aria-label="Phone apps">
+                  <button
+                    className={phoneTab === 'jobs' ? 'active' : ''}
+                    onClick={() => setPhoneTab('jobs')}
+                  >
+                    <BriefcaseBusiness size={15} /> Jobs
+                  </button>
+                  <button
+                    className={phoneTab === 'bank' ? 'active' : ''}
+                    onClick={() => setPhoneTab('bank')}
+                  >
+                    <Landmark size={15} /> Banking
+                  </button>
+                </nav>
+                <div className="phone-screen">
+                  {phoneTab === 'jobs' ? (
+                    <div className="phone-jobs">
+                      <div className="phone-section-title">
+                        <span>AVAILABLE LOCALLY</span>
+                        <strong>{JOBS.length} jobs</strong>
+                      </div>
+                      {JOBS.map((job) => {
+                        const activeJob = level.current.id === job.id;
+                        const complete = finances.completedJobs.includes(
+                          job.id,
+                        );
+                        return (
+                          <a
+                            key={job.id}
+                            href={job.href}
+                            className={activeJob ? 'current' : ''}
+                          >
+                            <span
+                              className="phone-job-image"
+                              style={{ backgroundImage: `url(${job.image})` }}
+                            />
+                            <span className="phone-job-copy">
+                              <small>
+                                <MapPin size={10} /> {job.client}
+                              </small>
+                              <strong>{job.name}</strong>
+                              <span>
+                                {money(job.pay)}
+                                {complete && <em>COMPLETED</em>}
+                              </span>
+                            </span>
+                            <ChevronRight size={17} />
+                          </a>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="phone-bank">
+                      <div className="bank-brand">
+                        <Landmark size={17} />
+                        <span>
+                          <small>ONLINE BANKING</small>
+                          <strong>Common Cents</strong>
+                        </span>
+                      </div>
+                      <section className="bank-balance">
+                        <small>EVERYDAY ACCOUNT</small>
+                        <strong>{money(finances.balance)}</strong>
+                        <span>Available balance</span>
+                      </section>
+                      <section className="debt-card">
+                        <small>CAREER PIVOT LOAN</small>
+                        <span>Debt remaining</span>
+                        <strong>{money(finances.debt)}</strong>
+                        <div className="debt-track">
+                          <i
+                            style={{
+                              width: `${Math.min(
+                                100,
+                                ((STARTING_DEBT - finances.debt) /
+                                  STARTING_DEBT) *
+                                  100,
+                              )}%`,
+                            }}
+                          />
+                        </div>
+                        <p>
+                          {money(STARTING_DEBT - finances.debt)} paid ·{' '}
+                          {money(finances.lifetimeEarnings)} earned from jobs
+                        </p>
+                      </section>
+                      <button
+                        className="debt-payment"
+                        disabled={!finances.balance || !finances.debt}
+                        onClick={payDebt}
+                      >
+                        {finances.debt === 0
+                          ? 'DEBT CLEARED'
+                          : finances.balance
+                            ? `PAY ${money(Math.min(finances.balance, finances.debt))}`
+                            : 'COMPLETE A JOB TO GET PAID'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="phone-home-indicator" />
+              </section>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
