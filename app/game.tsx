@@ -99,11 +99,13 @@ export default function Game({
   onBack,
   onPaid,
   initialLevel = catLevel,
+  basePath = '',
 }: {
   editing: boolean;
   onBack: () => void;
   onPaid: (n: number) => void;
   initialLevel?: Level;
+  basePath?: string;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null),
     level = useRef<Level>(clone(initialLevel)),
@@ -247,7 +249,7 @@ export default function Game({
     let cat: HTMLImageElement | null = null;
     if (level.current.objectives[0].type === 'carry') {
       cat = new Image();
-      cat.src = '/assets/pickles.png';
+      cat.src = `${basePath}/assets/pickles.png`;
     }
     images.current = { bg, fg, cat };
   };
@@ -1096,12 +1098,14 @@ export default function Game({
                         return (
                           <a
                             key={job.id}
-                            href={job.href}
+                            href={`${basePath}${job.href}`}
                             className={activeJob ? 'current' : ''}
                           >
                             <span
                               className="phone-job-image"
-                              style={{ backgroundImage: `url(${job.image})` }}
+                              style={{
+                                backgroundImage: `url(${basePath}${job.image})`,
+                              }}
                             />
                             <span className="phone-job-copy">
                               <small>
