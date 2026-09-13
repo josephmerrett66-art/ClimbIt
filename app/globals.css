@@ -1263,7 +1263,7 @@ body {
 .phone-tabs {
   flex: 0 0 48px;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   background: #fff;
   border-bottom: 1px solid #cbd2ca;
 }
@@ -1622,3 +1622,21 @@ body {
   width: 44px;
   height: 44px;
 }
+
+.story-inbox {padding:18px 14px 24px;color:#24372e;}
+.story-intro small {font-size:10px;letter-spacing:1.2px;color:#697267;}
+.story-intro h2 {font:italic 25px Georgia;margin:10px 0;}
+.story-intro p,.story-message p {font-size:13px;line-height:1.55;}
+.story-thread {display:grid;gap:14px;margin:22px 0;}
+.story-message {padding:13px;border-radius:12px 12px 12px 2px;background:#fffdf4;border:1px solid #d7d9ce;box-shadow:0 2px 6px #22352b09;}
+.story-message.outgoing {margin-left:28px;background:#d8e7da;border-radius:12px 12px 2px 12px;}
+.story-message strong {display:block;font-size:12px;}
+.story-message small {display:block;font-size:9px;color:#747b70;margin-top:4px;letter-spacing:.6px;}
+.story-message p {margin:9px 0 0;}
+.story-footnote {font-size:11px;color:#697267;line-height:1.5;margin:12px 0 0;}
+.repayment-choice {margin:18px 0;display:grid;gap:9px;}
+.repayment-choice label {font-size:12px;}
+.repayment-choice input {width:100%;padding:12px;border:1px solid #bdc7bc;border-radius:8px;background:#fffdf4;color:#24372e;}
+.repayment-choice>div {display:flex;gap:8px;}
+.repayment-choice button {flex:1;padding:10px 5px;border:1px solid #bdc7bc;border-radius:7px;font-size:11px;}
+.phone-tabs button {min-width:0;font-size:11px;}

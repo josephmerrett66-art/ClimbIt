@@ -1,6 +1,8 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Ambience from './ambience';
+import StoryInbox from './story-inbox';
+import { storyMessages, debtPayment } from '@/lib/game/story';
 import {
   ArrowLeft,
   RotateCcw,
@@ -22,6 +24,7 @@ import {
   Smartphone,
   BriefcaseBusiness,
   Landmark,
+  MessageSquare,
   MapPin,
   ChevronRight,
 } from 'lucide-react';
@@ -91,6 +94,9 @@ export default function Game({
   initialLevel?: Level;
   basePath?: string;
 }) {
+  const [storyRead, setStoryRead] = useState<string[]>([]);
+  const [storyReady, setStoryReady] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState('');
   const canvas = useRef<HTMLCanvasElement>(null),
     level = useRef<Level>(clone(initialLevel)),
     game = useRef<Climber | null>(null),
@@ -120,7 +126,7 @@ export default function Game({
     [notice, setNotice] = useState(''),
     [chosen, setChosen] = useState<Limb | null>(null),
     [phoneOpen, setPhoneOpen] = useState(false),
-    [phoneTab, setPhoneTab] = useState<'jobs' | 'bank'>('jobs'),
+    [phoneTab, setPhoneTab] = useState<'jobs' | 'bank' | 'messages'>('jobs'),
     [finances, setFinances] = useState<Finances>(EMPTY_FINANCES),
     [phoneUnread, setPhoneUnread] = useState(false),
     [payout, setPayout] = useState<Payout | null>(null);
@@ -201,6 +207,10 @@ export default function Game({
     });
     setPhoneUnread(true);
   };
+  const messages = storyMessages(finances);
+  const unreadStory = messages.filter(
+    (message) => !storyRead.includes(message.id),
+  ).length;
   const openPhone = () => {
     game.current?.end(true);
     active.current = null;
@@ -213,19 +223,20 @@ export default function Game({
     setPhoneOpen(false);
     setPaused(false);
   };
-  const openPhoneTo = (tab: 'jobs' | 'bank') => {
+  const openPhoneTo = (tab: 'jobs' | 'bank' | 'messages') => {
     setPayout(null);
     setPhoneTab(tab);
     openPhone();
   };
   const payDebt = () => {
-    const payment = Math.min(finances.balance, finances.debt);
+    const payment = debtPayment(finances.balance, finances.debt, paymentAmount);
     if (!payment) return;
     saveFinances({
       ...finances,
       balance: finances.balance - payment,
       debt: finances.debt - payment,
     });
+    setPaymentAmount('');
   };
   const loadImages = () => {
     const bg = new Image();
@@ -281,6 +292,39 @@ export default function Game({
       document.removeEventListener('fullscreenchange', changed);
     };
   }, []);
+  useEffect(() => {
+    let seen = false;
+    try {
+      seen = localStorage.getItem('oddjobs-story-intro') === 'seen';
+      const read = JSON.parse(
+        localStorage.getItem('oddjobs-story-read') || '[]',
+      );
+      if (Array.isArray(read))
+        setStoryRead(read.filter((id) => typeof id === 'string'));
+    } catch {}
+    setStoryReady(true);
+    if (editing || seen) return;
+    const timer = window.setTimeout(() => {
+      setPhoneTab('messages');
+      openPhone();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [editing]);
+  useEffect(() => {
+    if (!storyReady || !phoneOpen || phoneTab !== 'messages') return;
+    const ids = messages.map((message) => message.id);
+    if (ids.some((id) => !storyRead.includes(id))) setStoryRead(ids);
+    try {
+      localStorage.setItem('oddjobs-story-intro', 'seen');
+      localStorage.setItem('oddjobs-story-read', JSON.stringify(ids));
+    } catch {}
+  }, [
+    storyReady,
+    phoneOpen,
+    phoneTab,
+    finances.debt,
+    finances.completedJobs.length,
+  ]);
   async function toggleFullscreen() {
     try {
       if (document.fullscreenElement) await document.exitFullscreen();
@@ -1102,7 +1146,9 @@ export default function Game({
             aria-label="Open phone"
           >
             <Smartphone size={21} />
-            {phoneUnread && <span className="phone-unread" />}
+            {(phoneUnread || unreadStory > 0) && (
+              <span className="phone-unread" />
+            )}
           </button>
           {phoneOpen && (
             <div className="phone-layer" role="dialog" aria-label="Phone">
@@ -1133,9 +1179,21 @@ export default function Game({
                   >
                     <Landmark size={15} /> Banking
                   </button>
+                  <button
+                    className={phoneTab === 'messages' ? 'active' : ''}
+                    onClick={() => setPhoneTab('messages')}
+                  >
+                    <MessageSquare size={15} /> Messages
+                    {unreadStory > 0 ? ` (${unreadStory})` : ''}
+                  </button>
                 </nav>
                 <div className="phone-screen">
-                  {phoneTab === 'jobs' ? (
+                  {phoneTab === 'messages' ? (
+                    <StoryInbox
+                      messages={messages}
+                      onJobs={() => setPhoneTab('jobs')}
+                    />
+                  ) : phoneTab === 'jobs' ? (
                     <div className="phone-jobs">
                       <div className="phone-section-title">
                         <span>AVAILABLE LOCALLY</span>
@@ -1191,8 +1249,12 @@ export default function Game({
                         <span>Available balance</span>
                       </section>
                       <section className="debt-card">
-                        <small>CAREER PIVOT LOAN</small>
-                        <span>Debt remaining</span>
+                        <small>AMOUNT OWED</small>
+                        <span>
+                          {finances.debt === 0
+                            ? 'Settled. You’re out.'
+                            : 'Due Friday · No extensions'}
+                        </span>
                         <strong>{money(finances.debt)}</strong>
                         <div className="debt-track">
                           <i
@@ -1211,15 +1273,64 @@ export default function Game({
                           {money(finances.lifetimeEarnings)} earned from jobs
                         </p>
                       </section>
+                      {finances.debt > 0 && finances.balance > 0 && (
+                        <div className="repayment-choice">
+                          <label htmlFor="repayment-amount">
+                            How much can you send?
+                          </label>
+                          <input
+                            id="repayment-amount"
+                            type="number"
+                            min="1"
+                            step="1"
+                            max={Math.min(finances.balance, finances.debt)}
+                            value={paymentAmount}
+                            placeholder={String(
+                              Math.min(finances.balance, finances.debt),
+                            )}
+                            onChange={(event) =>
+                              setPaymentAmount(event.target.value)
+                            }
+                          />
+                          <div>
+                            <button
+                              onClick={() =>
+                                setPaymentAmount(
+                                  String(
+                                    Math.min(
+                                      finances.debt,
+                                      Math.max(
+                                        1,
+                                        Math.floor(finances.balance / 2),
+                                      ),
+                                    ),
+                                  ),
+                                )
+                              }
+                            >
+                              Half my balance
+                            </button>
+                            <button onClick={() => setPaymentAmount('')}>
+                              All I can
+                            </button>
+                          </div>
+                        </div>
+                      )}
                       <button
                         className="debt-payment"
-                        disabled={!finances.balance || !finances.debt}
+                        disabled={
+                          !finances.balance ||
+                          !finances.debt ||
+                          (paymentAmount !== '' &&
+                            (!Number.isFinite(Number(paymentAmount)) ||
+                              Number(paymentAmount) < 1))
+                        }
                         onClick={payDebt}
                       >
                         {finances.debt === 0
                           ? 'DEBT CLEARED'
                           : finances.balance
-                            ? `PAY ${money(Math.min(finances.balance, finances.debt))}`
+                            ? `PAY ${money(Math.min(finances.balance, finances.debt, paymentAmount === '' ? finances.balance : Math.max(0, Math.floor(Number(paymentAmount) || 0))))}`
                             : 'COMPLETE A JOB TO GET PAID'}
                       </button>
                     </div>

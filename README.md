@@ -64,3 +64,7 @@ The five new scene assets and their generation prompts are documented in [docs/j
 ## Ambience
 
 User-supplied Quorn, South Australia birds/flies soundscape loops at 30% volume during play. Playback starts on the first tap, click or key press. The speaker control above the phone remembers mute locally; audio pauses in hidden tabs and stops when leaving the game. The same audio path is prefixed for GitHub Pages.
+
+## Story
+
+The first play session opens the phone on a creditor exchange: an ex-climber owes $12,000 by Friday and turns to Odd Jobs for work. Friday is narrative, not a real countdown. A Messages tab keeps the opening and unlocks conversations at 1/3/5 unique completed jobs, the first repayment, halfway paid and debt cleared. Read message IDs and the once-only opening are saved separately from existing finances, which are preserved. Banking offers partial repayments or the full available balance. `tests/story.test.ts` covers milestone selection and repayment calculation.
