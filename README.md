@@ -6,9 +6,9 @@
 
 Open `/pub` or accept **Keys on the pub roof** at the top of the phone's Jobs list. Gaz has left his ute keys on The Galah Arms in outback NSW. This first difficulty prototype adds a compact route that reverses across the pub twice before the roof finish, with $180 paid on completion.
 
-Pale brackets are handholds; rust-coloured ledges are footholds. Bring your feet up at the drainpipe corners, then release them to cross the two hanging sections. A foothold near the far corner lets you reposition before the return traverse. Roof footholds require a deliberate shuffle. To finish, keep another hand and a foot planted, hold the free hand on the keys until the small bar fills, then release. Unsupported or momentary contact cannot complete the job.
+Holds follow the existing verandah posts, gutter, facade trim and stepped parapet in the background. Small grab hints appear for usable nearby holds while moving a limb; no added brackets, pipes or beams cover the artwork. Bring your feet around the corners and release them for the hanging traverses. To finish, keep another hand and a foot planted, hold the free hand on the keys until the small bar fills, then release.
 
-The pub uses physical beams/ledges, blocked reaches through solid beams, and overextension release. These challenge rules are scoped to the pub; the eight earlier jobs remain available. Existing touch controls work here too. This is a first playable route-design prototype; the target first-clear difficulty and 10–20 minute learning time still need human playtesting. No stamina timer or forced wait pads out the climb.
+The pub uses invisible obstruction geometry and overextension release. These challenge rules are scoped to the pub; the eight earlier jobs remain available. Existing touch controls work here too. Difficulty still needs human playtesting; no stamina timer or forced wait pads out the climb.
 
 `pnpm exec jiti tests/pub.test.ts` traverses every corner from spawn using limb inputs, releases feet for both hanging sections, performs the supported key pickup, and checks hold types, solid obstruction reach and ground-fall failure.
 

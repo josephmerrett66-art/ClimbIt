@@ -848,14 +848,14 @@ export default function Game({
                   {hud.message ===
                     'Drag a hand or boot onto a solid edge. Small moves work best.' ||
                   hud.message === 'Drag a hand or boot onto a solid edge.'
-                    ? 'Pale brackets take hands. Rust ledges take boots.'
+                    ? 'Grip the posts, window trim and roof edges.'
                     : hud.message}
                 </span>
                 {hintVisible && (
                   <p>
                     Work around the verandah. Release your feet to hang beneath
-                    the beams. Keep a hand and a foot planted while holding the
-                    keys, then release to collect.
+                    the gutters. Keep a hand and a foot planted while holding
+                    the keys, then release to collect.
                   </p>
                 )}
               </div>

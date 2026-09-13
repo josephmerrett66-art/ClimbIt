@@ -286,7 +286,7 @@ export class Climber {
           p.px = p.x - velocity.x * 0.38;
           p.py = p.y - velocity.y * 0.38;
           this.message = this.level.challenge
-            ? 'No grip caught. Aim for a bracket or ledge.'
+            ? 'No grip caught. Aim for a post, trim or roof edge.'
             : 'No grip caught. Aim for the trunk or a solid branch.';
         }
       }

@@ -5,12 +5,12 @@ const g = new Climber(structuredClone(pubLevel));
 for (let i = 0; i < 180; i++) g.step();
 console.log('spawn', g.p.hip, Object.keys(g.grips));
 const waypoints = [
-  { x: 300, y: 630 },
-  { x: 824, y: 630 },
-  { x: 775, y: 418 },
-  { x: 316, y: 418 },
-  { x: 316, y: 206 },
-  { x: 1195, y: 206 },
+  { x: 230, y: 610 },
+  { x: 810, y: 610 },
+  { x: 790, y: 450 },
+  { x: 430, y: 450 },
+  { x: 460, y: 280 },
+  { x: 645, y: 224 },
 ];
 for (const [stage, goal] of waypoints.entries()) {
   if (stage === 1 || stage === 3) {
@@ -65,7 +65,7 @@ for (const [stage, goal] of waypoints.entries()) {
 for (let attempt = 0; attempt < 6 && !g.complete; attempt++) {
   for (const limb of ['leftHand', 'rightHand'] as const) {
     g.begin(limb, g.cat);
-    for (let i = 0; i < 150; i++) g.step();
+    for (let i = 0; i < 360; i++) g.step();
     g.end();
   }
 }

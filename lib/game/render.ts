@@ -29,50 +29,6 @@ export function draw(
       l.worldWidth,
       l.worldHeight * (l.challenge ? 1.45 : 1),
     );
-  if (l.challenge) {
-    // Physical gameplay geometry: pipes, ledges and their usable brackets are
-    // rendered from exactly the same coordinates as the collision/hold data.
-    for (const c of l.colliders.filter((c) => c.type === 'rect')) {
-      ctx.fillStyle = '#293e3c';
-      ctx.fillRect(c.x, c.y, c.x2 - c.x, c.y2 - c.y);
-      ctx.fillStyle = '#bba67c';
-      ctx.fillRect(c.x, c.y, c.x2 - c.x, 4);
-    }
-    ctx.lineWidth = 9;
-    ctx.strokeStyle = '#415751';
-    for (const [x, top, bottom] of [
-      [257, 622, 913],
-      [824, 411, 749],
-      [316, 198, 536],
-    ]) {
-      ctx.beginPath();
-      ctx.moveTo(x, bottom);
-      ctx.lineTo(x, top);
-      ctx.stroke();
-    }
-    for (const hold of l.gripPoints) {
-      const foot = hold.use === 'foot';
-      ctx.fillStyle = '#53665a';
-      if (!foot) ctx.fillRect(hold.x - 3, hold.y - 22, 6, 22);
-      ctx.fillStyle = '#29332d';
-      ctx.fillRect(hold.x - (foot ? 15 : 9), hold.y - 3, foot ? 30 : 18, 9);
-      ctx.fillStyle = foot ? '#bd7650' : '#e0d5b6';
-      ctx.fillRect(hold.x - (foot ? 14 : 8), hold.y - 3, foot ? 28 : 16, 4);
-      ctx.fillStyle = '#53665a';
-      ctx.fillRect(hold.x - 3, hold.y + 5, 6, 9);
-    }
-    ctx.fillStyle = '#182f2e';
-    ctx.fillRect(865, 688, 415, 90);
-    ctx.strokeStyle = '#d0ac65';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(870, 693, 405, 80);
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#f6d78e';
-    ctx.font = 'bold 34px Georgia';
-    ctx.fillText('THE GALAH ARMS', 1072, 733);
-    ctx.font = '14px Arial';
-    ctx.fillText('COLD BEER · QUESTIONABLE DECISIONS', 1072, 757);
-  }
   if (edit) {
     ctx.fillStyle = '#10251f35';
     ctx.fillRect(0, 0, l.worldWidth, l.worldHeight);
@@ -592,6 +548,8 @@ export function draw(
       const nearby = l.gripPoints
         .filter(
           (hold) =>
+            g.canUse(limb, hold) &&
+            g.clearReach(limb, hold) &&
             Math.hypot(hold.x - target.x, hold.y - target.y) < 75 * bodyScale &&
             Math.hypot(hold.x - g.root(limb).x, hold.y - g.root(limb).y) <=
               g.reach(limb) + 8 * bodyScale,
