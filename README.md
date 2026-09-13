@@ -2,6 +2,16 @@
 
 **[Play Odd Jobs in your browser](https://josephmerrett66-art.github.io/ClimbIt/)**
 
+## Australian challenge prototype
+
+Open `/pub` or accept **Keys on the pub roof** at the top of the phone's Jobs list. Gaz has left his ute keys on The Galah Arms in outback NSW. This first difficulty prototype adds a compact route that reverses across the pub twice before the roof finish, with $180 paid on completion.
+
+Pale brackets are handholds; rust-coloured ledges are footholds. Bring your feet up at the drainpipe corners, then release them to cross the two hanging sections. A foothold near the far corner lets you reposition before the return traverse. Roof footholds require a deliberate shuffle. To finish, keep another hand and a foot planted, hold the free hand on the keys until the small bar fills, then release. Unsupported or momentary contact cannot complete the job.
+
+The pub uses physical beams/ledges, blocked reaches through solid beams, and overextension release. These challenge rules are scoped to the pub; the eight earlier jobs remain available. Existing touch controls work here too. This is a first playable route-design prototype; the target first-clear difficulty and 10–20 minute learning time still need human playtesting. No stamina timer or forced wait pads out the climb.
+
+`pnpm exec jiti tests/pub.test.ts` traverses every corner from spawn using limb inputs, releases feet for both hanging sections, performs the supported key pickup, and checks hold types, solid obstruction reach and ground-fall failure.
+
 Holds use small surface-aligned edge highlights: nearby reachable edges appear while dragging, the actual catch target brightens, and a brief dust flick confirms attachment. Stable targeting prevents adjacent holds flickering under the pointer. Planting feet supports the hips; hanging from an arm leaves more weight and sway in the body. Catching a hold clears stored drag momentum.
 
 Moving a foot requires at least one hand securely attached. Planted feet can support a stationary stance, but cannot pull the body up the wall or advance between holds by themselves. Losing the last hand during a foot step cancels that step and lets the free foot fall.

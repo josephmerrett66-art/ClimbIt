@@ -1,5 +1,10 @@
 export type Point = { x: number; y: number };
-export type Grip = Point & { id: string; angle?: number; surface?: string };
+export type Grip = Point & {
+  id: string;
+  angle?: number;
+  surface?: string;
+  use?: 'hand' | 'foot';
+};
 export type Collider = {
   id: string;
   type: 'edge' | 'rect';
@@ -12,7 +17,7 @@ export type Objective = Point & {
   id: string;
   type: 'carry' | 'repair';
   name: string;
-  kind?: 'cross' | 'bulb' | 'gear' | 'cap' | 'valve' | 'fuse';
+  kind?: 'cross' | 'bulb' | 'gear' | 'cap' | 'valve' | 'fuse' | 'keys';
   successMessage?: string;
 };
 export type Level = {
@@ -24,6 +29,7 @@ export type Level = {
   worldWidth: number;
   worldHeight: number;
   playerScale?: number;
+  challenge?: boolean;
   playerSpawn: Point;
   gripPoints: Grip[];
   colliders: Collider[];

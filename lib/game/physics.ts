@@ -38,6 +38,8 @@ export class Climber {
   failed = false;
   elapsed = 0;
   scale: number;
+  repairProgress = 0;
+  gripStrain: Partial<Record<Limb, number>> = {};
   unanchoredStartY: number | null = null;
   gripFocus: Grip | null = null;
   catches: { x: number; y: number; age: number }[] = [];
@@ -110,8 +112,10 @@ export class Climber {
     const o = level.objectives[0];
     this.cat = { x: o.x, y: o.y, px: o.x, py: o.y, r: 13, mass: 1.5 };
     for (const limb of LIMBS) {
-      const g = this.nearest(this.p[limb], Math.max(22, 36 * s));
-      if (g) this.grips[limb] = g;
+      const g = this.level.challenge
+        ? this.reachableHold(limb, this.p[limb], Math.max(22, 36 * s))
+        : this.nearest(this.p[limb], Math.max(22, 36 * s));
+      if (g && this.canUse(limb, g)) this.grips[limb] = g;
     }
   }
   root(limb: Limb) {
@@ -162,10 +166,44 @@ export class Climber {
   hasHandSupport() {
     return Boolean(this.grips.leftHand || this.grips.rightHand);
   }
+  canUse(limb: Limb, grip: Grip) {
+    return !grip.use || (grip.use === 'hand') === limb.endsWith('Hand');
+  }
+  clearReach(limb: Limb, target: Point) {
+    if (!this.level.challenge) return true;
+    const root = this.root(limb);
+    // Sweep the short limb segment so thin beams cannot be reached through.
+    const steps = Math.ceil(distance(root, target) / 3);
+    for (let i = 1; i < steps; i++) {
+      const x = root.x + ((target.x - root.x) * i) / steps;
+      const y = root.y + ((target.y - root.y) * i) / steps;
+      if (
+        this.level.colliders.some(
+          (c) =>
+            c.type === 'rect' &&
+            x > Math.min(c.x, c.x2) &&
+            x < Math.max(c.x, c.x2) &&
+            y > Math.min(c.y, c.y2) &&
+            y < Math.max(c.y, c.y2),
+        )
+      )
+        return false;
+    }
+    return true;
+  }
+  stableForRepair(limb: Limb) {
+    return (
+      Object.entries(this.grips).some(
+        ([name]) => name !== limb && name.endsWith('Hand'),
+      ) && Object.keys(this.grips).some((name) => name.endsWith('Foot'))
+    );
+  }
   reachableHold(limb: Limb, pos: Point, radius: number) {
     return this.level.gripPoints
       .filter(
         (g) =>
+          this.canUse(limb, g) &&
+          this.clearReach(limb, g) &&
           distance(g, pos) < radius &&
           distance(g, this.root(limb)) <= this.reach(limb) + 8 * this.scale,
       )
@@ -178,6 +216,8 @@ export class Climber {
     const focus = this.gripFocus;
     if (
       focus &&
+      this.canUse(limb, focus) &&
+      this.clearReach(limb, focus) &&
       distance(focus, this.p[limb]) < 27 * this.scale &&
       distance(focus, this.root(limb)) <= this.reach(limb) + 8 * this.scale
     )
@@ -205,6 +245,16 @@ export class Climber {
         limb.endsWith('Hand') &&
         distance(p, this.cat) < 31 * this.scale
       ) {
+        if (
+          this.level.challenge &&
+          (this.repairProgress < 1.2 || !this.stableForRepair(limb))
+        ) {
+          this.message =
+            'Keep one hand and a foot planted. Hold your free hand on the keys.';
+          this.drag = null;
+          this.gripFocus = null;
+          return;
+        }
         this.collected = true;
         if (this.level.objectives[0].type === 'repair') {
           this.complete = true;
@@ -235,7 +285,9 @@ export class Climber {
           // correction as an explosive Verlet impulse.
           p.px = p.x - velocity.x * 0.38;
           p.py = p.y - velocity.y * 0.38;
-          this.message = 'No grip caught. Aim for the trunk or a solid branch.';
+          this.message = this.level.challenge
+            ? 'No grip caught. Aim for a bracket or ledge.'
+            : 'No grip caught. Aim for the trunk or a solid branch.';
         }
       }
     }
@@ -305,6 +357,18 @@ export class Climber {
     if (this.complete || this.failed) return;
     this.elapsed += dt;
     this.catches = this.catches.filter((event) => (event.age += dt) < 0.38);
+    if (this.level.challenge) {
+      const limb = this.drag?.limb;
+      const working =
+        limb?.endsWith('Hand') &&
+        this.stableForRepair(limb) &&
+        distance(this.p[limb], this.cat) < 24 * this.scale &&
+        distance(this.p.hip, { x: this.p.hip.px, y: this.p.hip.py }) <
+          2 * this.scale;
+      this.repairProgress = working
+        ? Math.min(1.2, this.repairProgress + dt)
+        : 0;
+    }
     const h = dt * 60;
     const anchors = Object.entries(this.grips) as [Limb, Grip][];
     // A boot cannot pull the body up a wall. If hand support is lost mid-step,
@@ -333,12 +397,22 @@ export class Climber {
       for (const [limb, g] of anchors) {
         const k = limb.endsWith('Hand') ? 1 : 1.2;
         tx += g.x * k;
-        ty += (g.y + (limb.endsWith('Hand') ? 102 : -65) * this.scale) * k;
+        ty +=
+          (g.y +
+            (limb.endsWith('Hand') ? (this.level.challenge ? 84 : 102) : -65) *
+              this.scale) *
+          k;
         w += k;
       }
       const hip = this.p.hip;
       const feet = anchors.filter(([limb]) => limb.endsWith('Foot')).length;
-      const support = feet ? 1 : anchors.length === 1 ? 0.3 : 0.65;
+      const support = feet
+        ? 1
+        : anchors.length === 1
+          ? this.level.challenge
+            ? 0.55
+            : 0.3
+          : 0.65;
       const dx = (tx / w - hip.x) * 0.16 * support * h;
       const desiredDy = (ty / w - hip.y) * 0.35 * support * h;
       const dy = this.hasHandSupport() ? desiredDy : Math.max(0, desiredDy);
@@ -427,7 +501,22 @@ export class Climber {
       p.px += (p.x - p.px) * 0.7;
       p.py += (p.y - p.py) * 0.7;
     }
-    if (anchors.length) {
+    if (this.level.challenge) {
+      for (const [limb, grip] of anchors) {
+        const overextended =
+          distance(this.root(limb), grip) > this.reach(limb) * 1.25;
+        this.gripStrain[limb] = overextended
+          ? (this.gripStrain[limb] ?? 0) + dt
+          : 0;
+        if (this.gripStrain[limb]! > 0.3) {
+          delete this.grips[limb];
+          this.gripStrain[limb] = 0;
+          this.message =
+            'Too stretched out. Bring your trailing limb with you.';
+        }
+      }
+    }
+    if (Object.keys(this.grips).length) {
       this.unanchoredStartY = null;
     } else {
       if (this.unanchoredStartY === null) this.unanchoredStartY = this.p.hip.y;

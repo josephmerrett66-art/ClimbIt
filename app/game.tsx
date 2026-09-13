@@ -28,6 +28,7 @@ import { Button } from '@/components/ui/button';
 import { catLevel, parseLevel, type Level, type Point } from '@/lib/game/level';
 import { Climber, LIMBS, distance, type Limb } from '@/lib/game/physics';
 import { draw, type View } from '@/lib/game/render';
+import { pubJob } from '@/lib/game/pub-level';
 import { EXTRA_JOBS } from '@/lib/game/extra-jobs';
 import {
   START_ZOOM,
@@ -70,6 +71,7 @@ const EMPTY_FINANCES: Finances = {
   completedJobs: [],
 };
 const JOBS = [
+  pubJob,
   {
     id: 'cat-tree',
     name: 'Cat stuck in tree',
@@ -834,6 +836,30 @@ export default function Game({
                 : 'Climbing game. Drag hands and feet onto solid edges. On touch screens, select a limb then drag anywhere to move it; release to grab.'
             }
           />
+          {!edit &&
+            level.current.challenge &&
+            !phoneOpen &&
+            !hud.complete &&
+            !hud.failed && (
+              <div className="pub-brief" role="status">
+                <small>THE GALAH ARMS · OUTBACK NSW</small>
+                <strong>Gaz’s ute keys · $180</strong>
+                <span>
+                  {hud.message ===
+                    'Drag a hand or boot onto a solid edge. Small moves work best.' ||
+                  hud.message === 'Drag a hand or boot onto a solid edge.'
+                    ? 'Pale brackets take hands. Rust ledges take boots.'
+                    : hud.message}
+                </span>
+                {hintVisible && (
+                  <p>
+                    Work around the verandah. Release your feet to hang beneath
+                    the beams. Keep a hand and a foot planted while holding the
+                    keys, then release to collect.
+                  </p>
+                )}
+              </div>
+            )}
           {edit && (
             <span className="editor-world-label">
               {level.current.worldWidth} × {level.current.worldHeight} ·{' '}

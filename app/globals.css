@@ -1585,3 +1585,34 @@ body {
     min-height: 44px;
   }
 }
+
+.pub-brief {
+  position: absolute;
+  z-index: 2;
+  top: max(18px, env(safe-area-inset-top));
+  left: max(18px, env(safe-area-inset-left));
+  width: min(360px, calc(100% - 36px));
+  color: #fff1c8;
+  text-shadow: 0 2px 5px #172620;
+  pointer-events: none;
+}
+.pub-brief small {
+  display: block;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+}
+.pub-brief strong {
+  display: block;
+  font: italic 25px Georgia;
+  margin: 5px 0;
+}
+.pub-brief span {
+  font-size: 14px;
+}
+.pub-brief p {
+  font-size: 13px;
+  line-height: 1.5;
+  background: #142c25d9;
+  padding: 10px 12px;
+  border-radius: 8px;
+}
