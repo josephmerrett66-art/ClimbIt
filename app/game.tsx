@@ -25,11 +25,11 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { catLevel, parseLevel, type Level, type Point } from '@/lib/game/level';
+import { parseLevel, type Level, type Point } from '@/lib/game/level';
 import { Climber, LIMBS, distance, type Limb } from '@/lib/game/physics';
 import { draw, type View } from '@/lib/game/render';
 import { pubJob } from '@/lib/game/pub-level';
-import { EXTRA_JOBS } from '@/lib/game/extra-jobs';
+import { AUSTRALIAN_JOBS } from '@/lib/game/australian-jobs';
 import {
   START_ZOOM,
   cameraTarget,
@@ -70,34 +70,7 @@ const EMPTY_FINANCES: Finances = {
   lifetimeEarnings: 0,
   completedJobs: [],
 };
-const JOBS = [
-  pubJob,
-  {
-    id: 'cat-tree',
-    name: 'Cat stuck in tree',
-    client: 'Sarah, next door',
-    pay: 40,
-    href: '/',
-    image: '/assets/cat-tree.png',
-  },
-  {
-    id: 'church-cross',
-    name: 'Straighten church cross',
-    client: 'St Mark’s parish',
-    pay: 55,
-    href: '/church',
-    image: '/assets/church-cross.png',
-  },
-  {
-    id: 'telephone-tower-bulb',
-    name: 'Replace tower light',
-    client: 'Regional Telecom',
-    pay: 85,
-    href: '/tower',
-    image: '/assets/telephone-tower.png',
-  },
-  ...EXTRA_JOBS,
-] as const;
+const JOBS = [pubJob, ...AUSTRALIAN_JOBS];
 const money = (amount: number) =>
   new Intl.NumberFormat('en-AU', {
     style: 'currency',
@@ -108,7 +81,7 @@ export default function Game({
   editing,
   onBack,
   onPaid,
-  initialLevel = catLevel,
+  initialLevel = AUSTRALIAN_JOBS[0].level,
   basePath = '',
 }: {
   editing: boolean;
@@ -842,20 +815,23 @@ export default function Game({
             !hud.complete &&
             !hud.failed && (
               <div className="pub-brief" role="status">
-                <small>THE GALAH ARMS · OUTBACK NSW</small>
-                <strong>Gaz’s ute keys · $180</strong>
+                <small>
+                  {level.current.location ?? 'ODD JOBS · AUSTRALIA'}
+                </small>
+                <strong>
+                  {level.current.name} · {money(level.current.pay)}
+                </strong>
                 <span>
                   {hud.message ===
                     'Drag a hand or boot onto a solid edge. Small moves work best.' ||
                   hud.message === 'Drag a hand or boot onto a solid edge.'
-                    ? 'Grip the posts, window trim and roof edges.'
+                    ? 'Grip solid edges. Plan your next hand and foothold.'
                     : hud.message}
                 </span>
                 {hintVisible && (
                   <p>
-                    Work around the verandah. Release your feet to hang beneath
-                    the gutters. Keep a hand and a foot planted while holding
-                    the keys, then release to collect.
+                    {level.current.briefing ??
+                      'Follow the structure. Keep a hand and a foot planted, hold the job marker until the bar fills, then release.'}
                   </p>
                 )}
               </div>

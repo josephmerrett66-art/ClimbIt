@@ -2,26 +2,29 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import Game from '@/app/game';
 import { pubLevel } from '@/lib/game/pub-level';
-import { EXTRA_JOBS } from '@/lib/game/extra-jobs';
+import { AUSTRALIAN_JOBS } from '@/lib/game/australian-jobs';
 import '@/app/globals.css';
-import {
-  catLevel,
-  churchLevel,
-  towerLevel,
-  type Level,
-} from '@/lib/game/level';
+import type { Level } from '@/lib/game/level';
 
 const basePath = '/ClimbIt';
 const route = location.pathname.replace(basePath, '').replace(/\/$/, '') || '/';
+const legacy: Record<string, number> = {
+  '/': 0,
+  '/church': 1,
+  '/tower': 2,
+  '/lighthouse': 3,
+  '/windmill': 4,
+  '/chimney': 5,
+  '/water-tower': 6,
+  '/cable-car': 7,
+};
 const source =
   route === '/pub'
     ? pubLevel
-    : (EXTRA_JOBS.find((job) => job.href === route)?.level ??
-      (route === '/church'
-        ? churchLevel
-        : route === '/tower'
-          ? towerLevel
-          : catLevel));
+    : (
+        AUSTRALIAN_JOBS.find((job) => job.href === route) ??
+        AUSTRALIAN_JOBS[legacy[route] ?? 0]
+      ).level;
 const level = structuredClone(source) as Level;
 
 for (const key of ['backgroundImage', 'foregroundImage'] as const) {

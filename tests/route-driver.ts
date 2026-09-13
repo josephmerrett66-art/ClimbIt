@@ -1,0 +1,94 @@
+import assert from 'node:assert/strict';
+import { Climber, LIMBS, distance } from '../lib/game/physics';
+import type { Level } from '../lib/game/level';
+import type { RouteCorner } from '../lib/game/campaign';
+
+export function climbRoute(level: Level, route: RouteCorner[]) {
+  const g = new Climber(structuredClone(level));
+  for (let i = 0; i < 180; i++) g.step();
+  assert.ok(g.hasHandSupport(), `${level.id}: secure spawn`);
+  for (const [stage, corner] of route.slice(1).entries()) {
+    const goal = { x: corner[0], y: corner[1] };
+    const hanging = corner[2] === 'hang';
+    if (hanging) {
+      for (const limb of ['leftFoot', 'rightFoot'] as const) {
+        if (!g.grips[limb]) continue;
+        for (const [dx, dy] of [
+          [1, 1],
+          [-1, 1],
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+        ]) {
+          if (!g.grips[limb]) break;
+          const root = g.root(limb);
+          g.begin(limb, { x: root.x + dx * 180, y: root.y + dy * 180 });
+          for (let i = 0; i < 60; i++) g.step();
+          g.end();
+        }
+      }
+    }
+    for (let cycle = 0; cycle < 90 && !g.failed; cycle++) {
+      for (let i = 0; i < 60; i++) g.step();
+      for (const limb of LIMBS) {
+        if (hanging && limb.endsWith('Foot')) continue;
+        const target = {
+          x: goal.x,
+          y: goal.y + (limb.endsWith('Foot') ? 115 * g.scale : 0),
+        };
+        const candidates = level.gripPoints
+          .filter(
+            (p) =>
+              (!hanging ||
+                p.y <= Math.max(goal.y, route[stage][1]) + 6 * g.scale) &&
+              g.canUse(limb, p) &&
+              g.clearReach(limb, p) &&
+              distance(p, g.root(limb)) < g.reach(limb) + 8 * g.scale &&
+              distance(p, target) < distance(g.p[limb], target) - 6 * g.scale,
+          )
+          .sort((a, b) => distance(a, target) - distance(b, target));
+        if (!candidates[0]) continue;
+        g.begin(limb, candidates[0]);
+        for (let i = 0; i < 60; i++) g.step();
+        g.end();
+        for (let i = 0; i < 35; i++) g.step();
+      }
+      if (
+        ['leftHand', 'rightHand'].every(
+          (l) => distance(g.p[l], goal) < 28 * g.scale,
+        )
+      )
+        break;
+    }
+    console.log(
+      level.id,
+      stage,
+      Math.round(g.p.hip.x),
+      Math.round(g.p.hip.y),
+      Object.fromEntries(
+        Object.entries(g.grips).map(([k, v]) => [
+          k,
+          [Math.round(v.x), Math.round(v.y)],
+        ]),
+      ),
+    );
+    assert.ok(!g.failed, `${level.id}: fell at corner ${stage}`);
+    assert.ok(
+      ['leftHand', 'rightHand'].some(
+        (l) => distance(g.p[l], goal) < 55 * g.scale,
+      ),
+      `${level.id}: stalled at corner ${stage} (${goal.x},${goal.y})`,
+    );
+  }
+  for (let attempt = 0; attempt < 6 && !g.complete; attempt++) {
+    for (const limb of ['leftHand', 'rightHand'] as const) {
+      if (g.complete) break;
+      g.begin(limb, g.cat);
+      for (let i = 0; i < 360; i++) g.step();
+      g.end();
+    }
+  }
+  assert.ok(g.complete, `${level.id}: supported job interaction`);
+  assert.equal(g.message, level.objectives[0].successMessage);
+  return g;
+}

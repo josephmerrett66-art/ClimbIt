@@ -7,7 +7,7 @@ const hand = (x: number, y: number) =>
     x,
     y,
     use: 'hand',
-    surface: 'bracket',
+    surface: 'timber',
   });
 const foot = (x: number, y: number) =>
   holds.push({
@@ -102,6 +102,10 @@ export const pubLevel: Level = {
   completionTrigger: { x: 570, y: 180, width: 160, height: 180 },
   pay: 180,
   challenge: true,
+  backgroundFraming: { y: -40, height: 1450 },
+  location: 'The Galah Arms · Outback NSW',
+  briefing:
+    'Work around the verandah. Release your feet to hang beneath the gutters. Keep a hand and a foot planted while holding the keys, then release to collect.',
 };
 export const pubJob = {
   id: pubLevel.id,

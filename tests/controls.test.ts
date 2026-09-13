@@ -6,14 +6,14 @@ import {
   dragTarget,
 } from '../lib/game/controls';
 import { catLevel, churchLevel, towerLevel } from '../lib/game/level';
-import { EXTRA_JOBS } from '../lib/game/extra-jobs';
+import { AUSTRALIAN_JOBS } from '../lib/game/australian-jobs';
+import { pubLevel } from '../lib/game/pub-level';
 import { Climber } from '../lib/game/physics';
 
 for (const level of [
   catLevel,
-  churchLevel,
-  towerLevel,
-  ...EXTRA_JOBS.map((j) => j.level),
+  pubLevel,
+  ...AUSTRALIAN_JOBS.map((j) => j.level),
 ]) {
   for (const [width, height] of [
     [390, 844],
@@ -76,5 +76,5 @@ assert.notEqual(
   'leftHand',
 );
 console.log(
-  'PASS camera framing at three viewport sizes on all eight maps, touch hit targets, relative drag, carrying exclusion and safe cancellation',
+  'PASS camera framing at three viewport sizes on the Australian maps, touch hit targets, relative drag, carrying exclusion and safe cancellation',
 );

@@ -20,6 +20,15 @@ export default defineConfig({
         ...Object.fromEntries(
           [
             'pub',
+            'prawn',
+            'surf-club',
+            'drive-in',
+            'queenslander',
+            'railway',
+            'showground',
+            'opal-mine',
+            'grandstand',
+
             'lighthouse',
             'windmill',
             'chimney',

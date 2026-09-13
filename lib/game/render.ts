@@ -25,9 +25,9 @@ export function draw(
     ctx.drawImage(
       bg,
       0,
-      l.challenge ? -40 : 0,
+      l.backgroundFraming?.y ?? 0,
       l.worldWidth,
-      l.worldHeight * (l.challenge ? 1.45 : 1),
+      l.backgroundFraming?.height ?? l.worldHeight,
     );
   if (edit) {
     ctx.fillStyle = '#10251f35';
@@ -225,7 +225,27 @@ export function draw(
 
     const objective = l.objectives[0];
     if (objective.type === 'repair') {
-      if (objective.kind === 'keys') {
+      if (objective.kind === 'scenery') {
+        // The job object is in the artwork; only its interaction cue is drawn.
+        ctx.strokeStyle = g.complete ? '#d8e8b0' : '#fff0bf';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(objective.x - 7, objective.y - 24);
+        ctx.lineTo(objective.x, objective.y - 18);
+        ctx.lineTo(objective.x + 7, objective.y - 24);
+        ctx.stroke();
+        if (g.repairProgress > 0) {
+          ctx.fillStyle = '#20382e';
+          ctx.fillRect(objective.x - 22, objective.y - 34, 44, 4);
+          ctx.fillStyle = '#f5ce67';
+          ctx.fillRect(
+            objective.x - 22,
+            objective.y - 34,
+            (44 * g.repairProgress) / 1.2,
+            4,
+          );
+        }
+      } else if (objective.kind === 'keys') {
         ctx.strokeStyle = '#f5ce67';
         ctx.lineWidth = 5;
         ctx.beginPath();

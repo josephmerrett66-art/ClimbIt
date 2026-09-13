@@ -39,6 +39,7 @@ export class Climber {
   elapsed = 0;
   scale: number;
   repairProgress = 0;
+  private previousRepairHip: Point | null = null;
   gripStrain: Partial<Record<Limb, number>> = {};
   unanchoredStartY: number | null = null;
   gripFocus: Grip | null = null;
@@ -243,18 +244,10 @@ export class Climber {
       if (
         !this.collected &&
         limb.endsWith('Hand') &&
-        distance(p, this.cat) < 31 * this.scale
+        distance(p, this.cat) < 31 * this.scale &&
+        (!this.level.challenge ||
+          (this.repairProgress >= 1.2 && this.stableForRepair(limb)))
       ) {
-        if (
-          this.level.challenge &&
-          (this.repairProgress < 1.2 || !this.stableForRepair(limb))
-        ) {
-          this.message =
-            'Keep one hand and a foot planted. Hold your free hand on the keys.';
-          this.drag = null;
-          this.gripFocus = null;
-          return;
-        }
         this.collected = true;
         if (this.level.objectives[0].type === 'repair') {
           this.complete = true;
@@ -363,8 +356,10 @@ export class Climber {
         limb?.endsWith('Hand') &&
         this.stableForRepair(limb) &&
         distance(this.p[limb], this.cat) < 24 * this.scale &&
-        distance(this.p.hip, { x: this.p.hip.px, y: this.p.hip.py }) <
-          2 * this.scale;
+        this.previousRepairHip !== null &&
+        distance(this.p.hip, this.previousRepairHip) < 2 * this.scale;
+      // Measure visible movement across frames, not Verlet correction velocity.
+      this.previousRepairHip = { x: this.p.hip.x, y: this.p.hip.y };
       this.repairProgress = working
         ? Math.min(1.2, this.repairProgress + dt)
         : 0;
@@ -525,7 +520,8 @@ export class Climber {
             (c) =>
               c.type === 'edge' &&
               Math.abs(c.y2 - c.y) < 2 &&
-              Math.max(c.y, c.y2) > this.level.worldHeight * 0.75,
+              (c.role === 'ground' ||
+                Math.max(c.y, c.y2) > this.level.worldHeight * 0.75),
           )
           .reduce(
             (lowest, c) => Math.min(lowest, Math.min(c.y, c.y2)),
