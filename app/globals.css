@@ -1616,3 +1616,9 @@ body {
   padding: 10px 12px;
   border-radius: 8px;
 }
+
+.phone-launch.ambience-toggle {
+  bottom: calc(max(24px, env(safe-area-inset-bottom)) + 66px);
+  width: 44px;
+  height: 44px;
+}

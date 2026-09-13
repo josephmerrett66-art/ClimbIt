@@ -60,3 +60,7 @@ The complete carry-and-return system remains available to editor play tests. Nor
 All three environment textures are stored at 2400×2000 while retaining a 1200×1000 gameplay coordinate system. This supplies 2× artwork resolution for high-density displays without moving the authored grips, collisions or objectives.
 
 The five new scene assets and their generation prompts are documented in [docs/job-artwork.md](docs/job-artwork.md).
+
+## Ambience
+
+User-supplied Quorn, South Australia birds/flies soundscape loops at 30% volume during play. Playback starts on the first tap, click or key press. The speaker control above the phone remembers mute locally; audio pauses in hidden tabs and stops when leaving the game. The same audio path is prefixed for GitHub Pages.

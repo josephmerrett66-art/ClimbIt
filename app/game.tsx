@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import Ambience from './ambience';
 import {
   ArrowLeft,
   RotateCcw,
@@ -987,6 +988,7 @@ export default function Game({
       </div>
       {!edit && (
         <>
+          <Ambience basePath={basePath} />
           {touchControls && !phoneOpen && !hud.complete && !hud.failed && (
             <div
               className="touch-climb-controls"
