@@ -392,12 +392,12 @@ export function draw(
       for (const [names, widths, limb] of [
         [
           [side + 'Hip', side + 'Knee', side + 'Foot'],
-          [8.5, 7, 5.5],
+          [6.6, 5.4, 4.3],
           side + 'Foot',
         ],
         [
           [side + 'Shoulder', side + 'Elbow', side + 'Hand'],
-          [7.2, 5.8, 4.2],
+          [5.6, 4.4, 3.3],
           side + 'Hand',
         ],
       ] as [string[], number[], Limb][]) {
@@ -434,16 +434,16 @@ export function draw(
       taperedLimb(
         pose[side + 'Hip'],
         joint,
-        8.5 * bodyScale,
-        7 * bodyScale,
+        6.6 * bodyScale,
+        5.4 * bodyScale,
         tint('#46574f'),
         tint('#3e4d46'),
       );
       taperedLimb(
         joint,
         pose[side + 'Foot'],
-        7 * bodyScale,
-        5.5 * bodyScale,
+        5.4 * bodyScale,
+        4.3 * bodyScale,
         tint('#46574f'),
         tint('#3e4d46'),
       );
@@ -467,16 +467,16 @@ export function draw(
       taperedLimb(
         pose[side + 'Shoulder'],
         joint,
-        7.2 * bodyScale,
-        5.8 * bodyScale,
+        5.6 * bodyScale,
+        4.4 * bodyScale,
         tint('#f0b44e'),
         tint('#dda040'),
       );
       taperedLimb(
         joint,
         pose[side + 'Hand'],
-        5.8 * bodyScale,
-        4.2 * bodyScale,
+        4.4 * bodyScale,
+        3.3 * bodyScale,
         tint('#e9c795'),
         tint('#d9b381'),
       );
@@ -498,8 +498,8 @@ export function draw(
         x: (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4,
         y: (leftShoulder.y + rightShoulder.y + leftHip.y + rightHip.y) / 4,
       };
-    circle(leftShoulder, 7.2 * bodyScale, '#efb04a');
-    circle(rightShoulder, 7.2 * bodyScale, '#efb04a');
+    circle(leftShoulder, 5.6 * bodyScale, '#efb04a');
+    circle(rightShoulder, 5.6 * bodyScale, '#efb04a');
     polygon(
       [leftShoulder, rightShoulder, rightHip, leftHip],
       '#e5a440',
@@ -529,8 +529,8 @@ export function draw(
       x: p.x + (down.x / downLength) * offset * bodyScale,
       y: p.y + (down.y / downLength) * offset * bodyScale,
     });
-    circle(leftHip, 8.5 * bodyScale, '#46574f');
-    circle(rightHip, 8.5 * bodyScale, '#46574f');
+    circle(leftHip, 6.6 * bodyScale, '#46574f');
+    circle(rightHip, 6.6 * bodyScale, '#46574f');
     polygon(
       [hem(leftHip, -4), hem(rightHip, -4), hem(rightHip, 9), hem(leftHip, 9)],
       '#46574f',
