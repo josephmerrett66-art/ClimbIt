@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Ambience from './ambience';
+import { GripAudio } from '@/lib/game/grip-audio';
 import StoryInbox from './story-inbox';
 import { storyMessages, debtPayment } from '@/lib/game/story';
 import {
@@ -97,6 +98,25 @@ export default function Game({
   const [storyRead, setStoryRead] = useState<string[]>([]);
   const [storyReady, setStoryReady] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
+  const gripAudio = useRef<GripAudio | null>(null);
+  useEffect(() => {
+    const sound = new GripAudio();
+    gripAudio.current = sound;
+    const syncMute = () => {
+      try {
+        sound.setMuted(
+          localStorage.getItem('oddjobs-ambience-muted') === 'true',
+        );
+      } catch {}
+    };
+    syncMute();
+    window.addEventListener('oddjobs-sound-change', syncMute);
+    return () => {
+      window.removeEventListener('oddjobs-sound-change', syncMute);
+      sound.dispose();
+      gripAudio.current = null;
+    };
+  }, []);
   const canvas = useRef<HTMLCanvasElement>(null),
     level = useRef<Level>(clone(initialLevel)),
     game = useRef<Climber | null>(null),
@@ -576,6 +596,7 @@ export default function Game({
       ((hud.complete || hud.failed) && !edit)
     )
       return;
+    gripAudio.current?.unlock();
     const p = world(e);
     active.current = e.pointerId;
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -714,7 +735,11 @@ export default function Game({
       gesture.current = null;
       setRevision((r) => r + 1);
     } else {
-      game.current?.end(cancel);
+      const climber = game.current;
+      const before = climber?.catches.length ?? 0;
+      climber?.end(cancel);
+      if (!cancel && climber && climber.catches.length > before)
+        gripAudio.current?.play();
       setChosen(null);
     }
   }

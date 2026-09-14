@@ -122,7 +122,8 @@ export function draw(
     }
   } else {
     let shapeScale = 1;
-    const polygon = (points: Point[], fill: string, stroke = '#26372f') => {
+    let outline = '#26372f';
+    const polygon = (points: Point[], fill: string, stroke = outline) => {
       ctx.beginPath();
       points.forEach((p, i) =>
         i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y),
@@ -384,6 +385,43 @@ export function draw(
     const bodyScale = g.scale;
     shapeScale = bodyScale;
     const pose = characterPose(g);
+    outline = '#101411';
+    // A single connected underpainting preserves black edges without cutting
+    // the elbows and knees into separate outlined pieces.
+    for (const side of ['left', 'right']) {
+      for (const [names, widths, limb] of [
+        [
+          [side + 'Hip', side + 'Knee', side + 'Foot'],
+          [8.5, 7, 5.5],
+          side + 'Foot',
+        ],
+        [
+          [side + 'Shoulder', side + 'Elbow', side + 'Hand'],
+          [7.2, 5.8, 4.2],
+          side + 'Hand',
+        ],
+      ] as [string[], number[], Limb][]) {
+        const points = names.map((name) => pose[name]);
+        if (l.fatigue) points[1] = tremblingJoint(g, limb, points[1]);
+        for (let i = 0; i < 2; i++)
+          taperedLimb(
+            points[i],
+            points[i + 1],
+            (widths[i] + 1.5) * bodyScale,
+            (widths[i + 1] + 1.5) * bodyScale,
+            outline,
+            outline,
+          );
+      }
+    }
+    taperedLimb(
+      pose.neck,
+      pose.head,
+      7.5 * bodyScale,
+      8.5 * bodyScale,
+      outline,
+      outline,
+    );
 
     // The shared pose keeps every sleeve, hip and hinge connected.
     for (const side of ['left', 'right']) {
@@ -465,7 +503,7 @@ export function draw(
     polygon(
       [leftShoulder, rightShoulder, rightHip, leftHip],
       '#e5a440',
-      '#e5a440',
+      outline,
     );
     const torsoFacets = [
       [leftShoulder, rightShoulder, torsoCenter, '#efb04a'],
@@ -496,7 +534,7 @@ export function draw(
     polygon(
       [hem(leftHip, -4), hem(rightHip, -4), hem(rightHip, 9), hem(leftHip, 9)],
       '#46574f',
-      '#46574f',
+      outline,
     );
 
     // Neck and head follow the torso instead of floating above it.

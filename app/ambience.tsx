@@ -45,6 +45,7 @@ export default function Ambience({ basePath = '' }: { basePath?: string }) {
     try {
       localStorage.setItem('oddjobs-ambience-muted', String(next));
     } catch {}
+    window.dispatchEvent(new Event('oddjobs-sound-change'));
     if (next) audio.current?.pause();
     else {
       started.current = true;
@@ -63,9 +64,9 @@ export default function Ambience({ basePath = '' }: { basePath?: string }) {
         type="button"
         className="phone-launch ambience-toggle"
         onClick={toggle}
-        aria-label={muted ? 'Unmute ambience' : 'Mute ambience'}
+        aria-label={muted ? 'Unmute sound' : 'Mute sound'}
         aria-pressed={muted}
-        title={muted ? 'Unmute ambience' : 'Mute ambience'}
+        title={muted ? 'Unmute sound' : 'Mute sound'}
       >
         {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
       </button>
