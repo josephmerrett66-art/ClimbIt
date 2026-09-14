@@ -1,3 +1,4 @@
+import { applyRouteMoments } from './route-moments';
 import { configureCampaign } from './campaign-challenge';
 import { makeClimb, type ClimbSpec } from './campaign';
 import routes from './australian-routes.json';
@@ -110,3 +111,5 @@ export const AUSTRALIAN_JOBS = AUSTRALIAN_SPECS.map((spec) =>
     }),
   ),
 );
+
+for (const job of AUSTRALIAN_JOBS) applyRouteMoments(job.level);

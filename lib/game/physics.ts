@@ -178,7 +178,16 @@ export class Climber {
     return Boolean(this.grips.leftHand || this.grips.rightHand);
   }
   canUse(limb: Limb, grip: Grip) {
-    return !grip.use || (grip.use === 'hand') === limb.endsWith('Hand');
+    return (
+      (!grip.use || (grip.use === 'hand') === limb.endsWith('Hand')) &&
+      !this.occupiedBy(limb, grip)
+    );
+  }
+  occupiedBy(limb: Limb, grip: Grip) {
+    if (!grip.singleLimb) return undefined;
+    return LIMBS.find(
+      (other) => other !== limb && this.grips[other]?.id === grip.id,
+    );
   }
   clearReach(limb: Limb, target: Point) {
     if (!this.level.challenge) return true;
@@ -282,15 +291,24 @@ export class Climber {
           p.x = p.px = g.x;
           p.y = p.py = g.y;
           this.catches.push({ x: g.x, y: g.y, age: 0 });
-          this.message = 'Good grip. Move another limb to shift your weight.';
+          this.message = g.singleLimb
+            ? 'One limb fits here. Find a separate edge for your next hand or boot.'
+            : 'Good grip. Move another limb to shift your weight.';
         } else {
           // Preserve a small, capped flick without storing the full drag
           // correction as an explosive Verlet impulse.
           p.px = p.x - velocity.x * 0.38;
           p.py = p.y - velocity.y * 0.38;
-          this.message = this.level.challenge
-            ? 'No grip caught. Aim for a post, trim or roof edge.'
-            : 'No grip caught. Aim for the trunk or a solid branch.';
+          const occupied = this.level.gripPoints.find(
+            (hold) =>
+              this.occupiedBy(limb, hold) &&
+              distance(hold, this.drag!.target) < 27 * this.scale,
+          );
+          this.message = occupied
+            ? 'That narrow edge is occupied. Move the other limb to a different grip first.'
+            : this.level.challenge
+              ? 'No grip caught. Aim for a post, trim or roof edge.'
+              : 'No grip caught. Aim for the trunk or a solid branch.';
         }
       }
     }
@@ -384,9 +402,29 @@ export class Climber {
     }
     if (this.drag) {
       const { limb, target } = this.drag;
+      // An intentional aim at a nearby notch takes priority over the old
+      // magnetic focus. Otherwise close contacts can pull a reaching hand back
+      // onto the edge it just left, preventing a legitimate hand-over move.
+      const aimed = this.level.fatigue
+        ? this.level.gripPoints
+            .filter(
+              (hold) =>
+                this.canUse(limb, hold) &&
+                distance(hold, target) < 12 * this.scale,
+            )
+            .sort((a, b) => distance(a, target) - distance(b, target))[0]
+        : undefined;
+      if (aimed) {
+        this.gripFocus =
+          this.clearReach(limb, aimed) &&
+          distance(aimed, this.root(limb)) <= this.reach(limb) + 8 * this.scale
+            ? aimed
+            : null;
+      }
       // A little hysteresis keeps adjacent holds from flickering under the cursor.
-      if (
+      else if (
         !this.gripFocus ||
+        !this.canUse(limb, this.gripFocus) ||
         distance(this.gripFocus, target) > 43 * this.scale ||
         distance(this.gripFocus, this.root(limb)) >
           this.reach(limb) + 8 * this.scale

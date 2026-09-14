@@ -54,7 +54,16 @@ export function climbRoute(level: Level, route: RouteCorner[]) {
         Math.min(g.stamina.leftHand, g.stamina.rightHand) < 65
       )
         establishRest(g);
-      for (const limb of LIMBS) {
+      const order = level.gripPoints.some((p) => p.singleLimb)
+        ? [...LIMBS].sort(
+            (a, b) =>
+              Number(b.endsWith('Hand')) - Number(a.endsWith('Hand')) ||
+              (a.endsWith('Hand')
+                ? distance(g.p[b], goal) - distance(g.p[a], goal)
+                : 0),
+          )
+        : LIMBS;
+      for (const limb of order) {
         if (hanging && limb.endsWith('Foot')) continue;
         const target = {
           x: goal.x,

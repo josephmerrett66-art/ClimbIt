@@ -27,6 +27,10 @@ hands. There are no accuracy penalties or random shake forces.
 F2 shows stamina, stage and estimated load on any job. Normal play uses body
 colour and the nearby cream edge hints, without permanent stamina bars.
 
+The later movement-sequence pass is documented in `docs/route-moments.md`.
+It adds narrow contacts and a few wide exits; the counts below describe this
+initial sparse-layout pass.
+
 ## Authored contacts
 
 The seven newly revised scene layouts are stored in

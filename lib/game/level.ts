@@ -4,6 +4,7 @@ export type Grip = Point & {
   angle?: number;
   surface?: string;
   use?: 'hand' | 'foot';
+  singleLimb?: boolean;
 };
 export type Collider = {
   id: string;
@@ -472,7 +473,12 @@ export function parseLevel(raw: string): Level {
   if (
     !Array.isArray(l.gripPoints) ||
     l.gripPoints.length > 5000 ||
-    !l.gripPoints.every((g: any) => point(g) && typeof g.id === 'string')
+    !l.gripPoints.every(
+      (g: any) =>
+        point(g) &&
+        typeof g.id === 'string' &&
+        (g.singleLimb === undefined || typeof g.singleLimb === 'boolean'),
+    )
   )
     throw Error('Invalid grip points.');
   if (

@@ -562,6 +562,8 @@ export function draw(
     ctx.restore();
     // Short surface-edge highlights replace floating targets and range rings.
     const edgeMark = (p: Grip, strength: number, width = 8) => {
+      // A short notch means one limb; ordinary edges remain wider.
+      if (p.singleLimb) width *= 0.55;
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.angle ?? 0);
