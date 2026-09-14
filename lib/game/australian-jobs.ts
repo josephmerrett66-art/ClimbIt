@@ -1,3 +1,4 @@
+import { configureOpal } from './opal-challenge';
 import { makeClimb, type ClimbSpec } from './campaign';
 import routes from './australian-routes.json';
 
@@ -97,13 +98,15 @@ export const AUSTRALIAN_SPECS: Omit<
   },
 ];
 export const AUSTRALIAN_JOBS = AUSTRALIAN_SPECS.map((spec) =>
-  makeClimb({
-    ...spec,
-    ...(
-      routes as unknown as Record<
-        string,
-        Pick<ClimbSpec, 'route' | 'target' | 'braces'>
-      >
-    )[spec.slug],
-  }),
+  configureOpal(
+    makeClimb({
+      ...spec,
+      ...(
+        routes as unknown as Record<
+          string,
+          Pick<ClimbSpec, 'route' | 'target' | 'braces'>
+        >
+      )[spec.slug],
+    }),
+  ),
 );

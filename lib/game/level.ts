@@ -39,6 +39,7 @@ export type Level = {
   worldHeight: number;
   playerScale?: number;
   challenge?: boolean;
+  fatigue?: boolean;
   backgroundFraming?: { y: number; height: number };
   location?: string;
   briefing?: string;

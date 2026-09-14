@@ -124,6 +124,7 @@ export default function Game({
     [hintVisible, setHintVisible] = useState(true),
     [selected, setSelected] = useState<string | null>(null),
     [notice, setNotice] = useState(''),
+    [debug, setDebug] = useState(false),
     [chosen, setChosen] = useState<Limb | null>(null),
     [phoneOpen, setPhoneOpen] = useState(false),
     [phoneTab, setPhoneTab] = useState<'jobs' | 'bank' | 'messages'>('jobs'),
@@ -138,8 +139,18 @@ export default function Game({
     zoom,
     selected,
     chosen,
+    debug,
   });
-  settings.current = { edit, editing, tool, paused, zoom, selected, chosen };
+  settings.current = {
+    edit,
+    editing,
+    tool,
+    paused,
+    zoom,
+    selected,
+    chosen,
+    debug,
+  };
   const cameraReady = useRef(false),
     viewport = useRef({ width: 0, height: 0 }),
     dragOffset = useRef<Point>({ x: 0, y: 0 }),
@@ -396,6 +407,7 @@ export default function Game({
         v.x += (target.x - v.x) * ease;
         v.y += (target.y - v.y) * ease;
       }
+      g.selectedLimb = s.chosen;
       draw(
         ctx,
         g,
@@ -409,6 +421,8 @@ export default function Game({
         s.edit,
         s.selected,
         gesture.current,
+        s.chosen,
+        s.debug,
       );
       if (now - notify > 140) {
         notify = now;
@@ -447,6 +461,10 @@ export default function Game({
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).matches('input,textarea,select')) return;
+      if (e.key === 'F2') {
+        e.preventDefault();
+        setDebug((v) => !v);
+      }
       if (e.key === 'Escape') {
         if (phoneOpen) {
           closePhone();
@@ -505,6 +523,15 @@ export default function Game({
               failed: g.failed,
               seconds: Math.floor(g.elapsed),
               grips: Object.keys(g.grips),
+              ...(g.level.fatigue && settings.current.debug
+                ? {
+                    stamina: g.stamina,
+                    estimatedLoad: g.loads,
+                    discoveredHolds: Object.values(g.holdVisibility).filter(
+                      (a) => a > 0.01,
+                    ).length,
+                  }
+                : {}),
             };
           },
         },

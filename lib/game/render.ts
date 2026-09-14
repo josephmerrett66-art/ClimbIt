@@ -1,4 +1,10 @@
-import { Climber } from './physics';
+import { Climber, LIMBS, distance, type Limb } from './physics';
+import {
+  CLIMBING,
+  fatigueTint,
+  fatigueStage,
+  tremblingJoint,
+} from './climbing';
 import type { Level, Point, Grip } from './level';
 export type View = { scale: number; x: number; y: number };
 export function draw(
@@ -14,6 +20,8 @@ export function draw(
   edit: boolean,
   selection: string | null,
   preview: { a: Point; b: Point; tool: string } | null,
+  chosen: Limb | null = null,
+  debug = false,
 ) {
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = '#1d332b';
@@ -408,56 +416,68 @@ export function draw(
 
     // Limbs sit behind a rigid torso and visibly originate at its shoulder and hip corners.
     for (const side of ['left', 'right']) {
+      const limb = (side + 'Foot') as Limb;
+      const tint = (color: string) =>
+        l.fatigue ? fatigueTint(color, g.stamina[limb]) : color;
+      const joint = l.fatigue
+        ? tremblingJoint(g, limb, g.p[side + 'Knee'])
+        : g.p[side + 'Knee'];
       taperedLimb(
         g.p[side + 'Hip'],
-        g.p[side + 'Knee'],
+        joint,
         8.5 * bodyScale,
         7 * bodyScale,
-        '#465550',
-        '#303d39',
+        tint('#465550'),
+        tint('#303d39'),
       );
       taperedLimb(
-        g.p[side + 'Knee'],
+        joint,
         g.p[side + 'Foot'],
         7 * bodyScale,
         5.5 * bodyScale,
-        '#59635d',
-        '#3b4842',
+        tint('#59635d'),
+        tint('#3b4842'),
       );
-      facetedJoint(g.p[side + 'Knee'], 7.2 * bodyScale, '#58655f', '#35433e');
+      facetedJoint(joint, 7.2 * bodyScale, tint('#58655f'), tint('#35433e'));
       extremity(
-        g.p[side + 'Knee'],
+        joint,
         g.p[side + 'Foot'],
         9 * bodyScale,
         6.5 * bodyScale,
-        '#22312d',
+        tint('#22312d'),
         (side === 'left' ? 3 : -3) * bodyScale,
       );
     }
     for (const side of ['left', 'right']) {
+      const limb = (side + 'Hand') as Limb;
+      const tint = (color: string) =>
+        l.fatigue ? fatigueTint(color, g.stamina[limb]) : color;
+      const joint = l.fatigue
+        ? tremblingJoint(g, limb, g.p[side + 'Elbow'])
+        : g.p[side + 'Elbow'];
       taperedLimb(
         g.p[side + 'Shoulder'],
-        g.p[side + 'Elbow'],
+        joint,
         7.2 * bodyScale,
         5.8 * bodyScale,
-        '#f0b44e',
-        '#c98731',
+        tint('#f0b44e'),
+        tint('#c98731'),
       );
       taperedLimb(
-        g.p[side + 'Elbow'],
+        joint,
         g.p[side + 'Hand'],
         5.8 * bodyScale,
         4.2 * bodyScale,
-        '#e9c795',
-        '#c89d6d',
+        tint('#e9c795'),
+        tint('#c89d6d'),
       );
-      facetedJoint(g.p[side + 'Elbow'], 5.6 * bodyScale, '#e5bd87', '#b98d60');
+      facetedJoint(joint, 5.6 * bodyScale, tint('#e5bd87'), tint('#b98d60'));
       extremity(
-        g.p[side + 'Elbow'],
+        joint,
         g.p[side + 'Hand'],
         3.5 * bodyScale,
         5.2 * bodyScale,
-        '#d8ad78',
+        tint('#d8ad78'),
       );
     }
 
@@ -562,7 +582,41 @@ export function draw(
       ctx.stroke();
       ctx.restore();
     };
-    if (g.drag) {
+    if (l.fatigue) {
+      const limb = g.drag?.limb ?? chosen;
+      const ready = g.grabPreview();
+      for (const hold of l.gripPoints) {
+        const awareness = g.holdVisibility[hold.id] ?? 0;
+        const reachable =
+          limb &&
+          (limb.endsWith('Hand') || g.hasHandSupport()) &&
+          g.canUse(limb, hold) &&
+          g.clearReach(limb, hold) &&
+          distance(g.root(limb), hold) <= g.reach(limb) + 8 * bodyScale;
+        if (awareness > 0.005) edgeMark(hold, awareness, reachable ? 7 : 5);
+      }
+      if (ready) edgeMark(ready, 1, 10);
+      if (debug) {
+        for (const hold of l.gripPoints) edgeMark(hold, 0.8, 4);
+        const body = {
+          x: (g.p.hip.x + g.p.neck.x) / 2,
+          y: (g.p.hip.y + g.p.neck.y) / 2,
+        };
+        ctx.save();
+        ctx.strokeStyle = '#fff8';
+        ctx.lineWidth = 1 / v.scale;
+        ctx.beginPath();
+        ctx.arc(
+          body.x,
+          body.y,
+          CLIMBING.discoveryRadius * bodyScale,
+          0,
+          Math.PI * 2,
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
+    } else if (g.drag) {
       const ready = g.grabPreview();
       const { limb, target } = g.drag;
       const nearby = l.gripPoints
@@ -625,4 +679,20 @@ export function draw(
   if (fg?.complete && fg.naturalWidth)
     ctx.drawImage(fg, 0, 0, l.worldWidth, l.worldHeight);
   ctx.restore();
+  if (debug && l.fatigue) {
+    ctx.save();
+    ctx.fillStyle = '#102019e8';
+    ctx.fillRect(16, h - 152, 345, 126);
+    ctx.font = '13px monospace';
+    ctx.fillStyle = '#fff2cf';
+    ctx.fillText('OPAL · F2 to hide · estimated load', 26, h - 131);
+    LIMBS.forEach((limb, i) =>
+      ctx.fillText(
+        `${limb.padEnd(10)} ${g.stamina[limb].toFixed(0).padStart(3)} / ${(g.loads[limb] * 100).toFixed(0)}% ${fatigueStage(g.stamina[limb])}`,
+        26,
+        h - 108 + i * 21,
+      ),
+    );
+    ctx.restore();
+  }
 }

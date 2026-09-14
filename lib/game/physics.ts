@@ -1,3 +1,4 @@
+import { CLIMBING, emptyLoads, tickFatigue, tickDiscovery } from './climbing';
 import type { Level, Point, Grip } from './level';
 export type Particle = Point & {
   px: number;
@@ -39,6 +40,15 @@ export class Climber {
   elapsed = 0;
   scale: number;
   repairProgress = 0;
+  stamina = {
+    leftHand: CLIMBING.handMax,
+    rightHand: CLIMBING.handMax,
+    leftFoot: CLIMBING.footMax,
+    rightFoot: CLIMBING.footMax,
+  };
+  loads = emptyLoads();
+  holdVisibility: Record<string, number> = {};
+  selectedLimb: Limb | null = null;
   private previousRepairHip: Point | null = null;
   gripStrain: Partial<Record<Limb, number>> = {};
   unanchoredStartY: number | null = null;
@@ -510,6 +520,10 @@ export class Climber {
             'Too stretched out. Bring your trailing limb with you.';
         }
       }
+    }
+    if (this.level.fatigue) {
+      tickFatigue(this, dt);
+      tickDiscovery(this, dt);
     }
     if (Object.keys(this.grips).length) {
       this.unanchoredStartY = null;

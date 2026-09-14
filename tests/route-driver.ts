@@ -5,12 +5,27 @@ import type { RouteCorner } from '../lib/game/campaign';
 
 export function climbRoute(level: Level, route: RouteCorner[]) {
   const g = new Climber(structuredClone(level));
+  const minima = { ...g.stamina };
+  const step = g.step.bind(g);
+  g.step = (dt = 1 / 60) => {
+    step(dt);
+    for (const limb of LIMBS)
+      minima[limb] = Math.min(minima[limb], g.stamina[limb]);
+  };
   for (let i = 0; i < 180; i++) g.step();
   assert.ok(g.hasHandSupport(), `${level.id}: secure spawn`);
   for (const [stage, corner] of route.slice(1).entries()) {
     const goal = { x: corner[0], y: corner[1] };
     const hanging = corner[2] === 'hang';
-    if (hanging) {
+    if (
+      hanging ||
+      (level.fatigue &&
+        ['leftFoot', 'rightFoot'].some(
+          (l) =>
+            g.grips[l as (typeof LIMBS)[number]] &&
+            g.p[l].y < g.p.hip.y + 12 * g.scale,
+        ))
+    ) {
       for (const limb of ['leftFoot', 'rightFoot'] as const) {
         if (!g.grips[limb]) continue;
         for (const [dx, dy] of [
@@ -23,13 +38,13 @@ export function climbRoute(level: Level, route: RouteCorner[]) {
           if (!g.grips[limb]) break;
           const root = g.root(limb);
           g.begin(limb, { x: root.x + dx * 180, y: root.y + dy * 180 });
-          for (let i = 0; i < 60; i++) g.step();
+          for (let i = 0; i < (level.fatigue ? 18 : 60); i++) g.step();
           g.end();
         }
       }
     }
     for (let cycle = 0; cycle < 90 && !g.failed; cycle++) {
-      for (let i = 0; i < 60; i++) g.step();
+      for (let i = 0; i < (level.fatigue ? 18 : 60); i++) g.step();
       for (const limb of LIMBS) {
         if (hanging && limb.endsWith('Foot')) continue;
         const target = {
@@ -43,15 +58,17 @@ export function climbRoute(level: Level, route: RouteCorner[]) {
                 p.y <= Math.max(goal.y, route[stage][1]) + 6 * g.scale) &&
               g.canUse(limb, p) &&
               g.clearReach(limb, p) &&
-              distance(p, g.root(limb)) < g.reach(limb) + 8 * g.scale &&
+              distance(p, g.root(limb)) <
+                g.reach(limb) +
+                  (level.fatigue && limb.endsWith('Hand') ? 24 : 8) * g.scale &&
               distance(p, target) < distance(g.p[limb], target) - 6 * g.scale,
           )
           .sort((a, b) => distance(a, target) - distance(b, target));
         if (!candidates[0]) continue;
         g.begin(limb, candidates[0]);
-        for (let i = 0; i < 60; i++) g.step();
+        for (let i = 0; i < (level.fatigue ? 18 : 60); i++) g.step();
         g.end();
-        for (let i = 0; i < 35; i++) g.step();
+        for (let i = 0; i < (level.fatigue ? 12 : 35); i++) g.step();
       }
       if (
         ['leftHand', 'rightHand'].every(
@@ -90,5 +107,11 @@ export function climbRoute(level: Level, route: RouteCorner[]) {
   }
   assert.ok(g.complete, `${level.id}: supported job interaction`);
   assert.equal(g.message, level.objectives[0].successMessage);
+  if (level.fatigue)
+    console.log('Opal full input route', {
+      seconds: g.elapsed,
+      minimumStamina: minima,
+      holds: level.gripPoints.length,
+    });
   return g;
 }
