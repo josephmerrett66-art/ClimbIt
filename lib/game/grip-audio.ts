@@ -2,6 +2,10 @@
 export class GripAudio {
   private context: AudioContext | null = null;
   private muted = false;
+  private volume = 1;
+  setVolume(volume: number) {
+    this.volume = Math.max(0, Math.min(1, volume));
+  }
   setMuted(muted: boolean) {
     this.muted = muted;
   }
@@ -16,14 +20,14 @@ export class GripAudio {
     }
   }
   play() {
-    if (this.muted || document.hidden) return;
+    if (this.muted || this.volume === 0 || document.hidden) return;
     this.unlock();
     const ctx = this.context;
     if (!ctx || ctx.state !== 'running') return;
     const start = ctx.currentTime;
     const output = ctx.createGain();
     output.gain.setValueAtTime(0.0001, start);
-    output.gain.exponentialRampToValueAtTime(0.23, start + 0.004);
+    output.gain.exponentialRampToValueAtTime(0.23 * this.volume, start + 0.004);
     output.gain.exponentialRampToValueAtTime(0.0001, start + 0.115);
     output.connect(ctx.destination);
     const buffer = ctx.createBuffer(

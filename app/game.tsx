@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import Ambience from './ambience';
 import { GripAudio } from '@/lib/game/grip-audio';
+import { readSoundSettings } from '@/lib/game/sound-settings';
 import StoryInbox from './story-inbox';
 import { storyMessages, debtPayment } from '@/lib/game/story';
 import {
@@ -103,11 +104,9 @@ export default function Game({
     const sound = new GripAudio();
     gripAudio.current = sound;
     const syncMute = () => {
-      try {
-        sound.setMuted(
-          localStorage.getItem('oddjobs-ambience-muted') === 'true',
-        );
-      } catch {}
+      const settings = readSoundSettings();
+      sound.setMuted(settings.muted);
+      sound.setVolume(settings.sfx);
     };
     syncMute();
     window.addEventListener('oddjobs-sound-change', syncMute);

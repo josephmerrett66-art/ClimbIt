@@ -1640,3 +1640,14 @@ body {
 .repayment-choice>div {display:flex;gap:8px;}
 .repayment-choice button {flex:1;padding:10px 5px;border:1px solid #bdc7bc;border-radius:7px;font-size:11px;}
 .phone-tabs button {min-width:0;font-size:11px;}
+
+.sound-settings { width: min(280px, calc(100vw - 80px)); padding: 18px; border: 1px solid #738377; border-radius: 14px; background: #17291f; color: #fff8df; box-shadow: 0 12px 35px #0008; gap: 16px; }
+.sound-settings [data-slot="popover-title"] { font-size: 17px; }
+.sound-setting > div:first-child { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.sound-setting output { color: #e9bb63; font-variant-numeric: tabular-nums; }
+.sound-setting [data-slot="slider"] { padding: 20px 0; }
+.sound-setting [data-slot="slider-track"] { background: #4a5b50; height: 6px; }
+.sound-setting [data-slot="slider-range"] { background: #e9bb63; }
+.sound-setting [data-slot="slider-thumb"] { width: 22px; height: 22px; border: 2px solid #17291f; background: #fff4d6; }
+.sound-mute { min-height: 44px; border: 1px solid #738377; border-radius: 8px; font-size: 14px; }
+.sound-mute[aria-pressed="true"] { background: #e9bb63; color: #17291f; }

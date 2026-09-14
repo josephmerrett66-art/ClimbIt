@@ -1,22 +1,40 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { Volume2, VolumeX } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverTitle,
+} from '@/components/ui/popover';
+import {
+  DEFAULT_SOUND,
+  readSoundSettings,
+  saveSoundSettings,
+  type SoundSettings,
+} from '@/lib/game/sound-settings';
 
 export default function Ambience({ basePath = '' }: { basePath?: string }) {
   const audio = useRef<HTMLAudioElement>(null);
   const mutedRef = useRef(false);
   const started = useRef(false);
-  const [muted, setMuted] = useState(false);
+  const [settings, setSettings] = useState(DEFAULT_SOUND);
   useEffect(() => {
     const media = audio.current!;
-    try {
-      mutedRef.current =
-        localStorage.getItem('oddjobs-ambience-muted') === 'true';
-    } catch {}
-    setMuted(mutedRef.current);
-    media.volume = 0.3;
+    const sync = () => {
+      const next = readSoundSettings();
+      setSettings(next);
+      mutedRef.current = next.muted;
+      media.volume = next.ambience;
+      if (next.muted || next.ambience === 0) media.pause();
+      else if (started.current && !document.hidden)
+        void media.play().catch(() => {});
+    };
+    sync();
+    window.addEventListener('oddjobs-sound-change', sync);
     const play = () => {
-      if (!mutedRef.current && !document.hidden) {
+      if (!mutedRef.current && media.volume > 0 && !document.hidden) {
         started.current = true;
         void media.play().catch(() => {
           /* Retry on the next user gesture. */
@@ -35,22 +53,13 @@ export default function Ambience({ basePath = '' }: { basePath?: string }) {
       document.removeEventListener('pointerdown', play);
       document.removeEventListener('keydown', play);
       document.removeEventListener('visibilitychange', visibility);
+      window.removeEventListener('oddjobs-sound-change', sync);
       media.pause();
     };
   }, [basePath]);
-  const toggle = () => {
-    const next = !mutedRef.current;
-    mutedRef.current = next;
-    setMuted(next);
-    try {
-      localStorage.setItem('oddjobs-ambience-muted', String(next));
-    } catch {}
-    window.dispatchEvent(new Event('oddjobs-sound-change'));
-    if (next) audio.current?.pause();
-    else {
-      started.current = true;
-      void audio.current?.play().catch(() => {});
-    }
+  const change = (patch: Partial<SoundSettings>) => {
+    started.current = true;
+    saveSoundSettings({ ...readSoundSettings(), ...patch });
   };
   return (
     <>
@@ -60,16 +69,60 @@ export default function Ambience({ basePath = '' }: { basePath?: string }) {
         loop
         preload="none"
       />
-      <button
-        type="button"
-        className="phone-launch ambience-toggle"
-        onClick={toggle}
-        aria-label={muted ? 'Unmute sound' : 'Mute sound'}
-        aria-pressed={muted}
-        title={muted ? 'Unmute sound' : 'Mute sound'}
-      >
-        {muted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-      </button>
+      <Popover>
+        <PopoverTrigger
+          className="phone-launch ambience-toggle"
+          aria-label="Sound settings"
+          title="Sound settings"
+        >
+          {settings.muted || (settings.ambience === 0 && settings.sfx === 0) ? (
+            <VolumeX size={20} />
+          ) : (
+            <Volume2 size={20} />
+          )}
+        </PopoverTrigger>
+        <PopoverContent
+          side="left"
+          align="end"
+          sideOffset={12}
+          className="sound-settings"
+        >
+          <PopoverTitle>Sound settings</PopoverTitle>
+          {(
+            [
+              ['sfx', 'Sound effects'],
+              ['ambience', 'Ambience'],
+            ] as const
+          ).map(([key, label]) => (
+            <div className="sound-setting" key={key}>
+              <div>
+                <span id={`sound-${key}`}>{label}</span>
+                <output>{Math.round(settings[key] * 100)}%</output>
+              </div>
+              <Slider
+                aria-labelledby={`sound-${key}`}
+                value={[Math.round(settings[key] * 100)]}
+                min={0}
+                max={100}
+                step={1}
+                onValueChange={(value) =>
+                  change({
+                    [key]: (Array.isArray(value) ? value[0] : value) / 100,
+                  })
+                }
+              />
+            </div>
+          ))}
+          <button
+            type="button"
+            className="sound-mute"
+            aria-pressed={settings.muted}
+            onClick={() => change({ muted: !settings.muted })}
+          >
+            {settings.muted ? 'Unmute all sound' : 'Mute all sound'}
+          </button>
+        </PopoverContent>
+      </Popover>
     </>
   );
 }
