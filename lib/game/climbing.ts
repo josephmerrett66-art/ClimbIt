@@ -1,15 +1,15 @@
 import type { Climber, Limb } from './physics';
 import type { Point } from './level';
 
-// Opal prototype tuning. Rates are stamina points/second; loads are estimated
+// Campaign climbing tuning. Rates are stamina points/second; loads are estimated
 // fractions of body weight, amplified by awkward reach. No input jitter.
 export const CLIMBING = {
   handMax: 100,
   footMax: 100,
-  handDrain: 7.5,
-  footDrain: 0.85,
-  recovery: 7,
-  lightRecovery: 5,
+  handDrain: 9.5,
+  footDrain: 1.1,
+  recovery: 5.5,
+  lightRecovery: 4.5,
   minimumLoad: 0.14,
   loadSensitivity: 1.25,
   fresh: 70,

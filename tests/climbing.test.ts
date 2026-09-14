@@ -93,14 +93,17 @@ a.elapsed = 1;
 const original = structuredClone(a.p.leftElbow);
 assert.notDeepEqual(tremblingJoint(a, 'leftHand', a.p.leftElbow), original);
 assert.deepEqual(a.p.leftElbow, original, 'Tremble never changes physics');
-for (const job of AUSTRALIAN_JOBS.filter((j) => j.id !== 'opal-disco')) {
+for (const job of AUSTRALIAN_JOBS) {
   const g = new Climber(job.level);
   for (let i = 0; i < 240; i++) g.step();
-  assert.equal(g.stamina.leftHand, 100);
-  assert.equal(g.level.fatigue, undefined);
+  assert.equal(g.level.fatigue, true);
+  assert.ok(
+    Object.values(g.holdVisibility).some((a) => a > 0.01),
+    'Every job reveals nearby holds without a drag',
+  );
 }
 console.log(
-  'PASS load sharing, rest geometry, independent failure, recovery, time partition, body discovery, render-only tremble and other-job isolation',
+  'PASS load sharing, rest geometry, independent failure, recovery, time partition, body discovery, render-only tremble and campaign discovery',
 );
 
 const footFailure = fixture();

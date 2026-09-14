@@ -1,3 +1,4 @@
+import { establishRest } from './rest-driver';
 import assert from 'node:assert/strict';
 import { Climber, LIMBS, distance } from '../lib/game/physics';
 import type { Level } from '../lib/game/level';
@@ -17,6 +18,7 @@ export function climbRoute(level: Level, route: RouteCorner[]) {
   for (const [stage, corner] of route.slice(1).entries()) {
     const goal = { x: corner[0], y: corner[1] };
     const hanging = corner[2] === 'hang';
+    if (level.fatigue) establishRest(g);
     if (
       hanging ||
       (level.fatigue &&
@@ -45,6 +47,13 @@ export function climbRoute(level: Level, route: RouteCorner[]) {
     }
     for (let cycle = 0; cycle < 90 && !g.failed; cycle++) {
       for (let i = 0; i < (level.fatigue ? 18 : 60); i++) g.step();
+      if (
+        level.fatigue &&
+        !hanging &&
+        cycle % 5 === 0 &&
+        Math.min(g.stamina.leftHand, g.stamina.rightHand) < 65
+      )
+        establishRest(g);
       for (const limb of LIMBS) {
         if (hanging && limb.endsWith('Foot')) continue;
         const target = {
@@ -65,11 +74,35 @@ export function climbRoute(level: Level, route: RouteCorner[]) {
           )
           .sort((a, b) => distance(a, target) - distance(b, target));
         if (!candidates[0]) continue;
+        const previous = g.grips[limb];
         g.begin(limb, candidates[0]);
         for (let i = 0; i < (level.fatigue ? 18 : 60); i++) g.step();
+        if (level.fatigue && !g.grabPreview()) {
+          // A player can feel an overreach and try a nearer edge before letting go.
+          for (const candidate of candidates.slice(1, 3)) {
+            g.move(candidate);
+            for (let i = 0; i < 18; i++) g.step();
+            if (g.grabPreview()) break;
+          }
+          if (!g.grabPreview() && previous) {
+            g.move(previous);
+            for (let i = 0; i < 24; i++) g.step();
+          }
+        }
         g.end();
         for (let i = 0; i < (level.fatigue ? 12 : 35); i++) g.step();
       }
+      if (process.env.TRACE && cycle % 5 === 0)
+        console.log(
+          'TRACE',
+          stage,
+          cycle,
+          g.p.hip.x,
+          g.p.hip.y,
+          g.grips,
+          g.stamina,
+          g.message,
+        );
       if (
         ['leftHand', 'rightHand'].every(
           (l) => distance(g.p[l], goal) < 28 * g.scale,
@@ -108,7 +141,7 @@ export function climbRoute(level: Level, route: RouteCorner[]) {
   assert.ok(g.complete, `${level.id}: supported job interaction`);
   assert.equal(g.message, level.objectives[0].successMessage);
   if (level.fatigue)
-    console.log('Opal full input route', {
+    console.log('Fatigue route', {
       seconds: g.elapsed,
       minimumStamina: minima,
       holds: level.gripPoints.length,

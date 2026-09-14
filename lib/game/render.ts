@@ -685,7 +685,7 @@ export function draw(
     ctx.fillRect(16, h - 152, 345, 126);
     ctx.font = '13px monospace';
     ctx.fillStyle = '#fff2cf';
-    ctx.fillText('OPAL · F2 to hide · estimated load', 26, h - 131);
+    ctx.fillText('CLIMB · F2 to hide · estimated load', 26, h - 131);
     LIMBS.forEach((limb, i) =>
       ctx.fillText(
         `${limb.padEnd(10)} ${g.stamina[limb].toFixed(0).padStart(3)} / ${(g.loads[limb] * 100).toFixed(0)}% ${fatigueStage(g.stamina[limb])}`,

@@ -1,15 +1,15 @@
 # Opal climbing prototype
 
-Only Disco at the opal mine enables `Level.fatigue`. Other jobs retain their
-existing routes, mechanics and hold display. No art, camera, phone, money or story
+The original opal prototype now extends to all nine current jobs. See
+`docs/campaign-climbing.md` for the rollout and route counts. No art, camera, phone, money or story
 changes are required by the prototype.
 
 ## Tuning
 
 `lib/game/climbing.ts` contains the `CLIMBING` configuration. Stamina is independent
 for each limb (100 initially). Rates are points per second, not frame counts.
-Hand drain is 7.5, foot drain 0.85, unloaded recovery 7, lightly loaded recovery up
-to 5. Recovery tapers to zero at 14% estimated load. Loaded drain scales with
+Hand drain is now 9.5, foot drain 1.1, unloaded recovery 5.5, lightly loaded recovery up
+to 4.5. Recovery tapers to zero at 14% estimated load. Loaded drain scales with
 load to power 1.25. Stages are fresh >=70, warm >=45, tired >=25, critical >=10,
 failing below 10. At zero, a loaded grip releases into the existing physics.
 An unloaded exhausted limb can recover and catch again; there is no reset or
@@ -65,11 +65,11 @@ Missing everything still invokes the existing fall/failure system.
 
 `tests/climbing.test.ts` checks load sharing, efficient/awkward stance recovery,
 independent grip failure, cascading load, time-based rates, idle discovery, fade,
-unchanged reach, visual-only tremble and isolation of other jobs.
+unchanged reach, visual-only tremble and discovery on every campaign job.
 `tests/opal.test.ts` checks an actual settled resting stance with physics running,
 unique holds and density. `tests/australian.test.ts` traverses all eight jobs
 through begin/step/end controls and completes each repair. The opal driver uses
-quicker gestures, tries committed reaches and releases high trailing feet; it
+quicker gestures, tries committed reaches, releases high trailing feet and rests on real contacts; it
 does not disable fatigue, teleport or insert grips. Existing pub, physics, touch,
 camera and story regression suites remain in use. Human mastery/difficulty still
 needs tuning from play sessions; automated completion proves a route is feasible,

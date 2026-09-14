@@ -1,4 +1,4 @@
-import { configureOpal } from './opal-challenge';
+import { configureCampaign } from './campaign-challenge';
 import { makeClimb, type ClimbSpec } from './campaign';
 import routes from './australian-routes.json';
 
@@ -98,7 +98,7 @@ export const AUSTRALIAN_SPECS: Omit<
   },
 ];
 export const AUSTRALIAN_JOBS = AUSTRALIAN_SPECS.map((spec) =>
-  configureOpal(
+  configureCampaign(
     makeClimb({
       ...spec,
       ...(

@@ -19,30 +19,25 @@ const foot = (x: number, y: number) =>
   });
 // Traced over country-pub.png in its rendered coordinates (1600 wide,
 // 1450 high, offset -40). All geometry is invisible during play.
-// Left verandah post, then the underside of the existing gutter.
-for (let y = 800; y >= 600; y -= 40) {
-  hand(190, y);
-  hand(202, y - 8);
-}
-for (let y = 916; y >= 716; y -= 40) foot(196, y);
-for (let x = 230; x <= 790; x += 30) hand(x, 610);
-// Corner post and right-hand trim of the central weatherboard facade.
-for (let y = 600; y >= 440; y -= 40) {
-  hand(810, y);
-  hand(822, y - 8);
-}
-for (const y of [748, 708, 668, 628, 588, 548]) foot(820, y);
+// Sparse contacts on the left post, then the painted gutter. Two actual
+// verandah posts interrupt the longest traverse with optional foot stances.
+for (const y of [800, 752, 704, 656, 608]) hand(196, y);
+for (const y of [916, 870, 824, 778, 732]) foot(196, y);
+for (const x of [
+  234, 280, 326, 372, 410, 456, 502, 548, 590, 636, 682, 728, 774, 810,
+])
+  hand(x, 610);
+for (const x of [410, 590]) for (const y of [702, 740]) foot(x, y);
+// Right facade edge, rest below the corner, reverse beneath the cornice.
+for (const y of [600, 548, 496, 440]) hand(810, y);
+for (const y of [748, 702, 660, 620, 580, 542]) foot(820, y);
 foot(780, 545);
-for (let x = 790; x >= 430; x -= 30) hand(x, 450);
-// Left facade edge and the stepped parapet, following the painted roof outline.
-for (let y = 442; y >= 282; y -= 40) {
-  hand(422, y);
-  hand(436, y - 8);
-}
+for (const x of [790, 744, 698, 652, 606, 560, 514, 468, 430]) hand(x, 450);
+// Facade trim and stepped parapet. Short pairs survive only at direction changes.
+for (const y of [442, 392, 342, 292]) hand(422, y);
 for (const y of [560, 520, 480, 440, 400, 360]) foot(421, y);
 for (const [x, y] of [
   [460, 280],
-  [488, 280],
   [488, 266],
   [530, 266],
   [557, 266],
@@ -52,12 +47,9 @@ for (const [x, y] of [
   [680, 224],
 ])
   hand(x, y);
-// Boots brace on the side trim and the actual corrugated roof/eave below.
 for (const [x, y] of [
-  [460, 450],
   [488, 410],
   [488, 370],
-  [530, 450],
   [557, 410],
   [557, 370],
   [557, 330],
@@ -68,7 +60,7 @@ for (const [x, y] of [
   foot(x, y);
 for (const g of holds) {
   g.surface = g.use === 'hand' ? 'timber' : 'trim';
-  if ([190, 202, 810, 822, 422, 436].includes(g.x)) g.angle = Math.PI / 2;
+  if ([196, 810, 422].includes(g.x)) g.angle = Math.PI / 2;
 }
 const colliders: Collider[] = [
   { id: 'pub-ground', type: 'edge', x: 0, y: 950, x2: 1600, y2: 950 },
@@ -102,10 +94,11 @@ export const pubLevel: Level = {
   completionTrigger: { x: 570, y: 180, width: 160, height: 180 },
   pay: 180,
   challenge: true,
+  fatigue: true,
   backgroundFraming: { y: -40, height: 1450 },
   location: 'The Galah Arms · Outback NSW',
   briefing:
-    'Work around the verandah. Release your feet to hang beneath the gutters. Keep a hand and a foot planted while holding the keys, then release to collect.',
+    'Rest on the verandah posts before the long gutter traverse. Release trailing feet at the corners; warm arms need unloading. Keep a hand and foot planted to collect Gaz’s keys.',
 };
 export const pubJob = {
   id: pubLevel.id,
