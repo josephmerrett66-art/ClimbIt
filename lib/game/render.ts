@@ -1,3 +1,4 @@
+import { characterPose } from './character-pose';
 import { Climber, LIMBS, distance, type Limb } from './physics';
 import {
   CLIMBING,
@@ -150,49 +151,18 @@ export function draw(
       const a = { x: from.x + nx * fromWidth, y: from.y + ny * fromWidth },
         b = { x: to.x + nx * toWidth, y: to.y + ny * toWidth },
         c = { x: to.x - nx * toWidth, y: to.y - ny * toWidth },
-        d = { x: from.x - nx * fromWidth, y: from.y - ny * fromWidth },
-        middle = {
-          x: (from.x + to.x) / 2 + nx * 1.5,
-          y: (from.y + to.y) / 2 + ny * 1.5,
-        };
-      polygon([a, b, c, d], dark);
+        d = { x: from.x - nx * fromWidth, y: from.y - ny * fromWidth };
+      // Overlapping caps join the skin and clothing without a cut at the hinge.
+      circle(from, fromWidth, light);
+      circle(to, toWidth, light);
+      polygon([a, b, c, d], light, light);
       ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.lineTo(middle.x, middle.y);
-      ctx.closePath();
-      ctx.fillStyle = light;
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(middle.x, middle.y);
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
+      ctx.lineTo(c.x, c.y);
       ctx.lineTo(d.x, d.y);
       ctx.closePath();
-      ctx.fillStyle = '#ffffff18';
-      ctx.fill();
-    };
-    const facetedJoint = (
-      p: Point,
-      radius: number,
-      light: string,
-      dark: string,
-    ) => {
-      polygon(
-        [
-          { x: p.x, y: p.y - radius },
-          { x: p.x + radius, y: p.y },
-          { x: p.x, y: p.y + radius },
-          { x: p.x - radius, y: p.y },
-        ],
-        dark,
-      );
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y - radius);
-      ctx.lineTo(p.x + radius, p.y);
-      ctx.lineTo(p.x, p.y);
-      ctx.lineTo(p.x - radius, p.y);
-      ctx.closePath();
-      ctx.fillStyle = light;
+      ctx.fillStyle = dark;
       ctx.fill();
     };
     const extremity = (
@@ -413,35 +383,36 @@ export function draw(
 
     const bodyScale = g.scale;
     shapeScale = bodyScale;
+    const pose = characterPose(g);
 
-    // Limbs sit behind a rigid torso and visibly originate at its shoulder and hip corners.
+    // The shared pose keeps every sleeve, hip and hinge connected.
     for (const side of ['left', 'right']) {
       const limb = (side + 'Foot') as Limb;
       const tint = (color: string) =>
         l.fatigue ? fatigueTint(color, g.stamina[limb]) : color;
       const joint = l.fatigue
-        ? tremblingJoint(g, limb, g.p[side + 'Knee'])
-        : g.p[side + 'Knee'];
+        ? tremblingJoint(g, limb, pose[side + 'Knee'])
+        : pose[side + 'Knee'];
       taperedLimb(
-        g.p[side + 'Hip'],
+        pose[side + 'Hip'],
         joint,
         8.5 * bodyScale,
         7 * bodyScale,
-        tint('#465550'),
-        tint('#303d39'),
+        tint('#46574f'),
+        tint('#3e4d46'),
       );
       taperedLimb(
         joint,
-        g.p[side + 'Foot'],
+        pose[side + 'Foot'],
         7 * bodyScale,
         5.5 * bodyScale,
-        tint('#59635d'),
-        tint('#3b4842'),
+        tint('#46574f'),
+        tint('#3e4d46'),
       );
-      facetedJoint(joint, 7.2 * bodyScale, tint('#58655f'), tint('#35433e'));
+
       extremity(
         joint,
-        g.p[side + 'Foot'],
+        pose[side + 'Foot'],
         9 * bodyScale,
         6.5 * bodyScale,
         tint('#22312d'),
@@ -453,48 +424,54 @@ export function draw(
       const tint = (color: string) =>
         l.fatigue ? fatigueTint(color, g.stamina[limb]) : color;
       const joint = l.fatigue
-        ? tremblingJoint(g, limb, g.p[side + 'Elbow'])
-        : g.p[side + 'Elbow'];
+        ? tremblingJoint(g, limb, pose[side + 'Elbow'])
+        : pose[side + 'Elbow'];
       taperedLimb(
-        g.p[side + 'Shoulder'],
+        pose[side + 'Shoulder'],
         joint,
         7.2 * bodyScale,
         5.8 * bodyScale,
         tint('#f0b44e'),
-        tint('#c98731'),
+        tint('#dda040'),
       );
       taperedLimb(
         joint,
-        g.p[side + 'Hand'],
+        pose[side + 'Hand'],
         5.8 * bodyScale,
         4.2 * bodyScale,
         tint('#e9c795'),
-        tint('#c89d6d'),
+        tint('#d9b381'),
       );
-      facetedJoint(joint, 5.6 * bodyScale, tint('#e5bd87'), tint('#b98d60'));
+
       extremity(
         joint,
-        g.p[side + 'Hand'],
+        pose[side + 'Hand'],
         3.5 * bodyScale,
         5.2 * bodyScale,
         tint('#d8ad78'),
       );
     }
 
-    const leftShoulder = g.p.leftShoulder,
-      rightShoulder = g.p.rightShoulder,
-      leftHip = g.p.leftHip,
-      rightHip = g.p.rightHip,
+    const leftShoulder = pose.leftShoulder,
+      rightShoulder = pose.rightShoulder,
+      leftHip = pose.leftHip,
+      rightHip = pose.rightHip,
       torsoCenter = {
         x: (leftShoulder.x + rightShoulder.x + leftHip.x + rightHip.x) / 4,
         y: (leftShoulder.y + rightShoulder.y + leftHip.y + rightHip.y) / 4,
       };
-    polygon([leftShoulder, rightShoulder, rightHip, leftHip], '#d69234');
+    circle(leftShoulder, 7.2 * bodyScale, '#efb04a');
+    circle(rightShoulder, 7.2 * bodyScale, '#efb04a');
+    polygon(
+      [leftShoulder, rightShoulder, rightHip, leftHip],
+      '#e5a440',
+      '#e5a440',
+    );
     const torsoFacets = [
-      [leftShoulder, rightShoulder, torsoCenter, '#efb54d'],
-      [rightShoulder, rightHip, torsoCenter, '#bd7629'],
-      [rightHip, leftHip, torsoCenter, '#cc842e'],
-      [leftHip, leftShoulder, torsoCenter, '#e4a03a'],
+      [leftShoulder, rightShoulder, torsoCenter, '#efb04a'],
+      [rightShoulder, rightHip, torsoCenter, '#d5973c'],
+      [rightHip, leftHip, torsoCenter, '#dfa03f'],
+      [leftHip, leftShoulder, torsoCenter, '#e9a945'],
     ] as const;
     for (const [p1, p2, p3, color] of torsoFacets) {
       ctx.beginPath();
@@ -505,26 +482,33 @@ export function draw(
       ctx.fillStyle = color;
       ctx.fill();
     }
+    const down = {
+      x: (leftHip.x + rightHip.x - leftShoulder.x - rightShoulder.x) / 2,
+      y: (leftHip.y + rightHip.y - leftShoulder.y - rightShoulder.y) / 2,
+    };
+    const downLength = Math.hypot(down.x, down.y) || 1;
+    const hem = (p: Point, offset: number) => ({
+      x: p.x + (down.x / downLength) * offset * bodyScale,
+      y: p.y + (down.y / downLength) * offset * bodyScale,
+    });
+    circle(leftHip, 8.5 * bodyScale, '#46574f');
+    circle(rightHip, 8.5 * bodyScale, '#46574f');
     polygon(
-      [
-        { x: leftHip.x - 2 * bodyScale, y: leftHip.y - 2 * bodyScale },
-        { x: rightHip.x + 2 * bodyScale, y: rightHip.y - 2 * bodyScale },
-        { x: rightHip.x + 4 * bodyScale, y: rightHip.y + 9 * bodyScale },
-        { x: leftHip.x - 4 * bodyScale, y: leftHip.y + 9 * bodyScale },
-      ],
-      '#293a34',
+      [hem(leftHip, -4), hem(rightHip, -4), hem(rightHip, 9), hem(leftHip, 9)],
+      '#46574f',
+      '#46574f',
     );
 
     // Neck and head follow the torso instead of floating above it.
     taperedLimb(
-      g.p.neck,
-      g.p.head,
+      pose.neck,
+      pose.head,
       6 * bodyScale,
       7 * bodyScale,
       '#e9c795',
       '#c89d6d',
     );
-    const head = g.p.head,
+    const head = pose.head,
       headAngle = Math.atan2(
         rightShoulder.y - leftShoulder.y,
         rightShoulder.x - leftShoulder.x,
