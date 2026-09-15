@@ -21,6 +21,24 @@ export const CLIMBING = {
   discoveryRadius: 190,
   fadeSeconds: 0.22,
 };
+
+// Reach and pull force scale with how many other limbs are still on holds.
+// Indexed by that count, so a move made from three points reaches furthest and
+// a move made from one is short. This is what makes limb order a decision.
+// Reach and pull force scale with how many OTHER limbs are still on holds,
+// indexed by that count. With all four points on, reach is full; let a limb go
+// and every reach shortens, so the order limbs are moved in becomes a decision.
+//
+// Tuning note: the railway's three hand-only awning traverses are the binding
+// constraint. Hanging from one hand puts the shoulder well below the hold line,
+// so the free hand is already reaching near its limit. The route driver clears
+// the level anywhere at or above 0.85 and falls at 0.84, so 0.86 is the
+// strongest stable setting for the current contact layout. Going lower needs
+// those traverses re-authored with real footholds, which the scene's
+// "no floating footholds between awnings" rule currently rules out.
+export const CONTACT_REACH = [0.86, 0.86, 0.88, 1];
+export const CONTACT_FORCE = [0.85, 0.85, 0.92, 1];
+
 export const clamp = (n: number, min = 0, max = 1) =>
   Math.max(min, Math.min(max, n));
 const limbs: Limb[] = ['leftHand', 'rightHand', 'leftFoot', 'rightFoot'];
@@ -107,7 +125,8 @@ export function tickFatigue(g: Climber, dt: number) {
   }
 }
 export function tickDiscovery(g: Climber, dt: number) {
-  const radius = CLIMBING.discoveryRadius * g.scale;
+  const radius =
+    (g.level.discoveryRadius ?? CLIMBING.discoveryRadius) * g.scale;
   const body = {
     x: (g.p.hip.x + g.p.neck.x) / 2,
     y: (g.p.hip.y + g.p.neck.y) / 2,

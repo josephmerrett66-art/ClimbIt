@@ -1,5 +1,6 @@
 import { applyRouteMoments } from './route-moments';
 import { configureCampaign } from './campaign-challenge';
+import { configureRailway } from './railway-strategy';
 import { makeClimb, type ClimbSpec } from './campaign';
 import routes from './australian-routes.json';
 
@@ -112,4 +113,9 @@ export const AUSTRALIAN_JOBS = AUSTRALIAN_SPECS.map((spec) =>
   ),
 );
 
-for (const job of AUSTRALIAN_JOBS) applyRouteMoments(job.level);
+// Route moments first, then the railway strategy pass, so the railway keeps its
+// own briefing rather than the shared movement-sequence hint.
+for (const job of AUSTRALIAN_JOBS) {
+  applyRouteMoments(job.level);
+  configureRailway(job);
+}

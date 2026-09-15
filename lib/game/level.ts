@@ -41,6 +41,14 @@ export type Level = {
   playerScale?: number;
   challenge?: boolean;
   fatigue?: boolean;
+  // Klifur-style constraint: reach shrinks as limbs leave their holds, so the
+  // order limbs are moved in decides what is actually within range.
+  contactReach?: boolean;
+  // Per-level override for the body-proximity hold fade, so a level that asks
+  // the player to plan a sequence can show the whole sequence.
+  discoveryRadius?: number;
+  // Target move count for the efficiency bonus. Moves are grips caught.
+  moveTarget?: number;
   backgroundFraming?: { y: number; height: number };
   location?: string;
   briefing?: string;

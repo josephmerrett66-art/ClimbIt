@@ -894,6 +894,19 @@ body {
   font-size: 14px;
   pointer-events: none;
 }
+.move-counter {
+  position: absolute;
+  top: 22px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: #15261fb8;
+  color: #fff2cf;
+  font-size: 12px;
+  letter-spacing: 0.09em;
+  pointer-events: none;
+}
 .failure-card {
   width: min(390px, calc(100vw - 30px));
   padding: 36px 32px 28px;

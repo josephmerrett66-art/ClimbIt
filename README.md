@@ -47,6 +47,8 @@ The complete carry-and-return system remains available to editor play tests. Nor
 
 `pnpm exec jiti tests/australian.test.ts` traverses all eight new routes using limb inputs and performs each supported job interaction. It also checks spawn support, artwork and route entries, finite JSON geometry, brief objective contact, boot-only climbing rejection and falling failure.
 
+`pnpm exec jiti tests/railway-strategy.test.ts` covers the railway strategy pass: contact-scaled reach, the per-level discovery override and the efficiency bonus, including that the other eight jobs are untouched. See `docs/railway-strategy.md`.
+
 `pnpm exec jiti tests/pub.test.ts` checks the pub route and obstruction rules. `pnpm exec jiti tests/controls.test.ts` covers camera framing, touch selection and cancellation. `tests/physics.test.ts` retains the original level fixtures for bone, hinge, reach, carry and gravity regressions.
 
 ## Artwork

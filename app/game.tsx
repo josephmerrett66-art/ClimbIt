@@ -10,6 +10,7 @@ import { drawMagpie } from '@/lib/game/magpie-render';
 import { cigaretteFor } from '@/lib/game/cigarette';
 import { drawCigarette } from '@/lib/game/cigarette-render';
 import { storyMessages, debtPayment } from '@/lib/game/story';
+import { efficiencyBonus } from '@/lib/game/scoring';
 import {
   ArrowLeft,
   RotateCcw,
@@ -77,6 +78,8 @@ type Payout = {
   amount: number;
   balanceBefore: number;
   balanceAfter: number;
+  bonus?: number;
+  moves?: number;
 };
 const EMPTY_FINANCES: Finances = {
   balance: 0,
@@ -108,7 +111,8 @@ export default function Game({
   const [storyReady, setStoryReady] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
   const gripAudio = useRef<GripAudio | null>(null);
-  const [musicControlsTarget, setMusicControlsTarget] = useState<HTMLDivElement | null>(null);
+  const [musicControlsTarget, setMusicControlsTarget] =
+    useState<HTMLDivElement | null>(null);
   useEffect(() => {
     const sound = new GripAudio(basePath);
     gripAudio.current = sound;
@@ -143,6 +147,7 @@ export default function Game({
       complete: false,
       failed: false,
       grips: 0,
+      moves: 0,
       message: 'Drag a hand or boot onto a solid edge.',
     }),
     [paused, setPaused] = useState(false),
@@ -215,6 +220,7 @@ export default function Game({
       complete: false,
       failed: false,
       grips: 0,
+      moves: 0,
       message: 'Drag a hand or boot onto a solid edge.',
     });
     setChosen(null);
@@ -230,7 +236,11 @@ export default function Game({
       localStorage.setItem('oddjobs-finances', JSON.stringify(next));
     } catch {}
   };
-  const recordPay = (jobId: string, amount: number) => {
+  const recordPay = (
+    jobId: string,
+    amount: number,
+    detail?: { bonus: number; moves: number },
+  ) => {
     const current = financesRef.current,
       next = {
         balance: current.balance + amount,
@@ -245,6 +255,8 @@ export default function Game({
       amount,
       balanceBefore: current.balance,
       balanceAfter: next.balance,
+      bonus: detail?.bonus,
+      moves: detail?.moves,
     });
     setPhoneUnread(true);
   };
@@ -496,14 +508,21 @@ export default function Game({
           complete: g.complete,
           failed: g.failed,
           grips: Object.keys(g.grips).length,
+          moves: g.moves,
           message: g.message,
         });
       }
       if (g.complete && !paid.current) {
         paid.current = true;
         if (!s.editing) {
-          recordPay(l.id, l.pay);
-          paidCallback.current(l.pay);
+          const bonus = efficiencyBonus(l, g.moves),
+            total = l.pay + bonus;
+          recordPay(
+            l.id,
+            total,
+            l.moveTarget ? { bonus, moves: g.moves } : undefined,
+          );
+          paidCallback.current(total);
         }
       }
       frame = requestAnimationFrame(tick);
@@ -956,7 +975,11 @@ export default function Game({
               {game.current && magpieFor(game.current) && (
                 <button
                   disabled={paused}
-                  aria-label={game.current?.racketHand ? 'Put racket away' : 'Equip racket'}
+                  aria-label={
+                    game.current?.racketHand
+                      ? 'Put racket away'
+                      : 'Equip racket'
+                  }
                   title="Racket — drag the equipped hand to swing"
                   aria-pressed={Boolean(game.current?.racketHand)}
                   onClick={() => {
@@ -968,16 +991,36 @@ export default function Game({
                     setRevision((r) => r + 1);
                   }}
                 >
-                  <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
-                    <ellipse cx="15" cy="8" rx="5" ry="7" transform="rotate(35 15 8)" />
+                  <svg
+                    width="25"
+                    height="25"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    aria-hidden="true"
+                  >
+                    <ellipse
+                      cx="15"
+                      cy="8"
+                      rx="5"
+                      ry="7"
+                      transform="rotate(35 15 8)"
+                    />
                     <path d="M11 14 4 22M12 4l7 7M10 7l6 7M13 2l7 7M11 11l7-7" />
                   </svg>
                 </button>
               )}
               <button
                 className="dart-button"
-                aria-label={game.current?.cigaretteHand ? 'Put dart out' : 'Smoke a dart'}
-                title={game.current?.cigaretteHand ? 'Put dart out' : 'Dart — drag the equipped hand to your mouth'}
+                aria-label={
+                  game.current?.cigaretteHand ? 'Put dart out' : 'Smoke a dart'
+                }
+                title={
+                  game.current?.cigaretteHand
+                    ? 'Put dart out'
+                    : 'Dart — drag the equipped hand to your mouth'
+                }
                 aria-pressed={Boolean(game.current?.cigaretteHand)}
                 disabled={paused || Boolean(game.current?.racketHand)}
                 onClick={() => {
@@ -991,7 +1034,11 @@ export default function Game({
                   setRevision((r) => r + 1);
                 }}
               >
-                {game.current?.cigaretteHand ? <CircleSlash size={23} /> : <Cigarette size={23} />}
+                {game.current?.cigaretteHand ? (
+                  <CircleSlash size={23} />
+                ) : (
+                  <Cigarette size={23} />
+                )}
               </button>
             </div>
           )}
@@ -1002,6 +1049,15 @@ export default function Game({
               {level.current.colliders.length} COLLIDERS
             </span>
           )}
+          {!edit &&
+            !phoneOpen &&
+            !hud.failed &&
+            !hud.complete &&
+            Boolean(level.current.moveTarget) && (
+              <div className="move-counter" role="status">
+                {hud.moves} MOVES
+              </div>
+            )}
           {!edit &&
             !hud.failed &&
             !hud.complete &&
@@ -1147,7 +1203,10 @@ export default function Game({
       {!edit && (
         <>
           <Ambience basePath={basePath} />
-          <PhoneMusic basePath={basePath} controlsTarget={musicControlsTarget} />
+          <PhoneMusic
+            basePath={basePath}
+            controlsTarget={musicControlsTarget}
+          />
           {touchControls && !phoneOpen && !hud.complete && !hud.failed && (
             <div
               className="touch-climb-controls"
@@ -1221,9 +1280,19 @@ export default function Game({
                 </div>
                 <span className="completion-kicker">JOB COMPLETE</span>
                 <h2>{money(payout.amount)}</h2>
-                <p>
-                  Payment received and deposited into your everyday account.
-                </p>
+                {payout.moves === undefined ? (
+                  <p>
+                    Payment received and deposited into your everyday account.
+                  </p>
+                ) : (
+                  <p>
+                    {payout.moves} moves
+                    {payout.bonus
+                      ? ` · ${money(payout.bonus)} efficiency bonus`
+                      : ' · no efficiency bonus this time'}
+                    . Paid into your everyday account.
+                  </p>
+                )}
                 <div className="deposit-account">
                   <Landmark size={21} />
                   <span>

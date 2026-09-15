@@ -1,4 +1,11 @@
-import { CLIMBING, emptyLoads, tickFatigue, tickDiscovery } from './climbing';
+import {
+  CLIMBING,
+  CONTACT_FORCE,
+  CONTACT_REACH,
+  emptyLoads,
+  tickFatigue,
+  tickDiscovery,
+} from './climbing';
 import type { Level, Point, Grip } from './level';
 export type Particle = Point & {
   px: number;
@@ -56,6 +63,10 @@ export class Climber {
   unanchoredStartY: number | null = null;
   gripFocus: Grip | null = null;
   catches: { x: number; y: number; age: number }[] = [];
+  moves = 0;
+  // The opening stance is established before any limb is on a hold, so it must
+  // not be judged by the contact-scaled reach it is about to create.
+  private establishing = true;
   message = 'Drag a hand or boot onto a solid edge. Small moves work best.';
   constructor(
     public level: Level,
@@ -130,6 +141,7 @@ export class Climber {
         : this.nearest(this.p[limb], Math.max(22, 36 * s));
       if (g && this.canUse(limb, g)) this.grips[limb] = g;
     }
+    this.establishing = false;
   }
   root(limb: Limb) {
     return this.p[
@@ -138,8 +150,24 @@ export class Climber {
         : limb.replace('Foot', 'Hip')
     ];
   }
-  reach(limb: Limb) {
+  // Unscaled anatomical reach. Established grips and strain are judged against
+  // this, so shifting a limb never pops a hold the climber is already on.
+  baseReach(limb: Limb) {
     return (limb.endsWith('Hand') ? 78 : 86) * this.scale;
+  }
+  contacts(limb: Limb) {
+    return LIMBS.filter((other) => other !== limb && this.grips[other]).length;
+  }
+  reach(limb: Limb) {
+    const base = this.baseReach(limb);
+    return this.level.contactReach && !this.establishing
+      ? base * CONTACT_REACH[this.contacts(limb)]
+      : base;
+  }
+  pull(limb: Limb) {
+    return this.level.contactReach
+      ? 0.32 * CONTACT_FORCE[this.contacts(limb)]
+      : 0.32;
   }
   nearest(pos: Point, r = 24) {
     return this.level.gripPoints
@@ -270,6 +298,7 @@ export class Climber {
       const grip = this.grabPreview();
       if (grip) {
         this.grips[limb] = grip;
+        this.moves++;
         p.x = grip.x;
         p.y = grip.y;
       }
@@ -304,6 +333,7 @@ export class Climber {
           distance(g, this.root(limb)) <= this.reach(limb) + 8 * this.scale
         ) {
           this.grips[limb] = g;
+          this.moves++;
           p.x = p.px = g.x;
           p.y = p.py = g.y;
           this.catches.push({ x: g.x, y: g.y, age: 0 });
@@ -533,9 +563,10 @@ export class Climber {
             : target,
           d = distance(root, guidedTarget) || 1,
           k = Math.min(1, this.reach(limb) / d);
-        const p = this.p[limb];
-        p.x += (root.x + (guidedTarget.x - root.x) * k - p.x) * 0.32;
-        p.y += (root.y + (guidedTarget.y - root.y) * k - p.y) * 0.32;
+        const p = this.p[limb],
+          force = this.pull(limb);
+        p.x += (root.x + (guidedTarget.x - root.x) * k - p.x) * force;
+        p.y += (root.y + (guidedTarget.y - root.y) * k - p.y) * force;
       }
       if (this.carrying) {
         const hand = this.p[this.carrying],
@@ -563,7 +594,7 @@ export class Climber {
     if (this.level.challenge) {
       for (const [limb, grip] of anchors) {
         const overextended =
-          distance(this.root(limb), grip) > this.reach(limb) * 1.25;
+          distance(this.root(limb), grip) > this.baseReach(limb) * 1.25;
         this.gripStrain[limb] = overextended
           ? (this.gripStrain[limb] ?? 0) + dt
           : 0;
