@@ -6,6 +6,10 @@ const PERCHES: Record<string, Point> = {
   'surf-croc': { x: 702, y: 277 },
   'summer-santa': { x: 650, y: 322 },
   'prize-pumpkin': { x: 720, y: 350 },
+  // Station roof ridge, above the exposed y=470 awning traverse. Out of range
+  // from the start and from the tower finish, so the bird commits while the
+  // climber is hand-only across the middle of the route.
+  'signal-esky': { x: 888, y: 237 },
 };
 export class MagpieEncounter {
   phase:
@@ -37,8 +41,10 @@ export class MagpieEncounter {
   private steer(target: Point, speed: number, dt: number) {
     const d = Math.max(1, distance(target, this.bird));
     const blend = 1 - Math.exp(-3 * dt);
-    this.velocity.x += ((target.x - this.bird.x) / d * speed - this.velocity.x) * blend;
-    this.velocity.y += ((target.y - this.bird.y) / d * speed - this.velocity.y) * blend;
+    this.velocity.x +=
+      (((target.x - this.bird.x) / d) * speed - this.velocity.x) * blend;
+    this.velocity.y +=
+      (((target.y - this.bird.y) / d) * speed - this.velocity.y) * blend;
   }
   equip() {
     const g = this.g;
@@ -160,12 +166,25 @@ export class MagpieEncounter {
     }
     const oldBird = { ...this.bird };
     if (this.phase === 'approach') this.steer(this.staging, 115 * s, dt);
-    if (this.phase === 'return') this.steer(this.perch, Math.min(140 * s, distance(this.bird, this.perch) * 2), dt);
-    if (this.phase === 'escape') this.velocity.y += (-100 * s - this.velocity.y) * (1 - Math.exp(-2 * dt));
+    if (this.phase === 'return')
+      this.steer(
+        this.perch,
+        Math.min(140 * s, distance(this.bird, this.perch) * 2),
+        dt,
+      );
+    if (this.phase === 'escape')
+      this.velocity.y += (-100 * s - this.velocity.y) * (1 - Math.exp(-2 * dt));
     this.bird.x += this.velocity.x * dt;
     this.bird.y += this.velocity.y * dt;
-    if (Math.abs(this.velocity.x) > 4 * s) this.direction = Math.sign(this.velocity.x);
-    const bank = Math.max(-0.6, Math.min(0.6, Math.atan2(this.velocity.y, Math.abs(this.velocity.x)) * this.direction));
+    if (Math.abs(this.velocity.x) > 4 * s)
+      this.direction = Math.sign(this.velocity.x);
+    const bank = Math.max(
+      -0.6,
+      Math.min(
+        0.6,
+        Math.atan2(this.velocity.y, Math.abs(this.velocity.x)) * this.direction,
+      ),
+    );
     this.rotation += (bank - this.rotation) * (1 - Math.exp(-5 * dt));
     if (this.phase === 'return') {
       if (distance(this.bird, this.perch) < 3 * s) {
@@ -203,8 +222,8 @@ export class MagpieEncounter {
         return;
       }
       if (
-        (sweptContact(oldBird, this.bird, g.p.neck, g.p.neck, 25 * s) ||
-        sweptContact(oldBird, this.bird, g.p.hip, g.p.hip, 23 * s))
+        sweptContact(oldBird, this.bird, g.p.neck, g.p.neck, 25 * s) ||
+        sweptContact(oldBird, this.bird, g.p.hip, g.p.hip, 23 * s)
       ) {
         const attached = LIMBS.filter((limb) => g.grips[limb]);
         const limb = attached[this.hits % Math.max(1, attached.length)];

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { Climber } from '../lib/game/physics';
 import { pubLevel } from '../lib/game/pub-level';
+import { AUSTRALIAN_JOBS } from '../lib/game/australian-jobs';
 import { MagpieEncounter, magpieFor, sweptContact } from '../lib/game/magpie';
 const make = () => new Climber(structuredClone(pubLevel));
 const g = make(),
@@ -102,7 +103,7 @@ assert.deepEqual(
   initialPerch,
   'Alert begins from the visible perch',
 );
-perched.step(1.51);
+perched.step(2.41);
 assert.equal(
   perched.phase,
   'approach',
@@ -119,18 +120,53 @@ assert.ok(
   distanceBetween(takeoff, perched.bird) < 60,
   'Approach does not teleport beside the player',
 );
-perched.step(1.61);
+// The staging flight is steered rather than launched at a fixed velocity, so
+// crossing to the staging point takes about 2.7s from this perch distance.
+perched.step(2.61);
 assert.equal(perched.phase, 'swoop', 'Damaging dive starts after the approach');
 attack.phase = 'warning';
 attack.time = 0;
-attack.step(1);
-assert.equal(attack.phase, 'warning');
-attack.step(0.61);
+attack.step(2);
+assert.equal(attack.phase, 'warning', 'The full warning is held');
+attack.step(0.41);
 assert.equal(attack.phase, 'approach');
 h.failed = true;
 const snapshot = JSON.stringify(attack.bird);
 attack.step(1);
 assert.equal(JSON.stringify(attack.bird), snapshot);
+
+// The railway bird perches on the station roof ridge, above the exposed awning
+// traverse. It must be out of range at the spawn and at the tower finish, so it
+// commits while the climber is hand-only across the middle of the route.
+const railwayLevel = AUSTRALIAN_JOBS.find((j) => j.id === 'signal-esky')!.level;
+const railway = new Climber(structuredClone(railwayLevel));
+const railwayBird = magpieFor(railway)!;
+assert.ok(railwayBird, 'The railway has a magpie');
+assert.equal(Math.round(railwayBird.perch.x), 888);
+railway.grips = {
+  leftHand: { id: 'x', x: railway.p.leftHand.x, y: railway.p.leftHand.y },
+};
+railwayBird.step(1 / 60);
+assert.equal(railwayBird.phase, 'waiting', 'Quiet at the ground-level spawn');
+const scene = (x: number, y: number) => ({
+  x: (x * 1600) / 1586,
+  y: (y * 1000) / 992,
+});
+const finish = scene(1493, 208);
+railway.p.hip.x = finish.x;
+railway.p.hip.y = finish.y;
+railwayBird.step(1 / 60);
+assert.equal(railwayBird.phase, 'waiting', 'Quiet at the tower finish');
+const traverse = scene(814, 470);
+railway.p.hip.x = traverse.x;
+railway.p.hip.y = traverse.y;
+railwayBird.step(1 / 60);
+assert.equal(
+  railwayBird.phase,
+  'warning',
+  'Alerts on the exposed awning traverse',
+);
+
 const other = make();
 other.level.id = 'not-pub';
 assert.equal(magpieFor(other), null);

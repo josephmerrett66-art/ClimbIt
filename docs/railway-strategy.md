@@ -100,6 +100,22 @@ existing campaign, opal, pub, physics, controls, route-moments and story suites
 are unchanged and still pass. `tests/magpie.test.ts` fails identically before and
 after this branch; it is unrelated and uses the pub level.
 
+## Magpie
+
+The railway now has a magpie, perched on the station roof ridge at scene
+(888, 237) in `lib/game/magpie.ts`. Placement is deliberate rather than
+decorative: the 285-unit alert radius reaches the exposed y = 470 awning
+traverse but not the ground-level spawn or the tower finish, so the bird
+commits while the climber is hand-only across the middle of the route and
+leaves the crux alone.
+
+It interacts with the reach pass. Taking the racket out releases a hand, which
+drops the climber to two contacts and shortens every reach, and a swoop that
+lands knocks a grip loose. Choosing when to fight the bird rather than move
+past it is the intended decision, but note that the route driver never steps
+the magpie — `tests/australian.test.ts` proves the route is feasible without
+bird interference, not with it. That combination needs a play session.
+
 ## Not done
 
 Deliberately left for after a play session, since they depend on how the reach
