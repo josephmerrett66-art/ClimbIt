@@ -1,14 +1,21 @@
 import { LIMBS, distance, type Climber, type Limb } from './physics';
 import type { Point } from './level';
 export class MagpieEncounter {
-  phase: 'waiting' | 'warning' | 'swoop' | 'escape' | 'falling' | 'defeated' =
-    'waiting';
+  phase:
+    | 'waiting'
+    | 'warning'
+    | 'approach'
+    | 'swoop'
+    | 'escape'
+    | 'falling'
+    | 'defeated' = 'waiting';
   time = 0;
-  cooldown = 5;
+  cooldown = 0;
   private previousTip: Point | null = null;
   private previousHand: Point | null = null;
   hits = 0;
-  bird: Point = { x: 0, y: 0 };
+  readonly perch: Point = { x: 748, y: 414 };
+  bird: Point = { ...this.perch };
   velocity: Point = { x: 0, y: 0 };
   direction = -1;
   rotation = 0;
@@ -80,32 +87,37 @@ export class MagpieEncounter {
     this.previousHand = relativeHand;
     if (this.phase === 'defeated') return;
     if (this.phase === 'waiting') {
+      this.bird = { ...this.perch };
+      this.velocity = { x: 0, y: 0 };
+      this.rotation = 0;
       this.cooldown -= dt;
       if (
         this.cooldown <= 0 &&
-        g.p.hip.y < g.level.playerSpawn.y - 35 * s &&
+        distance(g.p.hip, this.perch) < 285 &&
         g.hasHandSupport()
       ) {
         this.phase = 'warning';
         this.time = 0;
-        this.direction = this.hits % 2 === 0 ? -1 : 1;
-        this.bird = {
-          x: g.p.neck.x - this.direction * 150 * s,
-          y: g.p.neck.y - 70 * s,
-        };
-        g.message = 'MAGPIE! Secure your feet, dodge, or get the racket ready.';
+        this.direction = g.p.hip.x < this.perch.x ? -1 : 1;
+        g.message =
+          'That magpie has spotted you. Secure a hand and get the racket ready.';
       }
       return;
     }
     if (this.phase === 'warning') {
-      if (this.time >= 1.6) {
-        const target = g.p.neck,
-          d = Math.max(1, distance(target, this.bird));
+      // The bird stays on the roof long enough for the player to recognise the
+      // threat, then visibly leaves the perch before the damaging dive begins.
+      if (this.time >= 1.5) {
+        const staging = {
+            x: g.p.neck.x - this.direction * 125 * s,
+            y: g.p.neck.y - 75 * s,
+          },
+          d = Math.max(1, distance(staging, this.bird));
         this.velocity = {
-          x: ((target.x - this.bird.x) / d) * 190 * s,
-          y: ((target.y - this.bird.y) / d) * 190 * s,
+          x: ((staging.x - this.bird.x) / d) * 92 * s,
+          y: ((staging.y - this.bird.y) / d) * 92 * s,
         };
-        this.phase = 'swoop';
+        this.phase = 'approach';
         this.time = 0;
       }
       return;
@@ -122,6 +134,20 @@ export class MagpieEncounter {
     const oldBird = { ...this.bird };
     this.bird.x += this.velocity.x * dt;
     this.bird.y += this.velocity.y * dt;
+    if (this.phase === 'approach') {
+      if (this.time >= 2.1 || distance(this.bird, g.p.neck) < 135 * s) {
+        const target = g.p.neck,
+          d = Math.max(1, distance(target, this.bird));
+        this.velocity = {
+          x: ((target.x - this.bird.x) / d) * 190 * s,
+          y: ((target.y - this.bird.y) / d) * 190 * s,
+        };
+        this.phase = 'swoop';
+        this.time = 0;
+        g.message = 'It is diving — swing through it or move!';
+      }
+      return;
+    }
     if (this.phase === 'swoop') {
       if (
         swinging &&
@@ -158,6 +184,7 @@ export class MagpieEncounter {
       this.phase = 'waiting';
       this.cooldown = 12;
       this.time = 0;
+      this.bird = { ...this.perch };
     }
   }
 }

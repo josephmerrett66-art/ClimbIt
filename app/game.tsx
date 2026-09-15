@@ -436,18 +436,6 @@ export default function Game({
           bird?.step(1 / 60);
           if (bird && phase !== bird.phase) {
             if (bird.phase === 'warning') {
-              const camera = view.current;
-              bird.bird.x = Math.max(
-                -camera.x / camera.scale + 30 * g.scale,
-                Math.min(
-                  (w - camera.x) / camera.scale - 30 * g.scale,
-                  bird.bird.x,
-                ),
-              );
-              bird.bird.y = Math.max(
-                -camera.y / camera.scale + 90 / camera.scale,
-                bird.bird.y,
-              );
               gripAudio.current?.warning();
             }
             if (bird.phase === 'falling') gripAudio.current?.play();

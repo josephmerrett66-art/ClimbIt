@@ -53,7 +53,7 @@ export function drawMagpie(
     ctx.restore();
     ctx.restore();
   }
-  if (!['waiting', 'defeated'].includes(encounter.phase)) {
+  if (encounter.phase !== 'defeated') {
     ctx.save();
     ctx.translate(encounter.bird.x, encounter.bird.y);
     ctx.rotate(encounter.rotation);
@@ -69,8 +69,12 @@ export function drawMagpie(
       ctx.lineJoin = 'round';
       ctx.stroke();
     };
-    const flap =
-      Math.sin(encounter.time * (encounter.phase === 'warning' ? 9 : 18)) * 17;
+    const flying = !['waiting', 'warning'].includes(encounter.phase);
+    const flap = flying
+      ? Math.sin(encounter.time * 18) * 17
+      : encounter.phase === 'warning'
+        ? Math.sin(encounter.time * 10) * 8
+        : 2;
     poly(
       [
         [-12, 1],
@@ -149,10 +153,22 @@ export function drawMagpie(
     ctx.beginPath();
     ctx.arc(23, -8, 1.6, 0, Math.PI * 2);
     ctx.fill();
+    if (!flying) {
+      ctx.strokeStyle = '#151813';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-2, 10);
+      ctx.lineTo(-4, 17);
+      ctx.lineTo(-9, 18);
+      ctx.moveTo(7, 10);
+      ctx.lineTo(8, 17);
+      ctx.lineTo(13, 18);
+      ctx.stroke();
+    }
     ctx.restore();
   }
   ctx.restore();
-  if (encounter.phase === 'warning') {
+  if (encounter.phase === 'warning' || encounter.phase === 'approach') {
     const x = ctx.canvas.width / ctx.getTransform().a / 2;
     ctx.save();
     ctx.font = 'bold 16px Arial';
@@ -161,7 +177,13 @@ export function drawMagpie(
     ctx.fillStyle = '#17271eee';
     ctx.fillRect(x - 145, 74, 290, 52);
     ctx.fillStyle = '#ffe39b';
-    ctx.fillText('MAGPIE — SWOOP INCOMING', x, 96);
+    ctx.fillText(
+      encounter.phase === 'warning'
+        ? 'MAGPIE WATCHING YOU'
+        : 'MAGPIE TAKING OFF',
+      x,
+      96,
+    );
     ctx.font = '12px Arial';
     ctx.fillText('Brace, move, or ready your racket', x, 115);
     ctx.restore();
