@@ -3,13 +3,16 @@ export class GripAudio {
   private context: AudioContext | null = null;
   private muted = false;
   private volume = 1;
-  private samples: Partial<Record<'hand' | 'foot', AudioBuffer>> = {};
-  private sampleLoads: Partial<Record<'hand' | 'foot', Promise<void>>> = {};
+  private samples: Partial<Record<'hand' | 'foot' | 'cough', AudioBuffer>> = {};
+  private sampleLoads: Partial<
+    Record<'hand' | 'foot' | 'cough', Promise<void>>
+  > = {};
   constructor() {
     this.loadSample('hand', '/audio/grab-hand.wav');
     this.loadSample('foot', '/audio/grab-foot.wav');
+    this.loadSample('cough', '/audio/smoke-cough.wav');
   }
-  private async loadSample(kind: 'hand' | 'foot', url: string) {
+  private async loadSample(kind: 'hand' | 'foot' | 'cough', url: string) {
     this.sampleLoads[kind] = fetch(url)
       .then((response) => response.arrayBuffer())
       .then((data) => {
@@ -112,6 +115,27 @@ export class GripAudio {
     source.buffer = sample;
     source.connect(output);
     source.start(start, 0, Math.min(sample.duration, 0.34));
+    source.onended = () => {
+      source.disconnect();
+      output.disconnect();
+    };
+  }
+  playCough() {
+    if (this.muted || this.volume === 0 || document.hidden) return;
+    this.unlock();
+    const sample = this.samples.cough;
+    const ctx = this.context;
+    if (!sample || !ctx || ctx.state !== 'running') return;
+    const start = ctx.currentTime;
+    const output = ctx.createGain();
+    output.gain.setValueAtTime(0.0001, start);
+    output.gain.exponentialRampToValueAtTime(0.72 * this.volume, start + 0.012);
+    output.gain.exponentialRampToValueAtTime(0.0001, start + 2.2);
+    output.connect(ctx.destination);
+    const source = ctx.createBufferSource();
+    source.buffer = sample;
+    source.connect(output);
+    source.start(start, 0, Math.min(sample.duration, 2.2));
     source.onended = () => {
       source.disconnect();
       output.disconnect();

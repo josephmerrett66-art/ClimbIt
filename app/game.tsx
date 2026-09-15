@@ -980,7 +980,10 @@ export default function Game({
                 onClick={() => {
                   const g = game.current;
                   if (!g) return;
-                  cigaretteFor(g).toggle();
+                  const cigarette = cigaretteFor(g);
+                  const puttingOut = Boolean(g.cigaretteHand);
+                  cigarette.toggle();
+                  if (puttingOut) gripAudio.current?.playCough();
                   setChosen(null);
                   setRevision((r) => r + 1);
                 }}
