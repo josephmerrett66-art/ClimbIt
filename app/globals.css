@@ -1651,3 +1651,32 @@ body {
 .sound-setting [data-slot="slider-thumb"] { width: 22px; height: 22px; border: 2px solid #17291f; background: #fff4d6; }
 .sound-mute { min-height: 44px; border: 1px solid #738377; border-radius: 8px; font-size: 14px; }
 .sound-mute[aria-pressed="true"] { background: #e9bb63; color: #17291f; }
+
+.conversation-list { display: grid; margin: 16px -6px; }
+.conversation-row { display:flex; width:100%; align-items:center; gap:10px; padding:16px 6px; text-align:left; border-bottom:1px solid #cbd1c5; color:#24372e; }
+.contact-avatar { flex:0 0 38px; height:38px; display:grid; place-items:center; border-radius:50%; background:#344c40; color:#fff3cc; font-size:14px; }
+.conversation-preview { display:grid; gap:5px; min-width:0; flex:1; }
+.conversation-preview strong { font-size:15px; }
+.conversation-preview small { font-size:10px; color:#647366; }
+.conversation-preview > span { font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.conversation-unread { background:#345c45; color:white; border-radius:12px; padding:3px 7px; font-size:11px; }
+.conversation-header { display:flex; align-items:center; gap:10px; border-bottom:1px solid #cbd1c5; padding-bottom:12px; }
+.conversation-header button { min-width:44px; min-height:44px; display:grid; place-items:center; }
+.conversation-header strong { font-size:17px; }
+.conversation-header small { display:block; font-size:12px; color:#647366; margin-top:3px; }
+.conversation .story-message { margin-right:22px; }
+.conversation .story-message.outgoing { margin-right:0; }
+.phone-tabs { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); }
+.phone-tabs button { flex-direction:column; gap:4px; min-height:54px; padding:8px 2px; }
+.phone-music { padding:22px 18px; color:#24372e; }
+.phone-music header small { font-size:11px; letter-spacing:1px; color:#647366; }
+.phone-music h2 { font:italic 24px Georgia; margin:9px 0 20px; }
+.music-art { height:160px; display:grid; place-items:center; border-radius:16px; background:#344c40; color:#e9bb63; }
+.phone-music h3 { font-size:16px; margin:18px 0 6px; }
+.phone-music p { font-size:13px; line-height:1.5; color:#647366; }
+.music-progress { height:4px; border-radius:4px; background:#c5cdbf; margin-top:22px; }
+.music-times { display:flex; justify-content:space-between; margin-top:7px; font-size:11px; color:#647366; }
+.music-transport { display:flex; justify-content:center; gap:25px; margin:16px 0 24px; }
+.music-transport button { height:48px; width:48px; display:grid; place-items:center; border-radius:50%; background:#d5dccf; opacity:.5; cursor:not-allowed; }
+.music-library { border-top:1px solid #c5cdbf; }
+.music-library strong { display:block; font-size:14px; margin:18px 0 8px; }

@@ -1,9 +1,10 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Ambience from './ambience';
 import { GripAudio } from '@/lib/game/grip-audio';
 import { readSoundSettings } from '@/lib/game/sound-settings';
 import StoryInbox from './story-inbox';
+import PhoneMusic from './phone-music';
 import { storyMessages, debtPayment } from '@/lib/game/story';
 import {
   ArrowLeft,
@@ -27,6 +28,7 @@ import {
   BriefcaseBusiness,
   Landmark,
   MessageSquare,
+  Music2,
   MapPin,
   ChevronRight,
 } from 'lucide-react';
@@ -146,7 +148,9 @@ export default function Game({
     [debug, setDebug] = useState(false),
     [chosen, setChosen] = useState<Limb | null>(null),
     [phoneOpen, setPhoneOpen] = useState(false),
-    [phoneTab, setPhoneTab] = useState<'jobs' | 'bank' | 'messages'>('jobs'),
+    [phoneTab, setPhoneTab] = useState<'jobs' | 'bank' | 'messages' | 'music'>(
+      'jobs',
+    ),
     [finances, setFinances] = useState<Finances>(EMPTY_FINANCES),
     [phoneUnread, setPhoneUnread] = useState(false),
     [payout, setPayout] = useState<Payout | null>(null);
@@ -239,7 +243,7 @@ export default function Game({
   };
   const messages = storyMessages(finances);
   const unreadStory = messages.filter(
-    (message) => !storyRead.includes(message.id),
+    (message) => !message.outgoing && !storyRead.includes(message.id),
   ).length;
   const openPhone = () => {
     game.current?.end(true);
@@ -253,7 +257,7 @@ export default function Game({
     setPhoneOpen(false);
     setPaused(false);
   };
-  const openPhoneTo = (tab: 'jobs' | 'bank' | 'messages') => {
+  const openPhoneTo = (tab: 'jobs' | 'bank' | 'messages' | 'music') => {
     setPayout(null);
     setPhoneTab(tab);
     openPhone();
@@ -342,19 +346,19 @@ export default function Game({
   }, [editing]);
   useEffect(() => {
     if (!storyReady || !phoneOpen || phoneTab !== 'messages') return;
-    const ids = messages.map((message) => message.id);
-    if (ids.some((id) => !storyRead.includes(id))) setStoryRead(ids);
     try {
       localStorage.setItem('oddjobs-story-intro', 'seen');
-      localStorage.setItem('oddjobs-story-read', JSON.stringify(ids));
     } catch {}
-  }, [
-    storyReady,
-    phoneOpen,
-    phoneTab,
-    finances.debt,
-    finances.completedJobs.length,
-  ]);
+  }, [storyReady, phoneOpen, phoneTab]);
+  const readConversation = useCallback((ids: string[]) => {
+    setStoryRead((previous) => {
+      const next = [...new Set([...previous, ...ids])];
+      try {
+        localStorage.setItem('oddjobs-story-read', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
   async function toggleFullscreen() {
     try {
       if (document.fullscreenElement) await document.exitFullscreen();
@@ -1237,13 +1241,23 @@ export default function Game({
                     <MessageSquare size={15} /> Messages
                     {unreadStory > 0 ? ` (${unreadStory})` : ''}
                   </button>
+                  <button
+                    className={phoneTab === 'music' ? 'active' : ''}
+                    onClick={() => setPhoneTab('music')}
+                  >
+                    <Music2 size={15} /> Music
+                  </button>
                 </nav>
                 <div className="phone-screen">
                   {phoneTab === 'messages' ? (
                     <StoryInbox
                       messages={messages}
+                      readIds={storyRead}
+                      onRead={readConversation}
                       onJobs={() => setPhoneTab('jobs')}
                     />
+                  ) : phoneTab === 'music' ? (
+                    <PhoneMusic />
                   ) : phoneTab === 'jobs' ? (
                     <div className="phone-jobs">
                       <div className="phone-section-title">

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { storyMessages, debtPayment } from '../lib/game/story';
+import { storyMessages, debtPayment, messageThreads } from '../lib/game/story';
 const state = {
   debt: 12000,
   completedJobs: [] as string[],
@@ -38,3 +38,20 @@ assert.equal(debtPayment(180, 30, '100'), 30);
 assert.equal(debtPayment(180, 12000, '-5'), 0);
 assert.equal(debtPayment(180, 12000, 'nope'), 0);
 console.log('PASS partial repayment, balance/debt caps and invalid amounts');
+
+const threads = messageThreads(ending);
+assert.equal(threads.length, 3);
+assert.equal(threads[0].person, 'Mara');
+assert.ok(
+  threads
+    .find((t) => t.person === 'Unknown number')
+    ?.messages.some((m) => m.id === 'reply' && m.outgoing),
+);
+assert.ok(
+  threads.every((t) => t.messages.every((m) => m.conversation === t.person)),
+);
+assert.equal(threads.flatMap((t) => t.messages).length, ending.length);
+assert.ok(!threads.some((t) => t.person === 'You'));
+console.log(
+  'PASS separate conversations, outgoing recipient, latest ordering and preserved messages',
+);

@@ -1,6 +1,7 @@
 export type StoryMessage = {
   id: string;
   from: string;
+  conversation: string;
   when: string;
   text: string;
   outgoing?: boolean;
@@ -15,12 +16,14 @@ export function storyMessages(finances: {
     {
       id: 'demand',
       from: 'Unknown number',
+      conversation: 'Unknown number',
       when: 'MONDAY · 7:06 AM',
       text: 'Twelve grand. Friday. Don’t make us come looking.',
     },
     {
       id: 'reply',
       from: 'You',
+      conversation: 'Unknown number',
       when: '7:08 AM',
       text: 'I said I’d pay. I’m finding work.',
       outgoing: true,
@@ -28,12 +31,14 @@ export function storyMessages(finances: {
     {
       id: 'terms',
       from: 'Unknown number',
+      conversation: 'Unknown number',
       when: '7:09 AM',
       text: 'Then find it. Send what you can. We’re keeping count.',
     },
     {
       id: 'first-job',
       from: 'Odd Jobs',
+      conversation: 'Odd Jobs',
       when: 'NEARBY WORK',
       text: 'Climber wanted at The Galah Arms. Ute keys on the roof. $180 on completion. No references required.',
     },
@@ -42,6 +47,7 @@ export function storyMessages(finances: {
     messages.push({
       id: 'first-clear',
       from: 'Mara',
+      conversation: 'Mara',
       when: 'AFTER YOUR FIRST JOB',
       text: 'Saw your profile on Odd Jobs. I remember when you were climbing for a living. You alright?',
     });
@@ -49,6 +55,7 @@ export function storyMessages(finances: {
     messages.push({
       id: 'three-jobs',
       from: 'Unknown number',
+      conversation: 'Unknown number',
       when: 'THREE JOBS LATER',
       text: 'Heard you’re working again. Good. Working isn’t the same as paying.',
     });
@@ -56,6 +63,7 @@ export function storyMessages(finances: {
     messages.push({
       id: 'five-jobs',
       from: 'Mara',
+      conversation: 'Mara',
       when: 'FIVE JOBS LATER',
       text: 'You stopped answering after the last expedition. Now you’re on roofs for strangers. You can call me. It doesn’t have to be about climbing.',
     });
@@ -63,6 +71,7 @@ export function storyMessages(finances: {
     messages.push({
       id: 'first-payment',
       from: 'Unknown number',
+      conversation: 'Unknown number',
       when: 'FIRST PAYMENT RECEIVED',
       text: 'Got it. Keep going. Friday hasn’t moved.',
     });
@@ -70,6 +79,7 @@ export function storyMessages(finances: {
     messages.push({
       id: 'half-paid',
       from: 'Mara',
+      conversation: 'Mara',
       when: 'HALFWAY OUT',
       text: 'Half paid. That’s something. Just don’t take a fall trying to make the next payment.',
     });
@@ -78,12 +88,14 @@ export function storyMessages(finances: {
       {
         id: 'debt-clear',
         from: 'Unknown number',
+        conversation: 'Unknown number',
         when: 'BALANCE SETTLED',
         text: 'We’re square. Lose this number.',
       },
       {
         id: 'new-start',
         from: 'Mara',
+        conversation: 'Mara',
         when: 'A LITTLE LATER',
         text: 'Come climbing with me sometime. No job. No money. Just a climb.',
       },
@@ -100,4 +112,22 @@ export function debtPayment(
   return Number.isFinite(amount)
     ? Math.max(0, Math.min(balance, debt, Math.floor(amount)))
     : 0;
+}
+
+export function messageThreads(messages: StoryMessage[]) {
+  const threads = new Map<
+    string,
+    { person: string; messages: StoryMessage[]; latest: number }
+  >();
+  messages.forEach((message, index) => {
+    const thread = threads.get(message.conversation) ?? {
+      person: message.conversation,
+      messages: [],
+      latest: index,
+    };
+    thread.messages.push(message);
+    thread.latest = index;
+    threads.set(thread.person, thread);
+  });
+  return [...threads.values()].sort((a, b) => b.latest - a.latest);
 }
