@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Music2, Pause, SkipBack, SkipForward, Play } from 'lucide-react';
 
 type Track = { name: string; detail: string; file: string };
@@ -15,7 +16,7 @@ const clock = (seconds: number) => {
   return `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
 };
 
-export default function PhoneMusic({ basePath = '' }: { basePath?: string }) {
+export default function PhoneMusic({ basePath = '', controlsTarget }: { basePath?: string; controlsTarget: HTMLDivElement | null }) {
   const audio = useRef<HTMLAudioElement>(null);
   const [selected, setSelected] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -47,7 +48,7 @@ export default function PhoneMusic({ basePath = '' }: { basePath?: string }) {
   const skip = (delta: number) => setSelected((value) => (value + delta + TRACKS.length) % TRACKS.length);
 
   return (
-    <div className="phone-music">
+    <>
       <audio
         ref={audio}
         src={source}
@@ -56,6 +57,7 @@ export default function PhoneMusic({ basePath = '' }: { basePath?: string }) {
         onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
         onEnded={() => setPlaying(false)}
       />
+      {controlsTarget && createPortal(<div className="phone-music">
       <header>
         <small>YOUR MUSIC</small>
         <h2>Something for the climb.</h2>
@@ -80,6 +82,7 @@ export default function PhoneMusic({ basePath = '' }: { basePath?: string }) {
           </button>
         ))}
       </section>
-    </div>
+    </div>, controlsTarget)}
+    </>
   );
 }

@@ -106,6 +106,7 @@ export default function Game({
   const [storyReady, setStoryReady] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
   const gripAudio = useRef<GripAudio | null>(null);
+  const [musicControlsTarget, setMusicControlsTarget] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
     const sound = new GripAudio(basePath);
     gripAudio.current = sound;
@@ -1171,6 +1172,7 @@ export default function Game({
       {!edit && (
         <>
           <Ambience basePath={basePath} />
+          <PhoneMusic basePath={basePath} controlsTarget={musicControlsTarget} />
           {touchControls && !phoneOpen && !hud.complete && !hud.failed && (
             <div
               className="touch-climb-controls"
@@ -1340,7 +1342,7 @@ export default function Game({
                       onJobs={() => setPhoneTab('jobs')}
                     />
                   ) : phoneTab === 'music' ? (
-                    <PhoneMusic basePath={basePath} />
+                    <div ref={setMusicControlsTarget} />
                   ) : phoneTab === 'jobs' ? (
                     <div className="phone-jobs">
                       <div className="phone-section-title">
