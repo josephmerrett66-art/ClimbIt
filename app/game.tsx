@@ -1340,7 +1340,7 @@ export default function Game({
                       onJobs={() => setPhoneTab('jobs')}
                     />
                   ) : phoneTab === 'music' ? (
-                    <PhoneMusic />
+                    <PhoneMusic basePath={basePath} />
                   ) : phoneTab === 'jobs' ? (
                     <div className="phone-jobs">
                       <div className="phone-section-title">

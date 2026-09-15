@@ -9,8 +9,9 @@ export class GripAudio {
   > = {};
   constructor(basePath = '') {
     const prefix = basePath.replace(/\/$/, '');
-    this.loadSample('hand', `${prefix}/audio/grab-hand.wav`);
-    this.loadSample('foot', `${prefix}/audio/grab-foot.wav`);
+    // Swap the supplied recordings so hand and foot contacts have the new feel.
+    this.loadSample('hand', `${prefix}/audio/grab-foot.wav`);
+    this.loadSample('foot', `${prefix}/audio/grab-hand.wav`);
     this.loadSample('cough', `${prefix}/audio/smoke-cough.wav`);
   }
   private async loadSample(kind: 'hand' | 'foot' | 'cough', url: string) {

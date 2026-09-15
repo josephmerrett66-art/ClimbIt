@@ -1,41 +1,84 @@
-import { Music2, SkipBack, SkipForward, Play } from 'lucide-react';
-export default function PhoneMusic() {
+import { useEffect, useRef, useState } from 'react';
+import { Music2, Pause, SkipBack, SkipForward, Play } from 'lucide-react';
+
+type Track = { name: string; detail: string; file: string };
+
+const TRACKS: Track[] = [
+  { name: 'Y2K Jungle', detail: 'PS1 / Dreamcast DnB mix', file: 'music-y2k-jungle.m4a' },
+  { name: 'Ambient Jungle', detail: 'Intelligent DnB mix', file: 'music-ambient-jungle.m4a' },
+  { name: 'Forest Atmosphere', detail: 'Ghibli inspired ambience', file: 'music-forest-atmosphere.m4a' },
+  { name: 'Nia Archives', detail: 'The Lot Radio set', file: 'music-nia-archives.m4a' },
+];
+
+const clock = (seconds: number) => {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+  return `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60).toString().padStart(2, '0')}`;
+};
+
+export default function PhoneMusic({ basePath = '' }: { basePath?: string }) {
+  const audio = useRef<HTMLAudioElement>(null);
+  const [selected, setSelected] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const track = TRACKS[selected];
+  const source = `${basePath}/audio/${track.file}`;
+
+  useEffect(() => {
+    const media = audio.current;
+    if (!media) return;
+    media.pause();
+    media.currentTime = 0;
+    setCurrentTime(0);
+    setDuration(0);
+    setPlaying(false);
+  }, [source]);
+
+  const togglePlayback = () => {
+    const media = audio.current;
+    if (!media) return;
+    if (media.paused) {
+      void media.play().then(() => setPlaying(true)).catch(() => setPlaying(false));
+    } else {
+      media.pause();
+      setPlaying(false);
+    }
+  };
+  const skip = (delta: number) => setSelected((value) => (value + delta + TRACKS.length) % TRACKS.length);
+
   return (
     <div className="phone-music">
+      <audio
+        ref={audio}
+        src={source}
+        preload="metadata"
+        onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
+        onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)}
+        onEnded={() => setPlaying(false)}
+      />
       <header>
         <small>YOUR MUSIC</small>
         <h2>Something for the climb.</h2>
       </header>
-      <div className="music-art">
-        <Music2 size={52} strokeWidth={1.3} />
-      </div>
-      <h3>No track selected</h3>
-      <p>Your music library will live here.</p>
+      <div className="music-art" aria-hidden="true"><Music2 size={52} strokeWidth={1.3} /></div>
+      <h3>{track.name}</h3>
+      <p>{track.detail}</p>
       <div className="music-progress" aria-hidden="true">
-        <span />
+        <span style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }} />
       </div>
-      <div className="music-times">
-        <span>0:00</span>
-        <span>0:00</span>
-      </div>
+      <div className="music-times"><span>{clock(currentTime)}</span><span>{clock(duration)}</span></div>
       <div className="music-transport">
-        <button disabled aria-label="Previous track">
-          <SkipBack size={22} />
-        </button>
-        <button disabled aria-label="Play — no tracks available">
-          <Play size={28} />
-        </button>
-        <button disabled aria-label="Next track">
-          <SkipForward size={22} />
-        </button>
+        <button type="button" onClick={() => skip(-1)} aria-label="Previous track"><SkipBack size={22} /></button>
+        <button type="button" onClick={togglePlayback} aria-label={playing ? 'Pause' : 'Play'}>{playing ? <Pause size={25} /> : <Play size={28} />}</button>
+        <button type="button" onClick={() => skip(1)} aria-label="Next track"><SkipForward size={22} /></button>
       </div>
       <section className="music-library">
         <h3>Library</h3>
-        <strong>No music added yet</strong>
-        <p>
-          Track selection is coming in a future update. For now, enjoy the
-          outback ambience.
-        </p>
+        {TRACKS.map((item, index) => (
+          <button type="button" key={item.file} className={`music-track ${index === selected ? 'selected' : ''}`} onClick={() => setSelected(index)}>
+            <span>{item.name}</span><small>{item.detail}</small>
+          </button>
+        ))}
       </section>
     </div>
   );

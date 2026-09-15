@@ -49,6 +49,8 @@ export default function Ambience({ basePath = '' }: { basePath?: string }) {
     document.addEventListener('pointerdown', play, { passive: true });
     document.addEventListener('keydown', play);
     document.addEventListener('visibilitychange', visibility);
+    // Attempt autoplay on app open; browsers that block it retry on gesture.
+    play();
     return () => {
       document.removeEventListener('pointerdown', play);
       document.removeEventListener('keydown', play);
