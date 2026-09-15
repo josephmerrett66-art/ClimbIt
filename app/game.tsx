@@ -5,6 +5,8 @@ import { GripAudio } from '@/lib/game/grip-audio';
 import { readSoundSettings } from '@/lib/game/sound-settings';
 import StoryInbox from './story-inbox';
 import PhoneMusic from './phone-music';
+import { magpieFor } from '@/lib/game/magpie';
+import { drawMagpie } from '@/lib/game/magpie-render';
 import { storyMessages, debtPayment } from '@/lib/game/story';
 import {
   ArrowLeft,
@@ -359,6 +361,32 @@ export default function Game({
       return next;
     });
   }, []);
+  useEffect(() => {
+    const racketKeys = (event: KeyboardEvent) => {
+      if (
+        edit ||
+        paused ||
+        phoneOpen ||
+        event.repeat ||
+        (event.target instanceof Element &&
+          event.target.closest('input,textarea,button,[role="slider"]'))
+      )
+        return;
+      const g = game.current;
+      if (!g || !magpieFor(g)) return;
+      if (event.code === 'KeyR') {
+        magpieFor(g)!.equip();
+        setChosen(null);
+        setRevision((r) => r + 1);
+      }
+      if (event.code === 'Space' && g.racketHand) {
+        event.preventDefault();
+        magpieFor(g)!.strike();
+      }
+    };
+    window.addEventListener('keydown', racketKeys);
+    return () => window.removeEventListener('keydown', racketKeys);
+  }, [edit, paused, phoneOpen]);
   async function toggleFullscreen() {
     try {
       if (document.fullscreenElement) await document.exitFullscreen();
@@ -407,6 +435,27 @@ export default function Game({
         accum += dt;
         while (accum >= 1 / 60) {
           g.step();
+          const bird = magpieFor(g);
+          const phase = bird?.phase;
+          bird?.step(1 / 60);
+          if (bird && phase !== bird.phase) {
+            if (bird.phase === 'warning') {
+              const camera = view.current;
+              bird.bird.x = Math.max(
+                -camera.x / camera.scale + 30 * g.scale,
+                Math.min(
+                  (w - camera.x) / camera.scale - 30 * g.scale,
+                  bird.bird.x,
+                ),
+              );
+              bird.bird.y = Math.max(
+                -camera.y / camera.scale + 90 / camera.scale,
+                bird.bird.y,
+              );
+              gripAudio.current?.warning();
+            }
+            if (bird.phase === 'falling') gripAudio.current?.play();
+          }
           accum -= 1 / 60;
         }
       } else accum = 0;
@@ -447,6 +496,7 @@ export default function Game({
         s.chosen,
         s.debug,
       );
+      if (!s.edit) drawMagpie(ctx, g, v);
       if (now - notify > 140) {
         notify = now;
         setHud({
@@ -909,6 +959,40 @@ export default function Game({
                 : 'Climbing game. Drag hands and feet onto solid edges. On touch screens, select a limb then drag anywhere to move it; release to grab.'
             }
           />
+          {!edit &&
+            level.current.id === 'pub-keys' &&
+            !phoneOpen &&
+            !hud.complete &&
+            !hud.failed && (
+              <div className="racket-controls">
+                <button
+                  disabled={paused}
+                  onClick={() => {
+                    const g = game.current;
+                    if (!g) return;
+                    const bird = magpieFor(g)!;
+                    if (g.racketHand) bird.strike();
+                    else bird.equip();
+                    setChosen(null);
+                    setRevision((r) => r + 1);
+                  }}
+                >
+                  {game.current?.racketHand ? 'Swing racket' : 'Equip racket'}
+                </button>
+                {game.current?.racketHand && (
+                  <button
+                    disabled={paused}
+                    onClick={() => {
+                      magpieFor(game.current!)?.equip();
+                      setRevision((r) => r + 1);
+                    }}
+                  >
+                    Put away
+                  </button>
+                )}
+                <small>R: equip / put away · Space: swing</small>
+              </div>
+            )}
           {!edit &&
             level.current.challenge &&
             !phoneOpen &&

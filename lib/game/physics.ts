@@ -33,6 +33,7 @@ export class Climber {
     velocity: Point;
   } | null = null;
   carrying: Limb | null = null;
+  racketHand: Limb | null = null;
   cat: Particle;
   collected = false;
   complete = false;
@@ -145,7 +146,13 @@ export class Climber {
       .sort((a, b) => distance(a, pos) - distance(b, pos))[0];
   }
   begin(limb: Limb, target: Point) {
-    if (this.complete || this.failed || this.carrying === limb) return false;
+    if (
+      this.complete ||
+      this.failed ||
+      this.carrying === limb ||
+      this.racketHand === limb
+    )
+      return false;
     if (limb.endsWith('Foot') && !this.hasHandSupport()) {
       this.message = 'Grab with a hand before moving your feet.';
       return false;

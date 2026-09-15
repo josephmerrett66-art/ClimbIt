@@ -74,6 +74,31 @@ export class GripAudio {
       output.disconnect();
     };
   }
+  warning() {
+    if (this.muted || this.volume === 0 || document.hidden) return;
+    this.unlock();
+    const ctx = this.context;
+    if (!ctx || ctx.state !== 'running') return;
+    for (let i = 0; i < 2; i++) {
+      const start = ctx.currentTime + i * 0.17;
+      const tone = ctx.createOscillator(),
+        gain = ctx.createGain();
+      tone.type = 'triangle';
+      tone.frequency.setValueAtTime(1500, start);
+      tone.frequency.exponentialRampToValueAtTime(650, start + 0.1);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.1 * this.volume, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.13);
+      tone.connect(gain);
+      gain.connect(ctx.destination);
+      tone.start(start);
+      tone.stop(start + 0.14);
+      tone.onended = () => {
+        tone.disconnect();
+        gain.disconnect();
+      };
+    }
+  }
   dispose() {
     if (this.context) void this.context.close().catch(() => {});
     this.context = null;
