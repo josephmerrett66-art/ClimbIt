@@ -7,10 +7,11 @@ export class GripAudio {
   private sampleLoads: Partial<
     Record<'hand' | 'foot' | 'cough', Promise<void>>
   > = {};
-  constructor() {
-    this.loadSample('hand', '/audio/grab-hand.wav');
-    this.loadSample('foot', '/audio/grab-foot.wav');
-    this.loadSample('cough', '/audio/smoke-cough.wav');
+  constructor(basePath = '') {
+    const prefix = basePath.replace(/\/$/, '');
+    this.loadSample('hand', `${prefix}/audio/grab-hand.wav`);
+    this.loadSample('foot', `${prefix}/audio/grab-foot.wav`);
+    this.loadSample('cough', `${prefix}/audio/smoke-cough.wav`);
   }
   private async loadSample(kind: 'hand' | 'foot' | 'cough', url: string) {
     this.sampleLoads[kind] = fetch(url)

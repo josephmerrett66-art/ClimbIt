@@ -107,7 +107,7 @@ export default function Game({
   const [paymentAmount, setPaymentAmount] = useState('');
   const gripAudio = useRef<GripAudio | null>(null);
   useEffect(() => {
-    const sound = new GripAudio();
+    const sound = new GripAudio(basePath);
     gripAudio.current = sound;
     const syncMute = () => {
       const settings = readSoundSettings();
@@ -121,7 +121,7 @@ export default function Game({
       sound.dispose();
       gripAudio.current = null;
     };
-  }, []);
+  }, [basePath]);
   const canvas = useRef<HTMLCanvasElement>(null),
     level = useRef<Level>(clone(initialLevel)),
     game = useRef<Climber | null>(null),
