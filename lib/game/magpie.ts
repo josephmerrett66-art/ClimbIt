@@ -5,8 +5,8 @@ export class MagpieEncounter {
     'waiting';
   time = 0;
   cooldown = 5;
-  swing = 0;
-  recovery = 0;
+  private previousTip: Point | null = null;
+  private previousHand: Point | null = null;
   hits = 0;
   bird: Point = { x: 0, y: 0 };
   velocity: Point = { x: 0, y: 0 };
@@ -17,8 +17,10 @@ export class MagpieEncounter {
     const g = this.g;
     if (g.complete || g.failed) return;
     if (g.racketHand) {
+      if (g.drag?.limb === g.racketHand) g.end(true);
       g.racketHand = null;
-      this.swing = 0;
+      this.previousTip = null;
+      this.previousHand = null;
       return;
     }
     if (g.drag || g.carrying) {
@@ -32,23 +34,16 @@ export class MagpieEncounter {
     }
     g.racketHand = hand;
     delete g.grips[hand];
-    g.message = 'Racket out. Time your swing as the magpie comes close.';
-  }
-  strike() {
-    const g = this.g;
-    if (!g.racketHand || this.recovery > 0 || g.complete || g.failed) return;
-    if (g.stamina[g.racketHand] < 6) {
-      g.message = 'Too tired to swing. Put the racket away and rest.';
-      return;
-    }
-    g.stamina[g.racketHand] -= 6;
-    this.swing = 0.32;
-    this.recovery = 0.8;
+    this.previousTip = this.racketTip();
+    this.previousHand = null;
+    g.message =
+      'Racket out. Grab this hand and drag it through the magpie to swing.';
   }
   racketTip(): Point {
     const g = this.g,
       hand = g.p[g.racketHand ?? 'rightHand'];
-    const angle = this.swing > 0 ? -2.5 + (1 - this.swing / 0.32) * 3.4 : -1.2;
+    const elbow = g.p[(g.racketHand ?? 'rightHand').replace('Hand', 'Elbow')];
+    const angle = Math.atan2(hand.y - elbow.y, hand.x - elbow.x);
     return {
       x: hand.x + Math.cos(angle) * 38 * g.scale,
       y: hand.y + Math.sin(angle) * 38 * g.scale,
@@ -59,24 +54,30 @@ export class MagpieEncounter {
       s = g.scale;
     if (g.complete || g.failed) return;
     this.time += dt;
-    this.swing = Math.max(0, this.swing - dt);
-    this.recovery = Math.max(0, this.recovery - dt);
-    if (g.racketHand) {
-      const hand = g.p[g.racketHand],
-        root = g.root(g.racketHand);
-      const side = g.racketHand === 'leftHand' ? -1 : 1;
-      const angle =
-        this.swing > 0 ? -1.7 + (1 - this.swing / 0.32) * 1.3 : -0.8;
-      const target = {
-        x: root.x + Math.cos(angle) * 46 * s * side,
-        y: root.y + Math.sin(angle) * 46 * s,
-      };
-      const ease = 1 - Math.exp(-18 * dt);
-      hand.x += (target.x - hand.x) * ease;
-      hand.y += (target.y - hand.y) * ease;
-      hand.px = hand.x;
-      hand.py = hand.y;
-    }
+    const tip = g.racketHand ? this.racketTip() : null;
+    const oldTip = this.previousTip ?? tip;
+    const hand = g.racketHand ? g.p[g.racketHand] : null;
+    const root = g.racketHand ? g.root(g.racketHand) : null;
+    const relativeHand =
+      hand && root ? { x: hand.x - root.x, y: hand.y - root.y } : null;
+    const handSpeed =
+      dt > 0 && relativeHand && this.previousHand
+        ? distance(relativeHand, this.previousHand) / dt
+        : 0;
+    const swinging = Boolean(
+      g.racketHand &&
+      g.drag?.limb === g.racketHand &&
+      tip &&
+      oldTip &&
+      dt > 0 &&
+      handSpeed > 65 * s &&
+      distance(tip, oldTip) / dt > 100 * s &&
+      g.stamina[g.racketHand] > 0,
+    );
+    if (swinging && g.racketHand)
+      g.stamina[g.racketHand] = Math.max(0, g.stamina[g.racketHand] - 12 * dt);
+    this.previousTip = tip;
+    this.previousHand = relativeHand;
     if (this.phase === 'defeated') return;
     if (this.phase === 'waiting') {
       this.cooldown -= dt;
@@ -118,13 +119,15 @@ export class MagpieEncounter {
         this.phase = 'defeated';
       return;
     }
+    const oldBird = { ...this.bird };
     this.bird.x += this.velocity.x * dt;
     this.bird.y += this.velocity.y * dt;
     if (this.phase === 'swoop') {
       if (
-        this.swing > 0 &&
-        g.racketHand &&
-        distance(this.racketTip(), this.bird) < 34 * s
+        swinging &&
+        tip &&
+        oldTip &&
+        sweptContact(oldTip, tip, oldBird, this.bird, 27 * s)
       ) {
         this.phase = 'falling';
         this.time = 0;
@@ -167,4 +170,23 @@ export function magpieFor(g: Climber) {
     encounters.set(g, encounter);
   }
   return encounter;
+}
+
+// Relative swept collision catches quick mouse/touch swipes between frames.
+export function sweptContact(
+  from: Point,
+  to: Point,
+  birdFrom: Point,
+  birdTo: Point,
+  radius: number,
+) {
+  const a = { x: from.x - birdFrom.x, y: from.y - birdFrom.y };
+  const b = { x: to.x - birdTo.x, y: to.y - birdTo.y };
+  const dx = b.x - a.x,
+    dy = b.y - a.y;
+  const lengthSquared = dx * dx + dy * dy;
+  const t = lengthSquared
+    ? Math.max(0, Math.min(1, -(a.x * dx + a.y * dy) / lengthSquared))
+    : 0;
+  return Math.hypot(a.x + dx * t, a.y + dy * t) <= radius;
 }

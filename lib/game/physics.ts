@@ -146,19 +146,16 @@ export class Climber {
       .sort((a, b) => distance(a, pos) - distance(b, pos))[0];
   }
   begin(limb: Limb, target: Point) {
-    if (
-      this.complete ||
-      this.failed ||
-      this.carrying === limb ||
-      this.racketHand === limb
-    )
-      return false;
+    if (this.complete || this.failed || this.carrying === limb) return false;
     if (limb.endsWith('Foot') && !this.hasHandSupport()) {
       this.message = 'Grab with a hand before moving your feet.';
       return false;
     }
     delete this.grips[limb];
-    this.message = 'Reach for a solid edge and release to grip.';
+    this.message =
+      this.racketHand === limb
+        ? 'Swing your hand through the magpie. Put the racket away to grab holds.'
+        : 'Reach for a solid edge and release to grip.';
     this.gripFocus = null;
     this.drag = {
       limb,
@@ -186,6 +183,7 @@ export class Climber {
   }
   canUse(limb: Limb, grip: Grip) {
     return (
+      limb !== this.racketHand &&
       (!grip.use || (grip.use === 'hand') === limb.endsWith('Hand')) &&
       !this.occupiedBy(limb, grip)
     );
@@ -255,6 +253,13 @@ export class Climber {
     if (!this.drag) return;
     const { limb, velocity } = this.drag,
       p = this.p[limb];
+    if (limb === this.racketHand) {
+      p.px = p.x - (cancel ? 0 : velocity.x * 0.38);
+      p.py = p.y - (cancel ? 0 : velocity.y * 0.38);
+      this.drag = null;
+      this.gripFocus = null;
+      return;
+    }
     if (cancel) {
       // Interrupted touch gestures may catch a reachable edge, but never
       // complete an objective or add a release impulse.

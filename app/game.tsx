@@ -379,10 +379,6 @@ export default function Game({
         setChosen(null);
         setRevision((r) => r + 1);
       }
-      if (event.code === 'Space' && g.racketHand) {
-        event.preventDefault();
-        magpieFor(g)!.strike();
-      }
     };
     window.addEventListener('keydown', racketKeys);
     return () => window.removeEventListener('keydown', racketKeys);
@@ -971,26 +967,20 @@ export default function Game({
                     const g = game.current;
                     if (!g) return;
                     const bird = magpieFor(g)!;
-                    if (g.racketHand) bird.strike();
-                    else bird.equip();
+                    bird.equip();
                     setChosen(null);
                     setRevision((r) => r + 1);
                   }}
                 >
-                  {game.current?.racketHand ? 'Swing racket' : 'Equip racket'}
+                  {game.current?.racketHand
+                    ? 'Put racket away'
+                    : 'Equip racket'}
                 </button>
-                {game.current?.racketHand && (
-                  <button
-                    disabled={paused}
-                    onClick={() => {
-                      magpieFor(game.current!)?.equip();
-                      setRevision((r) => r + 1);
-                    }}
-                  >
-                    Put away
-                  </button>
-                )}
-                <small>R: equip / put away · Space: swing</small>
+                <small>
+                  {game.current?.racketHand
+                    ? 'Grab the racket hand and drag to swing.'
+                    : 'R: equip / put away'}
+                </small>
               </div>
             )}
           {!edit &&
