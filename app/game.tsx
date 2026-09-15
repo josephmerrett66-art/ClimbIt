@@ -778,9 +778,10 @@ export default function Game({
     } else {
       const climber = game.current;
       const before = climber?.catches.length ?? 0;
+      const grabbedLimb = climber?.drag?.limb;
       climber?.end(cancel);
-      if (!cancel && climber && climber.catches.length > before)
-        gripAudio.current?.play();
+      if (!cancel && climber && grabbedLimb && climber.catches.length > before)
+        gripAudio.current?.playGrab(grabbedLimb);
       setChosen(null);
     }
   }

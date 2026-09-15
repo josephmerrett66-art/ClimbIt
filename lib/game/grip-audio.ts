@@ -3,6 +3,24 @@ export class GripAudio {
   private context: AudioContext | null = null;
   private muted = false;
   private volume = 1;
+  private samples: Partial<Record<'hand' | 'foot', AudioBuffer>> = {};
+  private sampleLoads: Partial<Record<'hand' | 'foot', Promise<void>>> = {};
+  constructor() {
+    this.loadSample('hand', '/audio/grab-hand.wav');
+    this.loadSample('foot', '/audio/grab-foot.wav');
+  }
+  private async loadSample(kind: 'hand' | 'foot', url: string) {
+    this.sampleLoads[kind] = fetch(url)
+      .then((response) => response.arrayBuffer())
+      .then((data) => {
+        this.unlock();
+        if (!this.context) return;
+        return this.context.decodeAudioData(data).then((buffer) => {
+          this.samples[kind] = buffer;
+        });
+      })
+      .catch(() => undefined);
+  }
   setVolume(volume: number) {
     this.volume = Math.max(0, Math.min(1, volume));
   }
@@ -71,6 +89,31 @@ export class GripAudio {
     noise.onended = () => {
       noise.disconnect();
       filter.disconnect();
+      output.disconnect();
+    };
+  }
+  playGrab(limb: 'leftHand' | 'rightHand' | 'leftFoot' | 'rightFoot') {
+    if (this.muted || this.volume === 0 || document.hidden) return;
+    this.unlock();
+    const sample = this.samples[limb.endsWith('Hand') ? 'hand' : 'foot'];
+    if (!sample) {
+      this.play();
+      return;
+    }
+    const ctx = this.context;
+    if (!ctx || ctx.state !== 'running') return;
+    const start = ctx.currentTime;
+    const output = ctx.createGain();
+    output.gain.setValueAtTime(0.0001, start);
+    output.gain.exponentialRampToValueAtTime(0.72 * this.volume, start + 0.004);
+    output.gain.exponentialRampToValueAtTime(0.0001, start + 0.34);
+    output.connect(ctx.destination);
+    const source = ctx.createBufferSource();
+    source.buffer = sample;
+    source.connect(output);
+    source.start(start, 0, Math.min(sample.duration, 0.34));
+    source.onended = () => {
+      source.disconnect();
       output.disconnect();
     };
   }
