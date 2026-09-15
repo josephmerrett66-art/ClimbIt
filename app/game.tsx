@@ -7,6 +7,8 @@ import StoryInbox from './story-inbox';
 import PhoneMusic from './phone-music';
 import { magpieFor } from '@/lib/game/magpie';
 import { drawMagpie } from '@/lib/game/magpie-render';
+import { cigaretteFor } from '@/lib/game/cigarette';
+import { drawCigarette } from '@/lib/game/cigarette-render';
 import { storyMessages, debtPayment } from '@/lib/game/story';
 import {
   ArrowLeft,
@@ -434,6 +436,7 @@ export default function Game({
           const bird = magpieFor(g);
           const phase = bird?.phase;
           bird?.step(1 / 60);
+          cigaretteFor(g).step(1 / 60);
           if (bird && phase !== bird.phase) {
             if (bird.phase === 'warning') {
               gripAudio.current?.warning();
@@ -481,6 +484,7 @@ export default function Game({
         s.debug,
       );
       if (!s.edit) drawMagpie(ctx, g, v);
+      if (!s.edit) drawCigarette(ctx, g, v);
       if (now - notify > 140) {
         notify = now;
         setHud({
@@ -943,12 +947,9 @@ export default function Game({
                 : 'Climbing game. Drag hands and feet onto solid edges. On touch screens, select a limb then drag anywhere to move it; release to grab.'
             }
           />
-          {!edit &&
-            level.current.id === 'pub-keys' &&
-            !phoneOpen &&
-            !hud.complete &&
-            !hud.failed && (
-              <div className="racket-controls">
+          {!edit && !phoneOpen && !hud.complete && !hud.failed && (
+            <div className="prop-controls">
+              {level.current.id === 'pub-keys' && (
                 <button
                   disabled={paused}
                   onClick={() => {
@@ -964,13 +965,29 @@ export default function Game({
                     ? 'Put racket away'
                     : 'Equip racket'}
                 </button>
-                <small>
-                  {game.current?.racketHand
-                    ? 'Grab the racket hand and drag to swing.'
-                    : 'R: equip / put away'}
-                </small>
-              </div>
-            )}
+              )}
+              <small>
+                {game.current?.racketHand
+                  ? 'Grab the racket hand and drag to swing.'
+                  : game.current?.cigaretteHand
+                    ? 'Drag the dart hand to your mouth.'
+                    : 'Purely for style. No gameplay boost.'}
+              </small>
+              <button
+                className="dart-button"
+                disabled={paused || Boolean(game.current?.racketHand)}
+                onClick={() => {
+                  const g = game.current;
+                  if (!g) return;
+                  cigaretteFor(g).toggle();
+                  setChosen(null);
+                  setRevision((r) => r + 1);
+                }}
+              >
+                {game.current?.cigaretteHand ? 'Put dart out' : 'Smoke a dart'}
+              </button>
+            </div>
+          )}
           {!edit &&
             level.current.challenge &&
             !phoneOpen &&

@@ -34,6 +34,7 @@ export class Climber {
   } | null = null;
   carrying: Limb | null = null;
   racketHand: Limb | null = null;
+  cigaretteHand: Limb | null = null;
   cat: Particle;
   collected = false;
   complete = false;
@@ -155,7 +156,9 @@ export class Climber {
     this.message =
       this.racketHand === limb
         ? 'Swing your hand through the magpie. Put the racket away to grab holds.'
-        : 'Reach for a solid edge and release to grip.';
+        : this.cigaretteHand === limb
+          ? 'Move the dart to your mouth. Put it out to grab holds again.'
+          : 'Reach for a solid edge and release to grip.';
     this.gripFocus = null;
     this.drag = {
       limb,
@@ -184,6 +187,7 @@ export class Climber {
   canUse(limb: Limb, grip: Grip) {
     return (
       limb !== this.racketHand &&
+      limb !== this.cigaretteHand &&
       (!grip.use || (grip.use === 'hand') === limb.endsWith('Hand')) &&
       !this.occupiedBy(limb, grip)
     );
@@ -253,7 +257,7 @@ export class Climber {
     if (!this.drag) return;
     const { limb, velocity } = this.drag,
       p = this.p[limb];
-    if (limb === this.racketHand) {
+    if (limb === this.racketHand || limb === this.cigaretteHand) {
       p.px = p.x - (cancel ? 0 : velocity.x * 0.38);
       p.py = p.y - (cancel ? 0 : velocity.y * 0.38);
       this.drag = null;

@@ -34,6 +34,10 @@ export class MagpieEncounter {
       g.message = 'Finish your reach before taking out the racket.';
       return;
     }
+    if (g.cigaretteHand) {
+      g.message = 'Put the dart out before taking out the racket.';
+      return;
+    }
     const hand: Limb = g.grips.leftHand ? 'rightHand' : 'leftHand';
     if (!g.grips[hand === 'leftHand' ? 'rightHand' : 'leftHand']) {
       g.message = 'Secure your other hand before taking out the racket.';

@@ -1681,7 +1681,8 @@ body {
 .music-library { border-top:1px solid #c5cdbf; }
 .music-library strong { display:block; font-size:14px; margin:18px 0 8px; }
 
-.racket-controls { position:absolute; z-index:12; right:18px; bottom:160px; display:flex; flex-direction:column; gap:8px; align-items:stretch; }
-.racket-controls button { min-height:52px; padding:10px 16px; background:#e9bb63; color:#15271c; border:2px solid #162c20; border-radius:12px; font-weight:700; touch-action:manipulation; }
-.racket-controls button:disabled { opacity:.5; }
-.racket-controls small { max-width:150px; color:#fff9df; text-shadow:0 1px 3px #000; font-size:11px; }
+.prop-controls { position:absolute; z-index:12; right:18px; bottom:160px; display:flex; flex-direction:column; gap:8px; align-items:stretch; }
+.prop-controls button { min-height:48px; padding:9px 14px; background:#e9bb63; color:#15271c; border:2px solid #162c20; border-radius:12px; font-weight:700; touch-action:manipulation; }
+.prop-controls button:disabled { opacity:.5; }
+.prop-controls small { max-width:155px; color:#fff9df; text-shadow:0 1px 3px #000; font-size:11px; }
+.prop-controls .dart-button { background:#f0e7d0; }
