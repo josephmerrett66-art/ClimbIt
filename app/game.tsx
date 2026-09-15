@@ -35,6 +35,8 @@ import {
   Music2,
   MapPin,
   ChevronRight,
+  Cigarette,
+  CircleSlash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { parseLevel, type Level, type Point } from '@/lib/game/level';
@@ -951,9 +953,12 @@ export default function Game({
           />
           {!edit && !phoneOpen && !hud.complete && !hud.failed && (
             <div className="prop-controls">
-              {level.current.id === 'pub-keys' && (
+              {game.current && magpieFor(game.current) && (
                 <button
                   disabled={paused}
+                  aria-label={game.current?.racketHand ? 'Put racket away' : 'Equip racket'}
+                  title="Racket — drag the equipped hand to swing"
+                  aria-pressed={Boolean(game.current?.racketHand)}
                   onClick={() => {
                     const g = game.current;
                     if (!g) return;
@@ -963,20 +968,17 @@ export default function Game({
                     setRevision((r) => r + 1);
                   }}
                 >
-                  {game.current?.racketHand
-                    ? 'Put racket away'
-                    : 'Equip racket'}
+                  <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+                    <ellipse cx="15" cy="8" rx="5" ry="7" transform="rotate(35 15 8)" />
+                    <path d="M11 14 4 22M12 4l7 7M10 7l6 7M13 2l7 7M11 11l7-7" />
+                  </svg>
                 </button>
               )}
-              <small>
-                {game.current?.racketHand
-                  ? 'Grab the racket hand and drag to swing.'
-                  : game.current?.cigaretteHand
-                    ? 'Drag the dart hand to your mouth.'
-                    : 'Purely for style. No gameplay boost.'}
-              </small>
               <button
                 className="dart-button"
+                aria-label={game.current?.cigaretteHand ? 'Put dart out' : 'Smoke a dart'}
+                title={game.current?.cigaretteHand ? 'Put dart out' : 'Dart — drag the equipped hand to your mouth'}
+                aria-pressed={Boolean(game.current?.cigaretteHand)}
                 disabled={paused || Boolean(game.current?.racketHand)}
                 onClick={() => {
                   const g = game.current;
@@ -989,37 +991,10 @@ export default function Game({
                   setRevision((r) => r + 1);
                 }}
               >
-                {game.current?.cigaretteHand ? 'Put dart out' : 'Smoke a dart'}
+                {game.current?.cigaretteHand ? <CircleSlash size={23} /> : <Cigarette size={23} />}
               </button>
             </div>
           )}
-          {!edit &&
-            level.current.challenge &&
-            !phoneOpen &&
-            !hud.complete &&
-            !hud.failed && (
-              <div className="pub-brief" role="status">
-                <small>
-                  {level.current.location ?? 'ODD JOBS · AUSTRALIA'}
-                </small>
-                <strong>
-                  {level.current.name} · {money(level.current.pay)}
-                </strong>
-                <span>
-                  {hud.message ===
-                    'Drag a hand or boot onto a solid edge. Small moves work best.' ||
-                  hud.message === 'Drag a hand or boot onto a solid edge.'
-                    ? 'Grip solid edges. Plan your next hand and foothold.'
-                    : hud.message}
-                </span>
-                {hintVisible && (
-                  <p>
-                    {level.current.briefing ??
-                      'Follow the structure. Keep a hand and a foot planted, hold the job marker until the bar fills, then release.'}
-                  </p>
-                )}
-              </div>
-            )}
           {edit && (
             <span className="editor-world-label">
               {level.current.worldWidth} × {level.current.worldHeight} ·{' '}

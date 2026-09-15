@@ -1,5 +1,12 @@
 import { LIMBS, distance, type Climber, type Limb } from './physics';
 import type { Point } from './level';
+// Feet sit on these roof edges in the 1600 × 1000 scene artwork.
+const PERCHES: Record<string, Point> = {
+  'pub-keys': { x: 748, y: 414 },
+  'surf-croc': { x: 702, y: 277 },
+  'summer-santa': { x: 650, y: 322 },
+  'prize-pumpkin': { x: 720, y: 350 },
+};
 export class MagpieEncounter {
   phase:
     | 'waiting'
@@ -7,6 +14,7 @@ export class MagpieEncounter {
     | 'approach'
     | 'swoop'
     | 'escape'
+    | 'return'
     | 'falling'
     | 'defeated' = 'waiting';
   time = 0;
@@ -14,12 +22,24 @@ export class MagpieEncounter {
   private previousTip: Point | null = null;
   private previousHand: Point | null = null;
   hits = 0;
-  readonly perch: Point = { x: 748, y: 414 };
-  bird: Point = { ...this.perch };
+  readonly perch: Point;
+  bird: Point;
+  private staging: Point = { x: 0, y: 0 };
+  wingTime = 0;
   velocity: Point = { x: 0, y: 0 };
   direction = -1;
   rotation = 0;
-  constructor(public g: Climber) {}
+  constructor(public g: Climber) {
+    const feet = PERCHES[g.level.id];
+    this.perch = { x: feet.x, y: feet.y - 18 * g.scale };
+    this.bird = { ...this.perch };
+  }
+  private steer(target: Point, speed: number, dt: number) {
+    const d = Math.max(1, distance(target, this.bird));
+    const blend = 1 - Math.exp(-3 * dt);
+    this.velocity.x += ((target.x - this.bird.x) / d * speed - this.velocity.x) * blend;
+    this.velocity.y += ((target.y - this.bird.y) / d * speed - this.velocity.y) * blend;
+  }
   equip() {
     const g = this.g;
     if (g.complete || g.failed) return;
@@ -65,6 +85,7 @@ export class MagpieEncounter {
       s = g.scale;
     if (g.complete || g.failed) return;
     this.time += dt;
+    this.wingTime += dt;
     const tip = g.racketHand ? this.racketTip() : null;
     const oldTip = this.previousTip ?? tip;
     const hand = g.racketHand ? g.p[g.racketHand] : null;
@@ -94,6 +115,7 @@ export class MagpieEncounter {
       this.bird = { ...this.perch };
       this.velocity = { x: 0, y: 0 };
       this.rotation = 0;
+      this.direction = g.p.neck.x < this.perch.x ? -1 : 1;
       this.cooldown -= dt;
       if (
         this.cooldown <= 0 &&
@@ -111,12 +133,13 @@ export class MagpieEncounter {
     if (this.phase === 'warning') {
       // The bird stays on the roof long enough for the player to recognise the
       // threat, then visibly leaves the perch before the damaging dive begins.
-      if (this.time >= 1.5) {
+      if (this.time >= 2.4) {
         const staging = {
             x: g.p.neck.x - this.direction * 125 * s,
             y: g.p.neck.y - 75 * s,
           },
           d = Math.max(1, distance(staging, this.bird));
+        this.staging = staging;
         this.velocity = {
           x: ((staging.x - this.bird.x) / d) * 92 * s,
           y: ((staging.y - this.bird.y) / d) * 92 * s,
@@ -136,10 +159,24 @@ export class MagpieEncounter {
       return;
     }
     const oldBird = { ...this.bird };
+    if (this.phase === 'approach') this.steer(this.staging, 115 * s, dt);
+    if (this.phase === 'return') this.steer(this.perch, Math.min(140 * s, distance(this.bird, this.perch) * 2), dt);
+    if (this.phase === 'escape') this.velocity.y += (-100 * s - this.velocity.y) * (1 - Math.exp(-2 * dt));
     this.bird.x += this.velocity.x * dt;
     this.bird.y += this.velocity.y * dt;
+    if (Math.abs(this.velocity.x) > 4 * s) this.direction = Math.sign(this.velocity.x);
+    const bank = Math.max(-0.6, Math.min(0.6, Math.atan2(this.velocity.y, Math.abs(this.velocity.x)) * this.direction));
+    this.rotation += (bank - this.rotation) * (1 - Math.exp(-5 * dt));
+    if (this.phase === 'return') {
+      if (distance(this.bird, this.perch) < 3 * s) {
+        this.phase = 'waiting';
+        this.cooldown = 16;
+        this.time = 0;
+      }
+      return;
+    }
     if (this.phase === 'approach') {
-      if (this.time >= 2.1 || distance(this.bird, g.p.neck) < 135 * s) {
+      if (this.time >= 3 || distance(this.bird, this.staging) < 20 * s) {
         const target = g.p.neck,
           d = Math.max(1, distance(target, this.bird));
         this.velocity = {
@@ -166,8 +203,8 @@ export class MagpieEncounter {
         return;
       }
       if (
-        Math.min(distance(this.bird, g.p.neck), distance(this.bird, g.p.hip)) <
-        28 * s
+        (sweptContact(oldBird, this.bird, g.p.neck, g.p.neck, 25 * s) ||
+        sweptContact(oldBird, this.bird, g.p.hip, g.p.hip, 23 * s))
       ) {
         const attached = LIMBS.filter((limb) => g.grips[limb]);
         const limb = attached[this.hits % Math.max(1, attached.length)];
@@ -184,17 +221,15 @@ export class MagpieEncounter {
         this.time = 0;
         this.hits++;
       }
-    } else if (this.time > 1.2) {
-      this.phase = 'waiting';
-      this.cooldown = 12;
+    } else if (this.phase === 'escape' && this.time > 1.6) {
+      this.phase = 'return';
       this.time = 0;
-      this.bird = { ...this.perch };
     }
   }
 }
 const encounters = new WeakMap<Climber, MagpieEncounter>();
 export function magpieFor(g: Climber) {
-  if (g.level.id !== 'pub-keys') return null;
+  if (!PERCHES[g.level.id]) return null;
   let encounter = encounters.get(g);
   if (!encounter) {
     encounter = new MagpieEncounter(g);
