@@ -15,13 +15,13 @@ assert.equal(g.begin('rightHand', g.p.rightHand), true);
 assert.equal(g.canUse('rightHand', hold('test')), false);
 bird.step(1 / 60);
 const stationaryTip = bird.racketTip();
-bird.phase = 'swoop';
+bird.phase = 'dive';
 bird.bird = { ...stationaryTip };
 bird.velocity = { x: 0, y: 0 };
 bird.step(1 / 60);
 assert.equal(
   bird.phase,
-  'swoop',
+  'dive',
   'A stationary racket is not an automatic shield',
 );
 const before = bird.racketTip();
@@ -69,67 +69,80 @@ h.grips = {
   leftFoot: hold('c'),
   rightFoot: hold('d'),
 };
-attack.phase = 'swoop';
+attack.phase = 'dive';
 attack.bird = { ...h.p.neck };
 attack.step(0);
 assert.equal(Object.keys(h.grips).length, 3);
 attack.step(0);
 assert.equal(Object.keys(h.grips).length, 3, 'One hit per pass');
-const approach = make(),
-  perched = new MagpieEncounter(approach);
-approach.grips = { leftHand: hold('nearby') };
-const initialPerch = { ...perched.bird };
-perched.step(30);
-assert.equal(
-  perched.phase,
-  'waiting',
-  'Bird waits at its map perch while distant',
-);
-assert.deepEqual(
-  perched.bird,
-  initialPerch,
-  'Bird does not spawn beside the player',
-);
-approach.p.hip.x = perched.perch.x - 250;
-approach.p.hip.y = perched.perch.y;
-perched.step(1 / 60);
-assert.equal(
-  perched.phase,
-  'warning',
-  'Climbing near the perch alerts the bird',
-);
-assert.deepEqual(
-  perched.bird,
-  initialPerch,
-  'Alert begins from the visible perch',
-);
-perched.step(2.41);
-assert.equal(
-  perched.phase,
-  'approach',
-  'Bird visibly takes off before its dive',
-);
-const takeoff = { ...perched.bird };
-perched.step(0.5);
-assert.equal(perched.phase, 'approach');
+// The bird circles its territory instead of sitting on a roof waiting, and it
+// never announces itself. Reading the flight is the only warning there is.
+const circling = make(),
+  patrol = new MagpieEncounter(circling);
+circling.grips = { leftHand: hold('nearby') };
+circling.p.hip.x = patrol.perch.x - 900;
+circling.p.hip.y = patrol.perch.y;
+const start = { ...patrol.bird };
+patrol.step(1 / 60);
+assert.equal(patrol.phase, 'patrol', 'Out of range the bird is still flying');
+for (let i = 0; i < 120; i++) patrol.step(1 / 60);
 assert.ok(
-  distanceBetween(takeoff, perched.bird) > 1,
-  'Approach moves gradually',
+  distanceBetween(start, patrol.bird) > 1,
+  'Patrol keeps the bird moving',
 );
 assert.ok(
-  distanceBetween(takeoff, perched.bird) < 60,
-  'Approach does not teleport beside the player',
+  distanceBetween(patrol.perch, patrol.bird) < 260 * circling.scale,
+  'Patrol stays over its own territory',
 );
-// The staging flight is steered rather than launched at a fixed velocity, so
-// crossing to the staging point takes about 2.7s from this perch distance.
-perched.step(2.61);
-assert.equal(perched.phase, 'swoop', 'Damaging dive starts after the approach');
-attack.phase = 'warning';
-attack.time = 0;
-attack.step(2);
-assert.equal(attack.phase, 'warning', 'The full warning is held');
-attack.step(0.41);
-assert.equal(attack.phase, 'approach');
+
+// Coming into range closes it into a tighter orbit around the climber.
+circling.p.hip.x = patrol.perch.x - 250;
+circling.p.hip.y = patrol.perch.y;
+patrol.step(1 / 60);
+assert.equal(
+  patrol.phase,
+  'stalk',
+  'It closes in rather than posting a notice',
+);
+assert.equal(patrol.armed, false, 'An encounter opens with the harmless pass');
+
+const advance = (until: string, seconds: number) => {
+  for (let i = 0; i < seconds * 60 && patrol.phase !== until; i++)
+    patrol.step(1 / 60);
+};
+advance('feint', 4);
+assert.equal(
+  patrol.phase,
+  'feint',
+  'The first pass is the one that cannot hurt',
+);
+assert.equal(patrol.armed, true, 'The next pass is now the committed one');
+advance('dive', 6);
+assert.equal(
+  patrol.phase,
+  'dive',
+  'The pass after the warning is the real one',
+);
+assert.equal(patrol.passes, 2, 'Exactly one warning pass precedes the dive');
+
+// The warning pass flies through the climber without touching them.
+const harmless = make(),
+  feint = new MagpieEncounter(harmless);
+harmless.grips = {
+  leftHand: hold('a'),
+  rightHand: hold('b'),
+  leftFoot: hold('c'),
+  rightFoot: hold('d'),
+};
+feint.phase = 'feint';
+feint.bird = { ...harmless.p.neck };
+feint.step(0);
+assert.equal(
+  Object.keys(harmless.grips).length,
+  4,
+  'The warning pass cannot knock a grip loose',
+);
+
 h.failed = true;
 const snapshot = JSON.stringify(attack.bird);
 attack.step(1);
@@ -147,7 +160,7 @@ railway.grips = {
   leftHand: { id: 'x', x: railway.p.leftHand.x, y: railway.p.leftHand.y },
 };
 railwayBird.step(1 / 60);
-assert.equal(railwayBird.phase, 'waiting', 'Quiet at the ground-level spawn');
+assert.equal(railwayBird.phase, 'patrol', 'Circling quietly at the spawn');
 const scene = (x: number, y: number) => ({
   x: (x * 1600) / 1586,
   y: (y * 1000) / 992,
@@ -156,22 +169,26 @@ const finish = scene(1493, 208);
 railway.p.hip.x = finish.x;
 railway.p.hip.y = finish.y;
 railwayBird.step(1 / 60);
-assert.equal(railwayBird.phase, 'waiting', 'Quiet at the tower finish');
+assert.equal(
+  railwayBird.phase,
+  'patrol',
+  'Circling quietly at the tower finish',
+);
 const traverse = scene(814, 470);
 railway.p.hip.x = traverse.x;
 railway.p.hip.y = traverse.y;
 railwayBird.step(1 / 60);
 assert.equal(
   railwayBird.phase,
-  'warning',
-  'Alerts on the exposed awning traverse',
+  'stalk',
+  'Closes in over the exposed awning traverse',
 );
 
 const other = make();
 other.level.id = 'not-pub';
 assert.equal(magpieFor(other), null);
 console.log(
-  'PASS draggable racket, no auto-grab, swept interception, defeat, single hit, warning and job scope',
+  'PASS draggable racket, no auto-grab, swept interception, defeat, single hit, patrol/stalk/feint/dive pattern and job scope',
 );
 
 function distanceBetween(

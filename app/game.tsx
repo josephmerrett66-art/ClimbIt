@@ -453,7 +453,7 @@ export default function Game({
           bird?.step(1 / 60);
           cigaretteFor(g).step(1 / 60);
           if (bird && phase !== bird.phase) {
-            if (bird.phase === 'warning') {
+            if (bird.phase === 'feint' || bird.phase === 'dive') {
               gripAudio.current?.warning();
             }
             if (bird.phase === 'falling') gripAudio.current?.play();

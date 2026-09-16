@@ -102,19 +102,50 @@ after this branch; it is unrelated and uses the pub level.
 
 ## Magpie
 
-The railway now has a magpie, perched on the station roof ridge at scene
-(888, 237) in `lib/game/magpie.ts`. Placement is deliberate rather than
-decorative: the 285-unit alert radius reaches the exposed y = 470 awning
-traverse but not the ground-level spawn or the tower finish, so the bird
-commits while the climber is hand-only across the middle of the route and
-leaves the crux alone.
+The railway has a magpie, its territory centred on the station roof ridge at
+scene (888, 237) in `lib/game/magpie.ts`. Placement is deliberate: the 285-unit
+alert radius reaches the exposed y = 470 awning traverse but not the
+ground-level spawn or the tower finish, so the bird commits while the climber is
+hand-only across the middle of the route and leaves the crux alone.
 
 It interacts with the reach pass. Taking the racket out releases a hand, which
-drops the climber to two contacts and shortens every reach, and a swoop that
-lands knocks a grip loose. Choosing when to fight the bird rather than move
-past it is the intended decision, but note that the route driver never steps
-the magpie — `tests/australian.test.ts` proves the route is feasible without
-bird interference, not with it. That combination needs a play session.
+drops the climber to two contacts and shortens every reach, and a landed swoop
+knocks a grip loose.
+
+### Flight pattern
+
+**This part changes every magpie, not just the railway's.** The bird used to sit
+on its roof, then a caption reading MAGPIE WATCHING YOU / MAGPIE TAKING OFF told
+you what was coming. Both are gone. The flight is now the only tell:
+
+| phase | what it looks like | can it hurt you |
+|---|---|---|
+| `patrol` | wide slow ellipse over its own territory | no |
+| `stalk` | tighter, faster orbit around the climber | no |
+| `feint` | a committed pass that crosses above your head | **no** |
+| `dive` | the same shape, aimed at your head | **yes** |
+| `recover` | climbs away | no |
+
+Passes strictly alternate and every encounter opens with a `feint`, so the first
+pass of any sequence is always the harmless one. Measured against a climber
+parked on the traverse, the feint clears the head by 62 world units against a
+hit radius of 20.5 — close enough to be alarming, wide enough to read as a miss.
+The dive contacts.
+
+Passes are launched on a fixed heading and flown ballistically rather than
+homing, so a committed line can be read and moved out of, and the wide pass
+stays visibly wide. Both kinds can be swatted with the racket, so reading the
+wind-up is rewarded rather than merely survived.
+
+The observed loop, with the climber standing still on the traverse:
+
+```
+stalk 2.4s -> feint 1.2s -> recover 1.2s -> stalk 1.3s -> dive -> recover
+   -> patrol 5s cooldown -> repeat        (about 13s per cycle)
+```
+
+The audio cue fires on both kinds of pass, never on one alone — a sound that
+distinguished a feint from a dive would just be the caption again.
 
 ## Not done
 

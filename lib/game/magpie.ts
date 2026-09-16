@@ -1,6 +1,7 @@
 import { LIMBS, distance, type Climber, type Limb } from './physics';
 import type { Point } from './level';
-// Feet sit on these roof edges in the 1600 × 1000 scene artwork.
+// Territory centres on these roof edges in the 1600 × 1000 scene artwork. The
+// bird circles its territory rather than sitting on the roof waiting.
 const PERCHES: Record<string, Point> = {
   'pub-keys': { x: 748, y: 414 },
   'surf-croc': { x: 702, y: 277 },
@@ -11,24 +12,57 @@ const PERCHES: Record<string, Point> = {
   // climber is hand-only across the middle of the route.
   'signal-esky': { x: 888, y: 237 },
 };
+
+// The bird tells you what it is about to do by how it flies, never by a caption.
+// It circles its territory; when you come into range it closes into a tighter,
+// faster orbit around you; then it makes passes. Passes strictly alternate — a
+// wide one over your head that cannot hurt you, then a committed one straight at
+// you that can. Reading which is which, and counting them, is the whole fight.
+export const FLIGHT = {
+  alertRange: 285,
+  patrolRadius: 108,
+  patrolRise: 0.45,
+  patrolTurn: 0.55,
+  patrolSpeed: 92,
+  stalkRadius: 122,
+  stalkRise: 0.5,
+  stalkTurn: 1.15,
+  stalkSpeed: 132,
+  // A full slow lap before the first pass reads as a wind-up. The second pass
+  // follows quickly, so the pair lands as one combination.
+  openingStalk: 2.4,
+  followUpStalk: 1.3,
+  feintSpeed: 168,
+  diveSpeed: 202,
+  passTime: 1.2,
+  recoverTime: 1.2,
+  recoverClimb: -108,
+  // Breathing room after a committed dive, spent back out on patrol.
+  cooldown: 5,
+};
+
 export class MagpieEncounter {
   phase:
-    | 'waiting'
-    | 'warning'
-    | 'approach'
-    | 'swoop'
-    | 'escape'
-    | 'return'
+    | 'patrol'
+    | 'stalk'
+    | 'feint'
+    | 'dive'
+    | 'recover'
     | 'falling'
-    | 'defeated' = 'waiting';
+    | 'defeated' = 'patrol';
   time = 0;
   cooldown = 0;
   private previousTip: Point | null = null;
   private previousHand: Point | null = null;
   hits = 0;
+  passes = 0;
   readonly perch: Point;
   bird: Point;
-  private staging: Point = { x: 0, y: 0 };
+  // False means the next pass is the harmless one. Passes alternate from here,
+  // so the opening move of every encounter is a warning the player can read.
+  armed = false;
+  private orbit = Math.PI;
+  private aim: Point = { x: 0, y: 0 };
   wingTime = 0;
   velocity: Point = { x: 0, y: 0 };
   direction = -1;
@@ -86,6 +120,36 @@ export class MagpieEncounter {
       y: hand.y + Math.sin(angle) * 38 * g.scale,
     };
   }
+  // A pass is launched on a fixed heading and then flown ballistically. It does
+  // not track the climber, so once it is committed its line can be read and
+  // stepped out of, and the wide pass stays visibly wide.
+  private launch(s: number) {
+    const g = this.g;
+    const real = this.armed;
+    this.armed = !real;
+    const toward = g.p.neck.x < this.bird.x ? -1 : 1;
+    this.aim = real
+      ? { x: g.p.neck.x, y: g.p.neck.y }
+      : {
+          x: g.p.neck.x + toward * 44 * s,
+          y: g.p.neck.y - 62 * s,
+        };
+    const d = Math.max(1, distance(this.aim, this.bird));
+    const speed = (real ? FLIGHT.diveSpeed : FLIGHT.feintSpeed) * s;
+    this.velocity = {
+      x: ((this.aim.x - this.bird.x) / d) * speed,
+      y: ((this.aim.y - this.bird.y) / d) * speed,
+    };
+    this.phase = real ? 'dive' : 'feint';
+    this.time = 0;
+    this.passes++;
+  }
+  private inRange() {
+    return (
+      distance(this.g.p.hip, this.perch) < FLIGHT.alertRange &&
+      this.g.hasHandSupport()
+    );
+  }
   step(dt: number) {
     const g = this.g,
       s = g.scale;
@@ -117,44 +181,7 @@ export class MagpieEncounter {
     this.previousTip = tip;
     this.previousHand = relativeHand;
     if (this.phase === 'defeated') return;
-    if (this.phase === 'waiting') {
-      this.bird = { ...this.perch };
-      this.velocity = { x: 0, y: 0 };
-      this.rotation = 0;
-      this.direction = g.p.neck.x < this.perch.x ? -1 : 1;
-      this.cooldown -= dt;
-      if (
-        this.cooldown <= 0 &&
-        distance(g.p.hip, this.perch) < 285 &&
-        g.hasHandSupport()
-      ) {
-        this.phase = 'warning';
-        this.time = 0;
-        this.direction = g.p.hip.x < this.perch.x ? -1 : 1;
-        g.message =
-          'That magpie has spotted you. Secure a hand and get the racket ready.';
-      }
-      return;
-    }
-    if (this.phase === 'warning') {
-      // The bird stays on the roof long enough for the player to recognise the
-      // threat, then visibly leaves the perch before the damaging dive begins.
-      if (this.time >= 2.4) {
-        const staging = {
-            x: g.p.neck.x - this.direction * 125 * s,
-            y: g.p.neck.y - 75 * s,
-          },
-          d = Math.max(1, distance(staging, this.bird));
-        this.staging = staging;
-        this.velocity = {
-          x: ((staging.x - this.bird.x) / d) * 92 * s,
-          y: ((staging.y - this.bird.y) / d) * 92 * s,
-        };
-        this.phase = 'approach';
-        this.time = 0;
-      }
-      return;
-    }
+
     if (this.phase === 'falling') {
       this.velocity.y += 260 * s * dt;
       this.rotation += dt * 7;
@@ -164,16 +191,55 @@ export class MagpieEncounter {
         this.phase = 'defeated';
       return;
     }
+
     const oldBird = { ...this.bird };
-    if (this.phase === 'approach') this.steer(this.staging, 115 * s, dt);
-    if (this.phase === 'return')
+
+    if (this.phase === 'patrol') {
+      this.cooldown = Math.max(0, this.cooldown - dt);
+      this.orbit += FLIGHT.patrolTurn * dt;
       this.steer(
-        this.perch,
-        Math.min(140 * s, distance(this.bird, this.perch) * 2),
+        {
+          x: this.perch.x + Math.cos(this.orbit) * FLIGHT.patrolRadius * s,
+          y:
+            this.perch.y +
+            Math.sin(this.orbit) * FLIGHT.patrolRadius * FLIGHT.patrolRise * s,
+        },
+        FLIGHT.patrolSpeed * s,
         dt,
       );
-    if (this.phase === 'escape')
-      this.velocity.y += (-100 * s - this.velocity.y) * (1 - Math.exp(-2 * dt));
+      if (!this.cooldown && this.inRange()) {
+        this.phase = 'stalk';
+        this.time = 0;
+        // Every encounter opens with the harmless pass.
+        this.armed = false;
+      }
+    } else if (this.phase === 'stalk') {
+      this.orbit += FLIGHT.stalkTurn * dt;
+      this.steer(
+        {
+          x: g.p.neck.x + Math.cos(this.orbit) * FLIGHT.stalkRadius * s,
+          y:
+            g.p.neck.y -
+            88 * s +
+            Math.sin(this.orbit) * FLIGHT.stalkRadius * FLIGHT.stalkRise * s,
+        },
+        FLIGHT.stalkSpeed * s,
+        dt,
+      );
+      if (!this.inRange()) this.phase = 'patrol';
+      else if (
+        this.time >= (this.armed ? FLIGHT.followUpStalk : FLIGHT.openingStalk)
+      )
+        this.launch(s);
+    } else if (this.phase === 'recover') {
+      this.velocity.y +=
+        (FLIGHT.recoverClimb * s - this.velocity.y) * (1 - Math.exp(-2 * dt));
+      if (this.time > FLIGHT.recoverTime) {
+        this.phase = this.cooldown || !this.inRange() ? 'patrol' : 'stalk';
+        this.time = 0;
+      }
+    }
+
     this.bird.x += this.velocity.x * dt;
     this.bird.y += this.velocity.y * dt;
     if (Math.abs(this.velocity.x) > 4 * s)
@@ -186,62 +252,44 @@ export class MagpieEncounter {
       ),
     );
     this.rotation += (bank - this.rotation) * (1 - Math.exp(-5 * dt));
-    if (this.phase === 'return') {
-      if (distance(this.bird, this.perch) < 3 * s) {
-        this.phase = 'waiting';
-        this.cooldown = 16;
-        this.time = 0;
-      }
+
+    if (this.phase !== 'feint' && this.phase !== 'dive') return;
+
+    // Both kinds of pass can be swatted, so reading the wind-up is rewarded
+    // rather than merely survived.
+    if (
+      swinging &&
+      tip &&
+      oldTip &&
+      sweptContact(oldTip, tip, oldBird, this.bird, 27 * s)
+    ) {
+      this.phase = 'falling';
+      this.time = 0;
+      this.velocity = { x: -this.direction * 65 * s, y: -60 * s };
+      g.message = 'Good shot! The magpie is out of this climb.';
       return;
     }
-    if (this.phase === 'approach') {
-      if (this.time >= 3 || distance(this.bird, this.staging) < 20 * s) {
-        const target = g.p.neck,
-          d = Math.max(1, distance(target, this.bird));
-        this.velocity = {
-          x: ((target.x - this.bird.x) / d) * 190 * s,
-          y: ((target.y - this.bird.y) / d) * 190 * s,
-        };
-        this.phase = 'swoop';
-        this.time = 0;
-        g.message = 'It is diving — swing through it or move!';
-      }
+    if (
+      this.phase === 'dive' &&
+      (sweptContact(oldBird, this.bird, g.p.neck, g.p.neck, 25 * s) ||
+        sweptContact(oldBird, this.bird, g.p.hip, g.p.hip, 23 * s))
+    ) {
+      const attached = LIMBS.filter((limb) => g.grips[limb]);
+      const limb = attached[this.hits % Math.max(1, attached.length)];
+      if (limb) delete g.grips[limb];
+      g.p.hip.px -= this.direction * 1.2 * s;
+      g.message = limb
+        ? 'Swooped! One grip knocked loose — catch another edge!'
+        : 'Magpie hit! Grab an edge!';
+      this.hits++;
+      this.cooldown = FLIGHT.cooldown;
+      this.phase = 'recover';
+      this.time = 0;
       return;
     }
-    if (this.phase === 'swoop') {
-      if (
-        swinging &&
-        tip &&
-        oldTip &&
-        sweptContact(oldTip, tip, oldBird, this.bird, 27 * s)
-      ) {
-        this.phase = 'falling';
-        this.time = 0;
-        this.velocity = { x: -this.direction * 65 * s, y: -60 * s };
-        g.message = 'Good shot! The magpie is out of this climb.';
-        return;
-      }
-      if (
-        sweptContact(oldBird, this.bird, g.p.neck, g.p.neck, 25 * s) ||
-        sweptContact(oldBird, this.bird, g.p.hip, g.p.hip, 23 * s)
-      ) {
-        const attached = LIMBS.filter((limb) => g.grips[limb]);
-        const limb = attached[this.hits % Math.max(1, attached.length)];
-        if (limb) delete g.grips[limb];
-        g.p.hip.px -= this.direction * 1.2 * s;
-        g.message = limb
-          ? 'Swooped! One grip knocked loose — catch another edge!'
-          : 'Magpie hit! Grab an edge!';
-        this.phase = 'escape';
-        this.time = 0;
-        this.hits++;
-      } else if (this.time > 1.5) {
-        this.phase = 'escape';
-        this.time = 0;
-        this.hits++;
-      }
-    } else if (this.phase === 'escape' && this.time > 1.6) {
-      this.phase = 'return';
+    if (this.time > FLIGHT.passTime) {
+      if (this.phase === 'dive') this.cooldown = FLIGHT.cooldown;
+      this.phase = 'recover';
       this.time = 0;
     }
   }

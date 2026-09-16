@@ -58,14 +58,6 @@ export function drawMagpie(
     ctx.translate(encounter.bird.x, encounter.bird.y);
     ctx.rotate(encounter.rotation);
     ctx.scale(s * encounter.direction, s);
-    const perched = ['waiting', 'warning'].includes(encounter.phase);
-    if (perched) {
-      ctx.fillStyle = '#10141135';
-      ctx.beginPath();
-      ctx.ellipse(0, 18, 16, 3, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.translate(0, Math.sin(encounter.wingTime * 2.5) * 0.5);
-    }
     const poly = (points: number[][], fill: string) => {
       ctx.beginPath();
       points.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
@@ -77,12 +69,10 @@ export function drawMagpie(
       ctx.lineJoin = 'round';
       ctx.stroke();
     };
-    const flying = !['waiting', 'warning'].includes(encounter.phase);
-    const flap = flying
-      ? Math.sin(encounter.wingTime * (encounter.phase === 'swoop' ? 7 : 16)) * (encounter.phase === 'swoop' ? 5 : 17)
-      : encounter.phase === 'warning'
-        ? Math.sin(encounter.time * 10) * 8
-        : 2;
+    const committed = encounter.phase === 'feint' || encounter.phase === 'dive';
+    const flap =
+      Math.sin(encounter.wingTime * (committed ? 7 : 16)) *
+      (committed ? 5 : 17);
     poly(
       [
         [-12, 1],
@@ -92,7 +82,7 @@ export function drawMagpie(
       ],
       '#151a1d',
     );
-    if (flying) poly(
+    poly(
       [
         [-3, 0],
         [-15, -18 - flap],
@@ -121,7 +111,7 @@ export function drawMagpie(
       ],
       '#f1f1de',
     );
-    if (flying) poly(
+    poly(
       [
         [-5, 1],
         [-19, 23 + flap],
@@ -130,7 +120,7 @@ export function drawMagpie(
       ],
       '#131c22',
     );
-    if (flying) poly(
+    poly(
       [
         [0, 3],
         [-8, 12 + flap / 2],
@@ -139,10 +129,6 @@ export function drawMagpie(
       ],
       '#e6e9dd',
     );
-    if (perched) {
-      poly([[-12, -3], [7, -5], [10, 4], [-9, 9], [-20, 8]], '#101a21');
-      poly([[-9, -2], [3, -4], [7, 0], [-6, 3]], '#e6e9dd');
-    }
     poly(
       [
         [10, -6],
@@ -161,44 +147,20 @@ export function drawMagpie(
       ],
       '#a1aca8',
     );
-    poly([[11,-7],[14,-13],[18,-13],[17,-5]], '#e6e9dd');
+    poly(
+      [
+        [11, -7],
+        [14, -13],
+        [18, -13],
+        [17, -5],
+      ],
+      '#e6e9dd',
+    );
     ctx.fillStyle = '#bb6a45';
     ctx.beginPath();
     ctx.arc(23, -8, 1.6, 0, Math.PI * 2);
     ctx.fill();
-    if (!flying) {
-      ctx.strokeStyle = '#151813';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(-2, 10);
-      ctx.lineTo(-4, 17);
-      ctx.lineTo(-9, 18);
-      ctx.moveTo(7, 10);
-      ctx.lineTo(8, 17);
-      ctx.lineTo(13, 18);
-      ctx.stroke();
-    }
     ctx.restore();
   }
   ctx.restore();
-  if (encounter.phase === 'warning' || encounter.phase === 'approach') {
-    const x = ctx.canvas.width / ctx.getTransform().a / 2;
-    ctx.save();
-    ctx.font = 'bold 16px Arial';
-    ctx.textAlign = 'center';
-    // Warning remains readable even if the perched bird is near a screen edge.
-    ctx.fillStyle = '#17271eee';
-    ctx.fillRect(x - 145, 74, 290, 52);
-    ctx.fillStyle = '#ffe39b';
-    ctx.fillText(
-      encounter.phase === 'warning'
-        ? 'MAGPIE WATCHING YOU'
-        : 'MAGPIE TAKING OFF',
-      x,
-      96,
-    );
-    ctx.font = '12px Arial';
-    ctx.fillText('Brace, move, or ready your racket', x, 115);
-    ctx.restore();
-  }
 }
