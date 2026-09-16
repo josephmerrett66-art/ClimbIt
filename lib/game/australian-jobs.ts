@@ -13,7 +13,8 @@ export const AUSTRALIAN_SPECS: Omit<
     slug: 'prawn',
     id: 'big-prawn-thong',
     href: '/prawn',
-    name: 'De-thong the Big Prawn',
+    name: 'Thong stuck on the Big Prawn',
+    item: 'Thong',
     client: 'Kev · North Coast, NSW',
     pay: 220,
     briefing:
@@ -24,7 +25,8 @@ export const AUSTRALIAN_SPECS: Omit<
     slug: 'surf-club',
     id: 'surf-croc',
     href: '/surf-club',
-    name: 'A croc above the surf club',
+    name: 'URGENT: inflatable croc on surf club roof',
+    item: 'Inflatable croc',
     client: 'Shaz · Sunshine Coast, QLD',
     pay: 240,
     briefing:
@@ -35,7 +37,8 @@ export const AUSTRALIAN_SPECS: Omit<
     slug: 'drive-in',
     id: 'drive-in-trolley',
     href: '/drive-in',
-    name: 'Trolley at the drive-in',
+    name: 'Trolley on top of the drive-in screen (don’t ask)',
+    item: 'Trolley',
     client: 'Dazza · Riverina, NSW',
     pay: 280,
     briefing:
@@ -46,7 +49,8 @@ export const AUSTRALIAN_SPECS: Omit<
     slug: 'queenslander',
     id: 'summer-santa',
     href: '/queenslander',
-    name: 'Santa has heatstroke',
+    name: 'Inflatable Santa down please — it’s February',
+    item: 'Inflatable Santa',
     client: 'Deb · Ipswich, QLD',
     pay: 250,
     briefing:
@@ -57,7 +61,8 @@ export const AUSTRALIAN_SPECS: Omit<
     slug: 'railway',
     id: 'signal-esky',
     href: '/railway',
-    name: 'Last drinks at platform two',
+    name: 'Esky stranded on the signal tower, platform two',
+    item: 'Esky',
     client: 'Macca · Mallee, VIC',
     pay: 290,
     briefing:
@@ -68,7 +73,8 @@ export const AUSTRALIAN_SPECS: Omit<
     slug: 'showground',
     id: 'golden-bin-chicken',
     href: '/showground',
-    name: 'Crown the bin chicken',
+    name: 'Bolt down the golden ibis before judging starts',
+    item: 'Golden ibis',
     client: 'Baz · Regional show, SA',
     pay: 310,
     briefing:
@@ -79,7 +85,8 @@ export const AUSTRALIAN_SPECS: Omit<
     slug: 'opal-mine',
     id: 'opal-disco',
     href: '/opal-mine',
-    name: 'Disco at the opal mine',
+    name: 'Disco ball needs securing before Saturday',
+    item: 'Disco ball',
     client: 'Nev · Coober Pedy, SA',
     pay: 340,
     briefing:
@@ -90,7 +97,8 @@ export const AUSTRALIAN_SPECS: Omit<
     slug: 'grandstand',
     id: 'prize-pumpkin',
     href: '/grandstand',
-    name: 'The pumpkin has won',
+    name: 'Strap down my prize pumpkin — no time wasters',
+    item: 'Prize pumpkin',
     client: 'Cheryl · Country show, TAS',
     pay: 360,
     briefing:

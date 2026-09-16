@@ -72,7 +72,7 @@ const colliders: Collider[] = [
 export const pubLevel: Level = {
   version: 1,
   id: 'pub-keys',
-  name: 'Keys on the pub roof',
+  name: 'Need my ute keys off the pub roof',
   backgroundImage: '/assets/country-pub.png',
   worldWidth: 1600,
   worldHeight: 1000,

@@ -9,6 +9,9 @@ export type ClimbSpec = {
   client: string;
   briefing: string;
   success: string;
+  // Job names read as marketplace listings, which is too long for the editor's
+  // objective marker. `item` is the short name of the thing being fetched.
+  item?: string;
   pay: number;
   route: RouteCorner[];
   target: [number, number];
@@ -98,7 +101,7 @@ export function makeClimb(spec: ClimbSpec) {
         id: `${spec.slug}-job`,
         type: 'repair',
         kind: 'scenery',
-        name: spec.name,
+        name: spec.item ?? spec.name,
         x: spec.target[0],
         y: spec.target[1],
         successMessage: spec.success,

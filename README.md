@@ -4,19 +4,19 @@
 
 ## Australian jobs
 
-The game opens on **De-thong the Big Prawn**. The phone contains eight entirely new Australian maps plus the established pub climb. Every new scene has original artwork and an authored route following real posts, gutters, roof edges and structural braces. Hand-only traverses require releasing and repositioning boots; corners and stepped roofs change the direction of the climb. Only subtle contextual edge marks are visible during play.
+The game opens on the Big Prawn job. The phone contains eight entirely new Australian maps plus the established pub climb. Every new scene has original artwork and an authored route following real posts, gutters, roof edges and structural braces. Hand-only traverses require releasing and repositioning boots; corners and stepped roofs change the direction of the climb. Only subtle contextual edge marks are visible during play.
 
 | Route | Job | Payment |
 | --- | --- | --- |
-| `/prawn` | De-thong the Big Prawn | $220 |
-| `/surf-club` | A croc above the surf club | $240 |
-| `/drive-in` | Trolley at the drive-in | $280 |
-| `/queenslander` | Santa has heatstroke | $250 |
-| `/railway` | Last drinks at platform two | $290 |
-| `/showground` | Crown the bin chicken | $310 |
-| `/opal-mine` | Disco at the opal mine | $340 |
-| `/grandstand` | The pumpkin has won | $360 |
-| `/pub` | Keys on the pub roof | $180 |
+| `/prawn` | Thong stuck on the Big Prawn | $220 |
+| `/surf-club` | URGENT: inflatable croc on surf club roof | $240 |
+| `/drive-in` | Trolley on top of the drive-in screen (don’t ask) | $280 |
+| `/queenslander` | Inflatable Santa down please — it’s February | $250 |
+| `/railway` | Esky stranded on the signal tower, platform two | $290 |
+| `/showground` | Bolt down the golden ibis before judging starts | $310 |
+| `/opal-mine` | Disco ball needs securing before Saturday | $340 |
+| `/grandstand` | Strap down my prize pumpkin — no time wasters | $360 |
+| `/pub` | Need my ute keys off the pub roof | $180 |
 
 Keep one hand and a foot planted, hold the free hand on the small job marker until its bar fills, then release. A brief touch does not award the job or prevent catching a nearby hold. Completion opens the payment screen and updates Common Cents banking and the remaining career-pivot debt. Finances persist locally.
 
