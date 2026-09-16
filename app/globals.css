@@ -1687,8 +1687,15 @@ body {
 .music-art { height:160px; display:grid; place-items:center; border-radius:16px; background:#344c40; color:#e9bb63; }
 .phone-music h3 { font-size:16px; margin:18px 0 6px; }
 .phone-music p { font-size:13px; line-height:1.5; color:#647366; }
-.music-progress { height:4px; border-radius:4px; background:#c5cdbf; margin-top:22px; overflow:hidden; }
+/* The bar itself stays 4px; the padding around it is the grab area, so the
+   scrubber is comfortable to hit with a mouse without looking any heavier. */
+.music-scrub { position:relative; padding:11px 0; margin-top:11px; cursor:pointer; touch-action:none; }
+.music-scrub:focus-visible { outline:2px solid #345c45; outline-offset:4px; border-radius:4px; }
+.music-progress { height:4px; border-radius:4px; background:#c5cdbf; overflow:hidden; }
 .music-progress span { display:block; height:100%; border-radius:inherit; background:#345c45; transition:width .15s linear; }
+.music-scrub.scrubbing .music-progress span { transition:none; }
+.music-thumb { position:absolute; top:50%; width:13px; height:13px; margin-left:-6.5px; transform:translateY(-50%); border-radius:50%; background:#345c45; pointer-events:none; opacity:0; transition:opacity .12s ease; }
+.music-scrub:hover .music-thumb, .music-scrub:focus-visible .music-thumb, .music-scrub.scrubbing .music-thumb { opacity:1; }
 .music-times { display:flex; justify-content:space-between; margin-top:7px; font-size:11px; color:#647366; }
 .music-transport { display:flex; justify-content:center; gap:25px; margin:16px 0 24px; }
 .music-transport button { height:48px; width:48px; display:grid; place-items:center; border-radius:50%; background:#d5dccf; color:#24372e; cursor:pointer; }
