@@ -8,7 +8,7 @@ import {
 import { catLevel, churchLevel, towerLevel } from '../lib/game/level';
 import { AUSTRALIAN_JOBS } from '../lib/game/australian-jobs';
 import { pubLevel } from '../lib/game/pub-level';
-import { Climber } from '../lib/game/physics';
+import { Climber, type Limb } from '../lib/game/physics';
 
 for (const level of [
   catLevel,
@@ -75,6 +75,49 @@ assert.notEqual(
   selectLimb(rig, rig.p.leftHand, 1.6, true, 'leftHand'),
   'leftHand',
 );
+// Matched hands sit on one point, so a click there used to return the first
+// limb in LIMBS order every time and the right hand could not be picked up at
+// all. The tie goes to the older grip: match a hand and the click hands you the
+// one that was already there, which is the one you move on to the next hold.
+const matched = new Climber(structuredClone(AUSTRALIAN_JOBS[0].level));
+const spots = matched.level.gripPoints.filter((p) => p.use !== 'foot');
+const place = (limb: Limb, hold: (typeof spots)[number]) => {
+  matched.hold(limb, hold);
+  matched.p[limb].x = hold.x;
+  matched.p[limb].y = hold.y;
+};
+place('leftHand', spots[0]);
+place('rightHand', spots[0]);
+assert.equal(
+  selectLimb(matched, spots[0], 1, false, null),
+  'leftHand',
+  'the established hand is offered after a match',
+);
+place('leftHand', spots[1]);
+assert.equal(
+  selectLimb(matched, spots[0], 1, false, null),
+  'rightHand',
+  'the hand left behind is still selectable',
+);
+place('leftHand', spots[0]);
+assert.equal(
+  selectLimb(matched, spots[0], 1, false, null),
+  'rightHand',
+  'matching the other way round offers the other hand',
+);
+// An explicit choice still wins, and a lone limb is unaffected.
+assert.equal(
+  selectLimb(matched, spots[0], 1, false, 'leftHand'),
+  'leftHand',
+  'an explicit limb choice is still honoured',
+);
+delete matched.grips.rightHand;
+assert.equal(
+  selectLimb(matched, spots[0], 1, false, null),
+  'leftHand',
+  'only one limb gripping means no tie to break',
+);
+
 console.log(
-  'PASS camera framing at three viewport sizes on the Australian maps, touch hit targets, relative drag, carrying exclusion and safe cancellation',
+  'PASS camera framing at three viewport sizes on the Australian maps, touch hit targets, relative drag, carrying exclusion, matched-hand selection and safe cancellation',
 );

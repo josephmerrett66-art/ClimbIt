@@ -57,6 +57,11 @@ export class Climber {
   gripFocus: Grip | null = null;
   catches: { x: number; y: number; age: number }[] = [];
   moves = 0;
+  // When two limbs share a hold, the click that lands on it cannot tell them
+  // apart by position. Remember the order grips were taken in so the older one
+  // can win: after matching hands you move the hand that was already there.
+  gripOrder: Partial<Record<Limb, number>> = {};
+  private gripCounter = 0;
   // The opening stance is established before any limb is on a hold, so it must
   // not be judged by the contact-scaled reach it is about to create.
   private establishing = true;
@@ -132,9 +137,13 @@ export class Climber {
       const g = this.level.challenge
         ? this.reachableHold(limb, this.p[limb], Math.max(22, 36 * s))
         : this.nearest(this.p[limb], Math.max(22, 36 * s));
-      if (g && this.canUse(limb, g)) this.grips[limb] = g;
+      if (g && this.canUse(limb, g)) this.hold(limb, g);
     }
     this.establishing = false;
+  }
+  hold(limb: Limb, grip: Grip) {
+    this.grips[limb] = grip;
+    this.gripOrder[limb] = ++this.gripCounter;
   }
   root(limb: Limb) {
     return this.p[
@@ -290,7 +299,7 @@ export class Climber {
       // complete an objective or add a release impulse.
       const grip = this.grabPreview();
       if (grip) {
-        this.grips[limb] = grip;
+        this.hold(limb, grip);
         this.moves++;
         p.x = grip.x;
         p.y = grip.y;
@@ -325,7 +334,7 @@ export class Climber {
           g &&
           distance(g, this.root(limb)) <= this.reach(limb) + 8 * this.scale
         ) {
-          this.grips[limb] = g;
+          this.hold(limb, g);
           this.moves++;
           p.x = p.px = g.x;
           p.y = p.py = g.y;

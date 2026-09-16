@@ -37,6 +37,13 @@ export function cameraTarget(
   };
 }
 
+// Two limbs matched on one hold sit at the same point, so distance alone cannot
+// separate them and the sort simply returned the first in LIMBS order — the
+// right hand could never be picked up. Break that tie by grip age and hand back
+// the limb that was already there, which is the one a climber moves next: you
+// match hands in order to send the established hand on to the next hold.
+const MATCHED = 12;
+
 export function selectLimb(
   game: Climber,
   point: Point,
@@ -45,10 +52,21 @@ export function selectLimb(
   chosen: Limb | null,
 ) {
   if (chosen && chosen !== game.carrying) return chosen;
-  const limb = LIMBS.filter((limb) => limb !== game.carrying).sort(
+  const ranked = LIMBS.filter((limb) => limb !== game.carrying).sort(
     (a, b) => distance(game.p[a], point) - distance(game.p[b], point),
-  )[0];
-  return limb && distance(game.p[limb], point) <= (touch ? 44 : 30) / scale
+  );
+  const nearest = ranked[0];
+  if (!nearest) return null;
+  const limb =
+    ranked
+      .filter(
+        (candidate) =>
+          game.grips[candidate] &&
+          distance(game.p[candidate], game.p[nearest]) <= MATCHED * game.scale,
+      )
+      .sort((a, b) => (game.gripOrder[a] ?? 0) - (game.gripOrder[b] ?? 0))[0] ??
+    nearest;
+  return distance(game.p[limb], point) <= (touch ? 44 : 30) / scale
     ? limb
     : null;
 }
