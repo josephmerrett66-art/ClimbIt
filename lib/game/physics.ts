@@ -1,11 +1,4 @@
-import {
-  CLIMBING,
-  CONTACT_FORCE,
-  CONTACT_REACH,
-  emptyLoads,
-  tickFatigue,
-  tickDiscovery,
-} from './climbing';
+import { CLIMBING, emptyLoads, tickFatigue, tickDiscovery } from './climbing';
 import type { Level, Point, Grip } from './level';
 export type Particle = Point & {
   px: number;
@@ -161,12 +154,12 @@ export class Climber {
   reach(limb: Limb) {
     const base = this.baseReach(limb);
     return this.level.contactReach && !this.establishing
-      ? base * CONTACT_REACH[this.contacts(limb)]
+      ? base * this.level.contactReach[this.contacts(limb)]
       : base;
   }
   pull(limb: Limb) {
-    return this.level.contactReach
-      ? 0.32 * CONTACT_FORCE[this.contacts(limb)]
+    return this.level.contactForce
+      ? 0.32 * this.level.contactForce[this.contacts(limb)]
       : 0.32;
   }
   nearest(pos: Point, r = 24) {

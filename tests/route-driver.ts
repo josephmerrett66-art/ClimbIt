@@ -5,7 +5,25 @@ import type { Level } from '../lib/game/level';
 import type { RouteCorner } from '../lib/game/campaign';
 
 export function climbRoute(level: Level, route: RouteCorner[]) {
-  const g = new Climber(structuredClone(level));
+  // This driver validates route geometry: that the polyline, contacts,
+  // colliders, objective and return zone form a route that can actually be
+  // climbed and completed through ordinary begin/move/step/end gestures, with
+  // fatigue live. It is deliberately run at unscaled reach.
+  //
+  // It cannot validate a contact-reach tier. The driver commits greedily to the
+  // nearest useful hold and never reconsiders, so under contact-scaled reach its
+  // pass/fail is chaotic rather than monotonic in difficulty — the drive-in
+  // completes at 0.84 and falls at 0.94, the railway completes at 0.86 and falls
+  // at 0.94. A pass would not mean the tier is right and a failure would not mean
+  // it is too hard, so reading either would be self-deception.
+  //
+  // `tests/hang-spans.test.ts` is the gate for the tiers. It measures the one
+  // thing a tier can actually break — a hand-only span where no foot can be
+  // planted to win the reach back — and does respond monotonically.
+  const driven = structuredClone(level);
+  delete driven.contactReach;
+  delete driven.contactForce;
+  const g = new Climber(driven);
   const minima = { ...g.stamina };
   const step = g.step.bind(g);
   g.step = (dt = 1 / 60) => {

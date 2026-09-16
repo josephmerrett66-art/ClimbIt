@@ -1,6 +1,6 @@
 import { applyRouteMoments } from './route-moments';
 import { configureCampaign } from './campaign-challenge';
-import { configureRailway } from './railway-strategy';
+import { applyDifficulty } from './campaign-difficulty';
 import { makeClimb, type ClimbSpec } from './campaign';
 import routes from './australian-routes.json';
 
@@ -113,9 +113,9 @@ export const AUSTRALIAN_JOBS = AUSTRALIAN_SPECS.map((spec) =>
   ),
 );
 
-// Route moments first, then the railway strategy pass, so the railway keeps its
-// own briefing rather than the shared movement-sequence hint.
+// Route moments first, then the campaign difficulty ramp, so a job's briefing
+// hint survives and the reach tier is applied on top of the final layout.
 for (const job of AUSTRALIAN_JOBS) {
   applyRouteMoments(job.level);
-  configureRailway(job);
+  applyDifficulty(job.level);
 }

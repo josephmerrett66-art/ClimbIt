@@ -42,8 +42,11 @@ export type Level = {
   challenge?: boolean;
   fatigue?: boolean;
   // Klifur-style constraint: reach shrinks as limbs leave their holds, so the
-  // order limbs are moved in decides what is actually within range.
-  contactReach?: boolean;
+  // order limbs are moved in decides what is actually within range. Each entry
+  // is a multiplier indexed by the number of OTHER limbs still on holds, so the
+  // campaign can escalate the constraint level by level.
+  contactReach?: number[];
+  contactForce?: number[];
   // Per-level override for the body-proximity hold fade, so a level that asks
   // the player to plan a sequence can show the whole sequence.
   discoveryRadius?: number;

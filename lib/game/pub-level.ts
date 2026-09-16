@@ -1,3 +1,4 @@
+import { applyDifficulty } from './campaign-difficulty';
 import { applyRouteMoments } from './route-moments';
 import type { Level, Grip, Collider } from './level';
 
@@ -102,6 +103,7 @@ export const pubLevel: Level = {
     'Rest on the verandah posts before the long gutter traverse. Release trailing feet at the corners; warm arms need unloading. Keep a hand and foot planted to collect Gaz’s keys.',
 };
 applyRouteMoments(pubLevel);
+applyDifficulty(pubLevel);
 export const pubJob = {
   id: pubLevel.id,
   name: pubLevel.name,

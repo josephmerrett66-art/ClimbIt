@@ -29,15 +29,21 @@ export const CLIMBING = {
 // indexed by that count. With all four points on, reach is full; let a limb go
 // and every reach shortens, so the order limbs are moved in becomes a decision.
 //
-// Tuning note: the railway's three hand-only awning traverses are the binding
-// constraint. Hanging from one hand puts the shoulder well below the hold line,
-// so the free hand is already reaching near its limit. The route driver clears
-// the level anywhere at or above 0.85 and falls at 0.84, so 0.86 is the
-// strongest stable setting for the current contact layout. Going lower needs
-// those traverses re-authored with real footholds, which the scene's
-// "no floating footholds between awnings" rule currently rules out.
-export const CONTACT_REACH = [0.86, 0.86, 0.88, 1];
-export const CONTACT_FORCE = [0.85, 0.85, 0.92, 1];
+// A tier is authored as two numbers: the multiplier when hanging from a single
+// contact, and the multiplier on two. Pull force follows reach rather than being
+// tuned separately — slightly harsher when hanging, slightly softer on two
+// points, which is the relationship the railway was tuned to by hand.
+export function contactCurves(one: number, two: number) {
+  return {
+    reach: [one, one, two, 1],
+    force: [
+      Math.min(1, one - 0.01),
+      Math.min(1, one - 0.01),
+      Math.min(1, two + 0.04),
+      1,
+    ],
+  };
+}
 
 export const clamp = (n: number, min = 0, max = 1) =>
   Math.max(min, Math.min(max, n));
