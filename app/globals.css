@@ -1732,6 +1732,7 @@ body {
 .jump-charge-button svg,.jump-charge-button small { position:relative; z-index:1; }
 .jump-charge-button small { font-size:9px; font-weight:900; letter-spacing:.08em; }
 .jump-charge-button.charging { color:#111; transform:scale(.96); }
+.jump-charge-button.propelling { color:#111; background:#f5dc43; transform:scale(1.05); }
 .jump-charge-button.airborne { opacity:.45; }
 .jump-charge-button:disabled { cursor:default; }
 

@@ -1036,11 +1036,21 @@ export default function Game({
                   setRevision((r) => r + 1);
                 }}
                 onPointerCancel={() => jumpFor(game.current!)?.cancelCharge()}
-                disabled={paused || hud.jumpState === 'airborne'}
+                disabled={
+                  paused ||
+                  hud.jumpState === 'propelling' ||
+                  hud.jumpState === 'airborne'
+                }
               >
                 <span style={{ '--charge': hud.jumpCharge } as React.CSSProperties} />
                 <ArrowUp size={25} />
-                <small>{hud.jumpState === 'charging' ? 'RELEASE' : 'HOLD'}</small>
+                <small>
+                  {hud.jumpState === 'charging'
+                    ? 'RELEASE'
+                    : hud.jumpState === 'propelling'
+                      ? 'PUSH'
+                      : 'HOLD'}
+                </small>
               </button>
             </div>
           )}
