@@ -81,6 +81,39 @@ export class JumpController {
     return Boolean(this.game.grips.leftFoot || this.game.grips.rightFoot);
   }
 
+  // Whether a full-charge launch could bring the hands anywhere near a beacon.
+  // The envelope is narrow — roughly 340px across and 250px up — and a climber
+  // who commits to a beacon outside it learns nothing from the flight, because
+  // the jump was never the mistake. The slack is deliberately loose: this is
+  // here to refuse the plainly impossible, not to second-guess a hard span.
+  private withinRange(target: Grip) {
+    const g = this.game;
+    const from = {
+      x: (g.p.leftHand.x + g.p.rightHand.x) / 2,
+      y: (g.p.leftHand.y + g.p.rightHand.y) / 2,
+    };
+    const dx = target.x - from.x;
+    const dy = target.y - from.y;
+    const fullHorizontalSpeed = 10.5 * g.scale;
+    const frames = clamp(Math.abs(dx) / fullHorizontalSpeed, 9, 30);
+    const vx = Math.sign(dx || 1) * fullHorizontalSpeed;
+    const vy = clamp(
+      (dy - 10 * g.scale - (0.42 * frames * frames) / 2) / frames,
+      -14 * g.scale,
+      -4 * g.scale,
+    );
+    let x = 0;
+    let y = 0;
+    let best = Infinity;
+    for (let frame = 0; frame < 140; frame++) {
+      x += vx;
+      y += vy + 0.42 * frame;
+      best = Math.min(best, Math.hypot(x - dx, y - dy));
+      if (y > 600 * g.scale) break;
+    }
+    return best <= 128 * g.scale;
+  }
+
   select(point: Point) {
     if (this.state === 'airborne') {
       if (
@@ -96,6 +129,11 @@ export class JumpController {
       .sort((a, b) => distance(a, point) - distance(b, point))[0];
     if (!target || distance(target, point) > (target.radius ?? 18) + 18)
       return 'none';
+    if (!this.withinRange(target)) {
+      this.game.message =
+        'That beacon is out of range from here. Work closer to it first.';
+      return 'none';
+    }
     this.target = target;
     this.game.message =
       'Target selected. Match both hands, plant a boot, then hold JUMP to load the legs.';

@@ -205,10 +205,52 @@ export function draw(
 
     if (l.testMode === 'jump') {
       const jump = jumpFor(g);
+      // Gameplay geometry is invisible in the campaign because the painting
+      // carries it. The lab has no painting, so its structure has to be drawn:
+      // an unlit roof slab would be an ambush rather than an obstacle.
+      for (const c of l.colliders) {
+        ctx.save();
+        ctx.lineCap = 'round';
+        if (c.type === 'edge') {
+          ctx.strokeStyle = c.role === 'ground' ? '#2c3138' : '#59636f';
+          ctx.lineWidth = c.role === 'ground' ? 3 : 9;
+          ctx.beginPath();
+          ctx.moveTo(c.x, c.y);
+          ctx.lineTo(c.x2, c.y2);
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = '#39424c';
+          ctx.fillRect(
+            Math.min(c.x, c.x2),
+            Math.min(c.y, c.y2),
+            Math.abs(c.x2 - c.x),
+            Math.abs(c.y2 - c.y),
+          );
+        }
+        ctx.restore();
+      }
+      // The belay ledge the tool has to be brought back to.
+      const zone = l.completionTrigger;
+      ctx.save();
+      ctx.setLineDash([7, 6]);
+      ctx.strokeStyle = g.collected ? '#8ef0a8' : '#39424c';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(zone.x, zone.y, zone.width, zone.height);
+      ctx.restore();
+
       for (const hold of l.gripPoints) {
         const radius = hold.radius ?? 15;
         const selected = jump?.target?.id === hold.id;
+        // Beacons are the lab's chalk marks and stay lit, so a route can be read
+        // and a fork judged from a distance. Everything else fades up around the
+        // body, which is what turns reading the wall into a skill. The floor of
+        // 0.1 keeps the structure legible without giving away the detail.
+        const awareness = hold.jumpTarget
+          ? 1
+          : Math.min(1, 0.1 + 1.25 * (g.holdVisibility[hold.id] ?? 0));
+        if (awareness < 0.03) continue;
         ctx.save();
+        ctx.globalAlpha = awareness;
         ctx.shadowColor = hold.color ?? '#ffffff';
         ctx.shadowBlur = selected ? 24 : hold.jumpTarget ? 10 : 4;
         ctx.fillStyle = hold.color ?? '#ffffff';
@@ -222,6 +264,16 @@ export function draw(
             radius * 2.5,
             radius * 0.9,
             radius * 0.4,
+          );
+        } else if (hold.singleLimb) {
+          // A notch is drawn narrow because narrow is what it is: one limb fits,
+          // so the hands can never be matched on it and it can never launch.
+          ctx.roundRect(
+            hold.x - radius * 0.55,
+            hold.y - radius * 1.15,
+            radius * 1.1,
+            radius * 2.3,
+            radius * 0.5,
           );
         } else {
           ctx.arc(hold.x, hold.y, radius, 0, Math.PI * 2);
@@ -721,7 +773,38 @@ export function draw(
     }
     // Only the currently available interaction is highlighted; editor geometry stays hidden.
     const cat = g.cat;
-    if (catSprite?.complete && catSprite.naturalWidth) {
+    if (l.testMode === 'jump') {
+      // The lab's objective is drawn rather than painted, for the same reason
+      // its colliders are. A hold-to-collect bar is drawn with it, because on a
+      // challenge level the tool only comes free after 1.2 still seconds and
+      // without the bar that reads as the grab silently failing.
+      ctx.save();
+      ctx.translate(cat.x, cat.y);
+      if (g.collected) ctx.rotate(-0.2);
+      ctx.lineCap = 'round';
+      ctx.strokeStyle = g.collected ? '#f5dc43' : '#cfd6dd';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(-10, 11);
+      ctx.lineTo(6, -7);
+      ctx.stroke();
+      ctx.lineWidth = 3.5;
+      ctx.beginPath();
+      ctx.arc(9, -11, 7.5, 0.75, 5.35);
+      ctx.stroke();
+      ctx.restore();
+      if (g.repairProgress > 0 && !g.collected) {
+        ctx.fillStyle = '#1b1f24';
+        ctx.fillRect(cat.x - 22, cat.y - 34, 44, 4);
+        ctx.fillStyle = '#f5ce67';
+        ctx.fillRect(
+          cat.x - 22,
+          cat.y - 34,
+          (44 * g.repairProgress) / 1.2,
+          4,
+        );
+      }
+    } else if (catSprite?.complete && catSprite.naturalWidth) {
       const height = g.collected ? 40 : 48;
       const width = (height * catSprite.naturalWidth) / catSprite.naturalHeight;
       ctx.save();

@@ -1014,7 +1014,7 @@ export default function Game({
                 : 'Climbing game. Drag hands and feet onto solid edges. On touch screens, select a limb then drag anywhere to move it; release to grab.'
             }
           />
-          {!edit && level.current.testMode === 'jump' && !phoneOpen && !hud.failed && (
+          {!edit && level.current.testMode === 'jump' && !phoneOpen && !hud.failed && !hud.complete && (
             <div className="jump-lab-controls">
               <div className="jump-lab-instruction">
                 <strong>JUMP LAB</strong>
