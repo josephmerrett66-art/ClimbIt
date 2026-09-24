@@ -1586,6 +1586,21 @@ body {
   outline: 2px solid #fff5d0;
   outline-offset: 3px;
 }
+.jump-lab-stage .touch-climb-controls {
+  bottom: max(172px, calc(env(safe-area-inset-bottom) + 160px));
+  z-index: 15;
+}
+.jump-lab-stage .touch-climb-controls p { display:none; }
+.jump-lab-stage .touch-climb-controls button {
+  background:#0d1011e8;
+  border-color:#ffffff55;
+  box-shadow:0 5px 18px #0009;
+}
+.jump-lab-stage .touch-climb-controls button.chosen {
+  color:#101315;
+  background:#f5dc43;
+  border-color:#fff6a8;
+}
 .canvas-wrap canvas {
   user-select: none;
   -webkit-user-select: none;
@@ -1746,10 +1761,10 @@ body {
 .jump-grab-button > span { position:absolute; inset:auto 0 0; height:calc(var(--catch) * 100%); background:color-mix(in srgb,var(--target-color) 65%,#fff 12%); opacity:.7; }
 .jump-grab-button svg,.jump-grab-button small { position:relative; z-index:1; }
 .jump-grab-button small { font-size:9px; font-weight:900; letter-spacing:.08em; }
-.jump-grab-button.approaching { animation:grab-breathe .7s ease-in-out infinite alternate; }
-.jump-grab-button.ready { color:#07120b; background:#fff; transform:scale(1.12); box-shadow:0 0 0 5px var(--target-color),0 0 34px var(--target-color); animation:grab-ready .24s ease-in-out infinite alternate; }
-.jump-grab-button.queued { box-shadow:0 0 0 4px #fff,0 0 28px var(--target-color); }
-.jump-grab-button.passed,.jump-grab-button:disabled { opacity:.36; cursor:default; }
+.jump-grab-button[data-cue='approaching'] { animation:grab-breathe .7s ease-in-out infinite alternate; }
+.jump-grab-button[data-cue='ready'] { color:#07120b; background:#fff; transform:scale(1.12); box-shadow:0 0 0 5px var(--target-color),0 0 34px var(--target-color); animation:grab-ready .24s ease-in-out infinite alternate; }
+.jump-grab-button[data-queued='true'] { box-shadow:0 0 0 4px #fff,0 0 28px var(--target-color); }
+.jump-grab-button[data-cue='passed'],.jump-grab-button:disabled { opacity:.36; cursor:default; }
 @keyframes grab-breathe { from { transform:scale(.97); } to { transform:scale(1.03); } }
 @keyframes grab-ready { from { transform:scale(1.06); } to { transform:scale(1.14); } }
 
@@ -1777,4 +1792,5 @@ body {
   .jump-charge-button { grid-column:2; grid-row:1; width:56px; height:56px; flex-basis:56px; }
   .jump-grab-button { grid-column:3; grid-row:1; width:56px; height:56px; flex-basis:56px; }
   .failure-card,.completion-card { max-height:calc(100dvh - 12px); padding-top:20px; padding-bottom:18px; }
+  .jump-lab-stage .touch-climb-controls { bottom:max(84px,calc(env(safe-area-inset-bottom) + 74px)); }
 }

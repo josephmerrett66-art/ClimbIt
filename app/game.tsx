@@ -155,8 +155,6 @@ export default function Game({
       jumpState: 'idle',
       jumpCharge: 0,
       jumpCatchCue: 'idle',
-      jumpCatchProgress: 0,
-      jumpTargetColor: '#ffffff',
     }),
     [paused, setPaused] = useState(false),
     [zoom, setZoom] = useState(
@@ -210,6 +208,8 @@ export default function Game({
     history = useRef<Level[]>([]),
     paid = useRef(false),
     lastCatchCue = useRef('idle'),
+    jumpGrabButton = useRef<HTMLButtonElement>(null),
+    jumpGrabLabel = useRef<HTMLElement>(null),
     paidCallback = useRef(onPaid),
     financesRef = useRef<Finances>(EMPTY_FINANCES);
   paidCallback.current = onPaid;
@@ -236,8 +236,6 @@ export default function Game({
       jumpState: 'idle',
       jumpCharge: 0,
       jumpCatchCue: 'idle',
-      jumpCatchProgress: 0,
-      jumpTargetColor: '#ffffff',
     });
     setChosen(null);
     setPayout(null);
@@ -449,7 +447,13 @@ export default function Game({
       const rect = c.getBoundingClientRect(),
         w = rect.width,
         h = rect.height,
-        dpr = Math.min(devicePixelRatio || 1, 2);
+        // Jump Lab spends heavily on glowing holds and moving limb shadows.
+        // A 1.5x backing buffer on smaller screens cuts that pixel workload by
+        // roughly 44% while keeping the canvas sharp at phone size.
+        dpr = Math.min(
+          devicePixelRatio || 1,
+          level.current.testMode === 'jump' && w < 900 ? 1.5 : 2,
+        );
       if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
         c.width = Math.round(w * dpr);
         c.height = Math.round(h * dpr);
@@ -528,15 +532,42 @@ export default function Game({
       );
       if (!s.edit) drawMagpie(ctx, g, v);
       if (!s.edit) drawCigarette(ctx, g, v);
-      // Jump catches have a short physical window, so the fixed control needs
-      // a much faster signal than the rest of the low-frequency HUD.
-      if (now - notify > (l.testMode === 'jump' ? 60 : 140)) {
+      // Keep the timing-critical Grab cue on the animation frame. Updating the
+      // whole React HUD here made the canvas stutter on phones.
+      const liveJump = jumpFor(g);
+      if (liveJump && jumpGrabButton.current) {
+        const cue = liveJump.catchCue;
+        const queued = liveJump.grabQueued;
+        const button = jumpGrabButton.current;
+        button.dataset.cue = cue;
+        button.dataset.queued = String(queued);
+        button.style.setProperty('--catch', String(liveJump.catchProgress));
+        button.style.setProperty(
+          '--target-color',
+          liveJump.target?.color ?? '#ffffff',
+        );
+        button.disabled =
+          s.paused ||
+          liveJump.state !== 'airborne' ||
+          cue === 'passed';
+        const label =
+          cue === 'ready'
+            ? 'GRAB!'
+            : cue === 'passed'
+              ? 'MISSED'
+              : queued
+                ? 'ARMED'
+                : 'GRAB';
+        if (jumpGrabLabel.current?.textContent !== label)
+          jumpGrabLabel.current!.textContent = label;
+        if (cue === 'ready' && lastCatchCue.current !== 'ready')
+          navigator.vibrate?.(14);
+        lastCatchCue.current = cue;
+      } else lastCatchCue.current = 'idle';
+      if (now - notify > 140) {
         notify = now;
         const jump = jumpFor(g);
         const catchCue = jump?.catchCue ?? 'idle';
-        if (catchCue === 'ready' && lastCatchCue.current !== 'ready')
-          navigator.vibrate?.(14);
-        lastCatchCue.current = catchCue;
         setHud({
           seconds: g.elapsed,
           carrying: g.collected,
@@ -548,8 +579,6 @@ export default function Game({
           jumpState: jump?.state ?? 'idle',
           jumpCharge: jump?.charge ?? 0,
           jumpCatchCue: catchCue,
-          jumpCatchProgress: jump?.catchProgress ?? 0,
-          jumpTargetColor: jump?.target?.color ?? '#ffffff',
         });
       }
       if (g.complete && !paid.current) {
@@ -725,7 +754,7 @@ export default function Game({
       return;
     gripAudio.current?.unlock();
     const p = world(e);
-    if (!edit && level.current.testMode === 'jump') {
+    if (!edit && level.current.testMode === 'jump' && !chosen) {
       const jump = jumpFor(game.current!);
       const result = jump?.select(p);
       if (result && result !== 'none') {
@@ -1098,18 +1127,9 @@ export default function Game({
                 </small>
               </button>
               <button
+                ref={jumpGrabButton}
                 type="button"
-                className={
-                  'jump-grab-button ' +
-                  hud.jumpCatchCue +
-                  (game.current && jumpFor(game.current)?.grabQueued ? ' queued' : '')
-                }
-                style={
-                  {
-                    '--catch': hud.jumpCatchProgress,
-                    '--target-color': hud.jumpTargetColor,
-                  } as React.CSSProperties
-                }
+                className="jump-grab-button"
                 aria-label="Grab the selected jump hold"
                 onPointerDown={(event) => {
                   event.preventDefault();
@@ -1118,23 +1138,10 @@ export default function Game({
                     gripAudio.current?.playGrab('leftHand');
                   setRevision((r) => r + 1);
                 }}
-                disabled={
-                  paused ||
-                  hud.jumpState !== 'airborne' ||
-                  hud.jumpCatchCue === 'passed'
-                }
               >
                 <span />
                 <Hand size={25} />
-                <small>
-                  {hud.jumpCatchCue === 'ready'
-                    ? 'GRAB!'
-                    : hud.jumpCatchCue === 'passed'
-                      ? 'MISSED'
-                      : game.current && jumpFor(game.current)?.grabQueued
-                        ? 'ARMED'
-                        : 'GRAB'}
-                </small>
+                <small ref={jumpGrabLabel}>GRAB</small>
               </button>
             </div>
           )}
@@ -1402,7 +1409,7 @@ export default function Game({
             basePath={basePath}
             controlsTarget={musicControlsTarget}
           />
-          {touchControls && level.current.testMode !== 'jump' && !phoneOpen && !hud.complete && !hud.failed && (
+          {touchControls && !phoneOpen && !hud.complete && !hud.failed && (
             <div
               className="touch-climb-controls"
               aria-label="Choose a climbing limb"
