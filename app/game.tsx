@@ -7,7 +7,7 @@ import StoryInbox from './story-inbox';
 import PhoneMusic from './phone-music';
 import { magpieFor } from '@/lib/game/magpie';
 import { drawMagpie } from '@/lib/game/magpie-render';
-import { cigaretteFor } from '@/lib/game/cigarette';
+import { cigaretteFor, existingCigaretteFor } from '@/lib/game/cigarette';
 import { drawCigarette } from '@/lib/game/cigarette-render';
 import { jumpFor } from '@/lib/game/jump';
 import { storyMessages, debtPayment } from '@/lib/game/story';
@@ -476,7 +476,7 @@ export default function Game({
           const bird = magpieFor(g);
           const phase = bird?.phase;
           bird?.step(1 / 60);
-          cigaretteFor(g).step(1 / 60);
+          existingCigaretteFor(g)?.step(1 / 60);
           if (bird && phase !== bird.phase) {
             if (bird.phase === 'feint' || bird.phase === 'dive') {
               gripAudio.current?.warning();
@@ -494,14 +494,7 @@ export default function Game({
         setChosen(null);
       }
       viewport.current = { width: w, height: h };
-      const target = cameraTarget(
-        w,
-        h,
-        l,
-        g.p.hip,
-        s.zoom,
-        s.edit,
-      );
+      const target = cameraTarget(w, h, l, g.p.hip, s.zoom, s.edit);
       const v = view.current;
       if (!cameraReady.current || resized || s.edit) {
         Object.assign(v, target);
@@ -547,9 +540,7 @@ export default function Game({
           liveJump.target?.color ?? '#ffffff',
         );
         button.disabled =
-          s.paused ||
-          liveJump.state !== 'airborne' ||
-          cue === 'passed';
+          s.paused || liveJump.state !== 'airborne' || cue === 'passed';
         const label =
           cue === 'ready'
             ? 'GRAB!'
@@ -1076,174 +1067,195 @@ export default function Game({
                 : 'Climbing game. Drag hands and feet onto solid edges. On touch screens, select a limb then drag anywhere to move it; release to grab.'
             }
           />
-          {!edit && level.current.testMode === 'jump' && !phoneOpen && !hud.failed && !hud.complete && (
-            <div className="jump-lab-controls">
-              <div className="jump-lab-instruction">
-                <strong>
-                  SWITCHBACK · {game.current ? jumpFor(game.current)?.completedJumps ?? 0 : 0}/6
-                </strong>
-                <span>
-                  {game.current && (jumpFor(game.current)?.completedJumps ?? 0) === 6
-                    ? 'Match both hands on FINISH. Control the swing for one second.'
-                    : hud.jumpState === 'airborne'
-                      ? hud.jumpCatchCue === 'ready'
-                        ? 'GRAB NOW — the reaching hand is on the hold'
-                        : hud.jumpCatchCue === 'passed'
-                          ? 'Missed the catch window'
-                          : 'Watch the catch ring close, then press GRAB'
-                      : 'Choose 1–6 · set both hands + one foot · hold JUMP · press GRAB when it lights'}
-                </span>
+          {!edit &&
+            level.current.testMode === 'jump' &&
+            !phoneOpen &&
+            !hud.failed &&
+            !hud.complete && (
+              <div className="jump-lab-controls">
+                <div className="jump-lab-instruction">
+                  <strong>
+                    SWITCHBACK ·{' '}
+                    {game.current
+                      ? (jumpFor(game.current)?.completedJumps ?? 0)
+                      : 0}
+                    /6
+                  </strong>
+                  <span>
+                    {game.current &&
+                    (jumpFor(game.current)?.completedJumps ?? 0) === 6
+                      ? 'Match both hands on FINISH. Control the swing for one second.'
+                      : hud.jumpState === 'airborne'
+                        ? hud.jumpCatchCue === 'ready'
+                          ? 'GRAB NOW — the reaching hand is on the hold'
+                          : hud.jumpCatchCue === 'passed'
+                            ? 'Missed the catch window'
+                            : 'Watch the catch ring close, then press GRAB'
+                        : 'Choose 1–6 · set both hands + one foot · hold JUMP · press GRAB when it lights'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className={'jump-charge-button ' + hud.jumpState}
+                  aria-label="Hold to charge jump and release to launch"
+                  onPointerDown={(event) => {
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    jumpFor(game.current!)?.startCharge();
+                    setRevision((r) => r + 1);
+                  }}
+                  onPointerUp={(event) => {
+                    if (event.currentTarget.hasPointerCapture(event.pointerId))
+                      event.currentTarget.releasePointerCapture(
+                        event.pointerId,
+                      );
+                    jumpFor(game.current!)?.release();
+                    setRevision((r) => r + 1);
+                  }}
+                  onPointerCancel={() => jumpFor(game.current!)?.cancelCharge()}
+                  disabled={
+                    paused ||
+                    hud.jumpState === 'propelling' ||
+                    hud.jumpState === 'airborne'
+                  }
+                >
+                  <span
+                    style={
+                      { '--charge': hud.jumpCharge } as React.CSSProperties
+                    }
+                  />
+                  <ArrowUp size={25} />
+                  <small>
+                    {hud.jumpState === 'charging'
+                      ? 'RELEASE'
+                      : hud.jumpState === 'propelling'
+                        ? 'PUSH'
+                        : 'HOLD'}
+                  </small>
+                </button>
+                <button
+                  ref={jumpGrabButton}
+                  type="button"
+                  className="jump-grab-button"
+                  aria-label="Grab the selected jump hold"
+                  onPointerDown={(event) => {
+                    event.preventDefault();
+                    gripAudio.current?.unlock();
+                    if (jumpFor(game.current!)?.pressGrab())
+                      gripAudio.current?.playGrab('leftHand');
+                    setRevision((r) => r + 1);
+                  }}
+                >
+                  <span />
+                  <Hand size={25} />
+                  <small ref={jumpGrabLabel}>GRAB</small>
+                </button>
               </div>
-              <button
-                type="button"
-                className={'jump-charge-button ' + hud.jumpState}
-                aria-label="Hold to charge jump and release to launch"
-                onPointerDown={(event) => {
-                  event.currentTarget.setPointerCapture(event.pointerId);
-                  jumpFor(game.current!)?.startCharge();
-                  setRevision((r) => r + 1);
-                }}
-                onPointerUp={(event) => {
-                  if (event.currentTarget.hasPointerCapture(event.pointerId))
-                    event.currentTarget.releasePointerCapture(event.pointerId);
-                  jumpFor(game.current!)?.release();
-                  setRevision((r) => r + 1);
-                }}
-                onPointerCancel={() => jumpFor(game.current!)?.cancelCharge()}
-                disabled={
-                  paused ||
-                  hud.jumpState === 'propelling' ||
-                  hud.jumpState === 'airborne'
-                }
-              >
-                <span style={{ '--charge': hud.jumpCharge } as React.CSSProperties} />
-                <ArrowUp size={25} />
-                <small>
-                  {hud.jumpState === 'charging'
-                    ? 'RELEASE'
-                    : hud.jumpState === 'propelling'
-                      ? 'PUSH'
-                      : 'HOLD'}
-                </small>
-              </button>
-              <button
-                ref={jumpGrabButton}
-                type="button"
-                className="jump-grab-button"
-                aria-label="Grab the selected jump hold"
-                onPointerDown={(event) => {
-                  event.preventDefault();
-                  gripAudio.current?.unlock();
-                  if (jumpFor(game.current!)?.pressGrab())
-                    gripAudio.current?.playGrab('leftHand');
-                  setRevision((r) => r + 1);
-                }}
-              >
-                <span />
-                <Hand size={25} />
-                <small ref={jumpGrabLabel}>GRAB</small>
-              </button>
-            </div>
-          )}
+            )}
           {!edit &&
             !phoneOpen &&
             (level.current.testMode === 'jump' ||
               (!hud.complete && !hud.failed)) && (
-            <label
-              className={
-                'camera-zoom-control' +
-                (level.current.testMode === 'jump' ? ' jump-lab-camera' : '')
-              }
-            >
-              <Minus size={14} aria-hidden="true" />
-              <input
-                type="range"
-                min="0.65"
-                max="2.2"
-                step="0.05"
-                value={zoom}
-                onChange={(event) => {
-                  cameraReady.current = false;
-                  setZoom(Number(event.target.value));
-                }}
-                aria-label="Camera zoom"
-              />
-              <Plus size={14} aria-hidden="true" />
-              {level.current.testMode === 'jump' && <b>ZOOM</b>}
-            </label>
-          )}
-          {!edit && level.current.testMode !== 'jump' && !phoneOpen && !hud.complete && !hud.failed && (
-            <div className="prop-controls">
-              {game.current && magpieFor(game.current) && (
+              <label
+                className={
+                  'camera-zoom-control' +
+                  (level.current.testMode === 'jump' ? ' jump-lab-camera' : '')
+                }
+              >
+                <Minus size={14} aria-hidden="true" />
+                <input
+                  type="range"
+                  min="0.65"
+                  max="2.2"
+                  step="0.05"
+                  value={zoom}
+                  onChange={(event) => {
+                    cameraReady.current = false;
+                    setZoom(Number(event.target.value));
+                  }}
+                  aria-label="Camera zoom"
+                />
+                <Plus size={14} aria-hidden="true" />
+                {level.current.testMode === 'jump' && <b>ZOOM</b>}
+              </label>
+            )}
+          {!edit &&
+            level.current.testMode !== 'jump' &&
+            !phoneOpen &&
+            !hud.complete &&
+            !hud.failed && (
+              <div className="prop-controls">
+                {game.current && magpieFor(game.current) && (
+                  <button
+                    disabled={paused}
+                    aria-label={
+                      game.current?.racketHand
+                        ? 'Put racket away'
+                        : 'Equip racket'
+                    }
+                    title="Racket — drag the equipped hand to swing"
+                    aria-pressed={Boolean(game.current?.racketHand)}
+                    onClick={() => {
+                      const g = game.current;
+                      if (!g) return;
+                      const bird = magpieFor(g)!;
+                      bird.equip();
+                      setChosen(null);
+                      setRevision((r) => r + 1);
+                    }}
+                  >
+                    <svg
+                      width="25"
+                      height="25"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      aria-hidden="true"
+                    >
+                      <ellipse
+                        cx="15"
+                        cy="8"
+                        rx="5"
+                        ry="7"
+                        transform="rotate(35 15 8)"
+                      />
+                      <path d="M11 14 4 22M12 4l7 7M10 7l6 7M13 2l7 7M11 11l7-7" />
+                    </svg>
+                  </button>
+                )}
                 <button
-                  disabled={paused}
+                  className="dart-button"
                   aria-label={
-                    game.current?.racketHand
-                      ? 'Put racket away'
-                      : 'Equip racket'
+                    game.current?.cigaretteHand
+                      ? 'Put dart out'
+                      : 'Smoke a dart'
                   }
-                  title="Racket — drag the equipped hand to swing"
-                  aria-pressed={Boolean(game.current?.racketHand)}
+                  title={
+                    game.current?.cigaretteHand
+                      ? 'Put dart out'
+                      : 'Dart — drag the equipped hand to your mouth'
+                  }
+                  aria-pressed={Boolean(game.current?.cigaretteHand)}
+                  disabled={paused || Boolean(game.current?.racketHand)}
                   onClick={() => {
                     const g = game.current;
                     if (!g) return;
-                    const bird = magpieFor(g)!;
-                    bird.equip();
+                    const cigarette = cigaretteFor(g);
+                    const puttingOut = Boolean(g.cigaretteHand);
+                    cigarette.toggle();
+                    if (puttingOut) gripAudio.current?.playCough();
                     setChosen(null);
                     setRevision((r) => r + 1);
                   }}
                 >
-                  <svg
-                    width="25"
-                    height="25"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="1.7"
-                    aria-hidden="true"
-                  >
-                    <ellipse
-                      cx="15"
-                      cy="8"
-                      rx="5"
-                      ry="7"
-                      transform="rotate(35 15 8)"
-                    />
-                    <path d="M11 14 4 22M12 4l7 7M10 7l6 7M13 2l7 7M11 11l7-7" />
-                  </svg>
+                  {game.current?.cigaretteHand ? (
+                    <CircleSlash size={23} />
+                  ) : (
+                    <Cigarette size={23} />
+                  )}
                 </button>
-              )}
-              <button
-                className="dart-button"
-                aria-label={
-                  game.current?.cigaretteHand ? 'Put dart out' : 'Smoke a dart'
-                }
-                title={
-                  game.current?.cigaretteHand
-                    ? 'Put dart out'
-                    : 'Dart — drag the equipped hand to your mouth'
-                }
-                aria-pressed={Boolean(game.current?.cigaretteHand)}
-                disabled={paused || Boolean(game.current?.racketHand)}
-                onClick={() => {
-                  const g = game.current;
-                  if (!g) return;
-                  const cigarette = cigaretteFor(g);
-                  const puttingOut = Boolean(g.cigaretteHand);
-                  cigarette.toggle();
-                  if (puttingOut) gripAudio.current?.playCough();
-                  setChosen(null);
-                  setRevision((r) => r + 1);
-                }}
-              >
-                {game.current?.cigaretteHand ? (
-                  <CircleSlash size={23} />
-                ) : (
-                  <Cigarette size={23} />
-                )}
-              </button>
-            </div>
-          )}
+              </div>
+            )}
           {edit && (
             <span className="editor-world-label">
               {level.current.worldWidth} × {level.current.worldHeight} ·{' '}
@@ -1454,7 +1466,11 @@ export default function Game({
               aria-label="Job failed"
             >
               <section className="failure-card">
-                <span>{level.current.testMode === 'jump' ? 'ATTEMPT OVER' : 'JOB FAILED'}</span>
+                <span>
+                  {level.current.testMode === 'jump'
+                    ? 'ATTEMPT OVER'
+                    : 'JOB FAILED'}
+                </span>
                 <h2>You fell.</h2>
                 <p>
                   {level.current.testMode === 'jump'
@@ -1471,15 +1487,25 @@ export default function Game({
             </div>
           )}
           {hud.complete && level.current.testMode === 'jump' && !phoneOpen && (
-            <div className="completion-layer" role="dialog" aria-label="Boulder complete">
+            <div
+              className="completion-layer"
+              role="dialog"
+              aria-label="Boulder complete"
+            >
               <section className="completion-card">
                 <span className="completion-kicker">SWITCHBACK SENT</span>
                 <h2>Six for six.</h2>
                 <p>All six jumps linked. Finish matched and controlled.</p>
-                <p>{Math.floor(hud.seconds / 60)}:{String(Math.floor(hud.seconds % 60)).padStart(2, '0')} elapsed</p>
+                <p>
+                  {Math.floor(hud.seconds / 60)}:
+                  {String(Math.floor(hud.seconds % 60)).padStart(2, '0')}{' '}
+                  elapsed
+                </p>
                 <div className="completion-actions">
                   <button onClick={reset}>Climb again</button>
-                  <button onClick={() => openPhoneTo('jobs')}>Choose a job</button>
+                  <button onClick={() => openPhoneTo('jobs')}>
+                    Choose a job
+                  </button>
                 </div>
               </section>
             </div>

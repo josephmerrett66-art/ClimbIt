@@ -1,5 +1,5 @@
 import type { Climber } from './physics';
-import { cigaretteFor } from './cigarette';
+import { existingCigaretteFor } from './cigarette';
 import type { View } from './render';
 
 export function drawCigarette(
@@ -7,7 +7,8 @@ export function drawCigarette(
   g: Climber,
   view: View,
 ) {
-  const moment = cigaretteFor(g);
+  const moment = existingCigaretteFor(g);
+  if (!moment) return;
   ctx.save();
   ctx.translate(view.x, view.y);
   ctx.scale(view.scale, view.scale);

@@ -86,6 +86,7 @@ export class CigaretteMoment {
 }
 
 const moments = new WeakMap<Climber, CigaretteMoment>();
+export const existingCigaretteFor = (g: Climber) => moments.get(g) ?? null;
 export function cigaretteFor(g: Climber) {
   let moment = moments.get(g);
   if (!moment) {

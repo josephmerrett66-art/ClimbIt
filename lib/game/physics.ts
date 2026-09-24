@@ -24,6 +24,8 @@ export const distance = (a: Point, b: Point) =>
   Math.hypot(a.x - b.x, a.y - b.y);
 export class Climber {
   p: Record<string, Particle> = {};
+  private particles: Particle[] = [];
+  private groundY: number;
   bones: Bone[] = [];
   grips: Partial<Record<Limb, Grip>> = {};
   drag: {
@@ -73,8 +75,8 @@ export class Climber {
     this.scale = level.playerScale ?? 1;
     const { x, y } = level.playerSpawn,
       s = this.scale;
-    const add = (n: string, dx: number, dy: number, r: number, mass = 1) =>
-      (this.p[n] = {
+    const add = (n: string, dx: number, dy: number, r: number, mass = 1) => {
+      const particle = (this.p[n] = {
         x: x + dx * s,
         y: y + dy * s,
         px: x + dx * s,
@@ -82,6 +84,9 @@ export class Climber {
         r: r * s,
         mass,
       });
+      this.particles.push(particle);
+      return particle;
+    };
     add('neck', 0, -48, 12, 3);
     add('hip', 0, 0, 13, 4);
     add('head', 0, -70, 15, 1.5);
@@ -133,6 +138,18 @@ export class Climber {
     }
     const o = level.objectives[0];
     this.cat = { x: o.x, y: o.y, px: o.x, py: o.y, r: 13, mass: 1.5 };
+    this.groundY = this.level.colliders
+      .filter(
+        (c) =>
+          c.type === 'edge' &&
+          Math.abs(c.y2 - c.y) < 2 &&
+          (c.role === 'ground' ||
+            Math.max(c.y, c.y2) > this.level.worldHeight * 0.75),
+      )
+      .reduce(
+        (lowest, c) => Math.min(lowest, Math.min(c.y, c.y2)),
+        this.level.worldHeight,
+      );
     for (const limb of LIMBS) {
       const g = this.level.challenge
         ? this.reachableHold(limb, this.p[limb], Math.max(22, 36 * s))
@@ -525,7 +542,7 @@ export class Climber {
       neck.px += nx * 0.15;
       neck.py += ny * 0.15;
     }
-    for (const p of Object.values(this.p)) {
+    for (const p of this.particles) {
       const vx = (p.x - p.px) * 0.982,
         vy = (p.y - p.py) * 0.982;
       p.px = p.x;
@@ -581,7 +598,7 @@ export class Climber {
         this.p[limb].x = g.x;
         this.p[limb].y = g.y;
       }
-      for (const p of Object.values(this.p)) {
+      for (const p of this.particles) {
         this.collide(p);
         p.x = Math.max(p.r, Math.min(this.level.worldWidth - p.r, p.x));
         p.y = Math.max(p.r, Math.min(this.level.worldHeight - p.r, p.y));
@@ -617,20 +634,8 @@ export class Climber {
       this.unanchoredStartY = null;
     } else {
       if (this.unanchoredStartY === null) this.unanchoredStartY = this.p.hip.y;
-      const groundY = this.level.colliders
-          .filter(
-            (c) =>
-              c.type === 'edge' &&
-              Math.abs(c.y2 - c.y) < 2 &&
-              (c.role === 'ground' ||
-                Math.max(c.y, c.y2) > this.level.worldHeight * 0.75),
-          )
-          .reduce(
-            (lowest, c) => Math.min(lowest, Math.min(c.y, c.y2)),
-            this.level.worldHeight,
-          ),
-        hitGround = Object.values(this.p).some(
-          (p) => p.y + p.r >= groundY - 1.5,
+      const hitGround = this.particles.some(
+          (p) => p.y + p.r >= this.groundY - 1.5,
         ),
         fallDistance = this.p.hip.y - this.unanchoredStartY;
       if (hitGround && fallDistance > 55 * this.scale) {
