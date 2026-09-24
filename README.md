@@ -44,8 +44,8 @@ Node 22.13+ and pnpm. `pnpm install`, then `pnpm dev`. `pnpm build` creates the 
 ## Architecture
 
 - `lib/game/jump.ts` and `jump-lab.ts`: the staged dyno — coil, hip drive,
-  hands released before feet, a single leading hand for the catch — and
-  Switchback, the sparse bouldering circuit built on it.
+  hands released before feet, a single leading hand and a fixed, signalled Grab
+  control for the catch — and Switchback, the sparse bouldering circuit built on it.
 - `lib/game/physics.ts`: position-based weighted ragdoll with a physical torso frame, separate shoulder and hip joints, fixed bone lengths, limited endpoint reach, anchored grips, gravity, one-way elbow/knee hinges and ground-impact failure. Soft dragging, nearby-hold attraction and capped release momentum keep repositioning fluid while grip anchors remain precise.
 - `lib/game/australian-jobs.ts`, `australian-routes.json` and `campaign.ts`: current job lineup, coordinates traced in native artwork pixels and shared scaling of artwork/geometry. `level.ts` retains types, JSON validation and retired regression fixtures.
 - `lib/game/render.ts`: PNG background/foreground layers, a connected low-poly climber built from tapered faceted limbs, joint pieces, skin forearms, shaped hands and boots, torso, pelvis, face and hair, plus the low-poly cat PNG and editor overlays. The climber has no helmet, harness or visible rope, and gameplay geometry is invisible.

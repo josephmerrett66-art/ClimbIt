@@ -8,6 +8,8 @@ export type JumpState =
   | 'airborne'
   | 'caught';
 
+export type CatchCue = 'idle' | 'approaching' | 'ready' | 'passed';
+
 const HANDS: Limb[] = ['leftHand', 'rightHand'];
 const FEET: Limb[] = ['leftFoot', 'rightFoot'];
 const TORSO = [
@@ -34,7 +36,8 @@ export class JumpController {
   flightTime = 0;
   completedJumps = 0;
   finishControl = 0;
-  private catchCooldown = 0;
+  private grabBuffer = 0;
+  private closestHandDistance = Infinity;
   private previousFinishHip: Point | null = null;
   private phaseTime = 0;
   private launchPower = 0;
@@ -85,6 +88,49 @@ export class JumpController {
     return Boolean(this.game.grips.leftFoot || this.game.grips.rightFoot);
   }
 
+  private currentHandDistance() {
+    if (!this.target) return Infinity;
+    return Math.min(
+      distance(this.game.p.leftHand, this.target),
+      distance(this.game.p.rightHand, this.target),
+    );
+  }
+
+  private catchRadius() {
+    if (!this.target) return 0;
+    return this.game.level.jumpCourse
+      ? (this.target.radius ?? 17) + 38 * this.game.scale
+      : 64 * this.game.scale;
+  }
+
+  get catchCue(): CatchCue {
+    if (this.state !== 'airborne' || !this.target) return 'idle';
+    const handDistance = this.currentHandDistance();
+    if (handDistance <= this.catchRadius()) return 'ready';
+    if (
+      this.flightTime > 0.2 &&
+      handDistance > this.closestHandDistance + 12 * this.game.scale
+    )
+      return 'passed';
+    return 'approaching';
+  }
+
+  get catchProgress() {
+    if (this.state !== 'airborne' || !this.target) return 0;
+    const outer = this.catchRadius() + 130 * this.game.scale;
+    return clamp(
+      1 -
+        (this.currentHandDistance() - this.catchRadius()) /
+          Math.max(1, outer - this.catchRadius()),
+      0,
+      1,
+    );
+  }
+
+  get grabQueued() {
+    return this.grabBuffer > 0;
+  }
+
   // Whether a full-charge launch could bring the hands anywhere near a beacon.
   // The envelope is narrow — roughly 340px across and 250px up — and a climber
   // who commits to a beacon outside it learns nothing from the flight, because
@@ -119,14 +165,7 @@ export class JumpController {
   }
 
   select(point: Point) {
-    if (this.state === 'airborne') {
-      if (
-        !this.target ||
-        distance(point, this.target) > (this.target.radius ?? 18) + 24
-      )
-        return 'none';
-      return this.tryCatch(point) ? 'caught' : 'missed';
-    }
+    if (this.state === 'airborne') return 'none';
     if (this.state === 'charging' || this.state === 'propelling') return 'none';
     const target = this.game.level.gripPoints
       .filter((hold) => hold.jumpTarget)
@@ -389,7 +428,9 @@ export class JumpController {
     this.chargePose = null;
     this.propulsionPose = null;
     g.unanchoredStartY = g.p.hip.y;
-    g.message = 'Airborne — the hands lead. Tap the target as they arrive.';
+    this.closestHandDistance = Infinity;
+    this.grabBuffer = 0;
+    g.message = 'Airborne — watch the Grab button. Press when it lights.';
   }
 
   private reachInFlight(dt: number) {
@@ -413,26 +454,15 @@ export class JumpController {
     }
   }
 
-  tryCatch(point: Point) {
+  private catchTarget() {
     const g = this.game;
     const target = this.target;
     if (this.state !== 'airborne' || !target) return false;
-    if (distance(point, target) > (target.radius ?? 18) + 24) return false;
-    if (this.catchCooldown > 0) return false;
-    this.catchCooldown = 0.16;
     const hands = [...HANDS].sort(
       (a, b) => distance(g.p[a], target) - distance(g.p[b], target),
     );
     const nearest = hands[0];
-    // Touch target stays generous; the physical hand must actually arrive.
-    const catchRadius = g.level.jumpCourse ? (target.radius ?? 17) + 20 * g.scale : 64 * g.scale;
-    if (distance(g.p[nearest], target) > catchRadius) {
-      g.message =
-        this.flightTime < 0.3
-          ? 'Too early — wait until the hands reach the target.'
-          : 'Out of reach — the launch needed more charge or a later catch.';
-      return false;
-    }
+    if (distance(g.p[nearest], target) > this.catchRadius()) return false;
 
     // A dyno catch starts through the leading hand. Leaving the other arm free
     // preserves the loose counter-swing instead of snapping both arms rigid.
@@ -446,6 +476,7 @@ export class JumpController {
     const next = g.level.jumpCourse?.[this.completedJumps];
     if (next?.hold === target.id) this.completedJumps++;
     this.state = 'caught';
+    this.grabBuffer = 0;
     this.flightTime = 0;
     this.charge = 0;
     g.unanchoredStartY = null;
@@ -454,9 +485,35 @@ export class JumpController {
     return true;
   }
 
+  pressGrab() {
+    const g = this.game;
+    if (this.state !== 'airborne' || !this.target) return false;
+    if (this.catchCue === 'ready') return this.catchTarget();
+    if (this.catchCue === 'passed') {
+      g.message = 'Missed — the reaching hand has already passed the hold.';
+      return false;
+    }
+    // A short input buffer makes a deliberate near-perfect press reliable on
+    // touchscreens without turning the catch into an automatic success.
+    this.grabBuffer = 0.32;
+    g.message = 'Grab armed — keep the hand moving into the hold.';
+    return false;
+  }
+
+  // Kept for the simulation harness and older callers. Gameplay now uses the
+  // fixed Grab control, so the moving hold is never the timing button.
+  tryCatch(point: Point) {
+    if (
+      !this.target ||
+      distance(point, this.target) > (this.target.radius ?? 18) + 24
+    )
+      return false;
+    return this.pressGrab();
+  }
+
   step(dt: number) {
     const g = this.game;
-    this.catchCooldown = Math.max(0, this.catchCooldown - dt);
+    this.grabBuffer = Math.max(0, this.grabBuffer - dt);
     if (g.failed || g.complete) return;
     const course = g.level.jumpCourse;
     if (course && this.completedJumps === course.length) {
@@ -478,6 +535,14 @@ export class JumpController {
     } else if (this.state === 'airborne') {
       this.flightTime += dt;
       this.reachInFlight(dt);
+      this.closestHandDistance = Math.min(
+        this.closestHandDistance,
+        this.currentHandDistance(),
+      );
+      if (this.grabBuffer > 0 && this.catchCue === 'ready') {
+        this.catchTarget();
+        return;
+      }
       if (this.flightTime > 1.55 && !g.failed)
         g.message = 'The dead point has passed — brace for the fall or restart.';
     } else if (this.state === 'caught') {

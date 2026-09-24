@@ -281,6 +281,29 @@ export function draw(
         }
         ctx.fill();
         ctx.stroke();
+        if (selected && jump?.state === 'airborne') {
+          const cue = jump.catchCue;
+          const progress = jump.catchProgress;
+          ctx.shadowBlur = cue === 'ready' ? 28 : 10;
+          ctx.strokeStyle = cue === 'ready' ? '#ffffff' : hold.color ?? '#ffffff';
+          ctx.lineWidth = cue === 'ready' ? 7 : 4;
+          ctx.beginPath();
+          ctx.arc(
+            hold.x,
+            hold.y,
+            radius + 13,
+            -Math.PI / 2,
+            -Math.PI / 2 + Math.PI * 2 * Math.max(0.08, progress),
+          );
+          ctx.stroke();
+          if (cue === 'ready') {
+            ctx.globalAlpha = 0.2 + 0.14 * Math.sin(performance.now() / 55);
+            ctx.fillStyle = hold.color ?? '#ffffff';
+            ctx.beginPath();
+            ctx.arc(hold.x, hold.y, radius + 24, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
         const index = l.jumpCourse?.findIndex(stage => stage.hold === hold.id) ?? -1;
         if (index >= 0 || hold.id === 'start-hands') {
           ctx.shadowBlur = 0;

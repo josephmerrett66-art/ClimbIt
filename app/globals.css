@@ -1738,10 +1738,21 @@ body {
 .jump-charge-button.propelling { color:#111; background:#f5dc43; transform:scale(1.05); }
 .jump-charge-button.airborne { opacity:.45; }
 .jump-charge-button:disabled { cursor:default; }
+.jump-grab-button { --catch:0; --target-color:#fff; pointer-events:auto; position:relative; width:70px; height:70px; flex:0 0 70px; display:grid; place-items:center; align-content:center; gap:0; overflow:hidden; border:3px solid var(--target-color); border-radius:50%; background:#111; color:#fff; box-shadow:0 7px 26px #000c,0 0 calc(20px * var(--catch)) color-mix(in srgb,var(--target-color) 70%,transparent); touch-action:manipulation; user-select:none; transition:transform .08s ease,opacity .15s ease,background .1s ease,box-shadow .1s ease; }
+.jump-grab-button > span { position:absolute; inset:auto 0 0; height:calc(var(--catch) * 100%); background:color-mix(in srgb,var(--target-color) 65%,#fff 12%); opacity:.7; }
+.jump-grab-button svg,.jump-grab-button small { position:relative; z-index:1; }
+.jump-grab-button small { font-size:9px; font-weight:900; letter-spacing:.08em; }
+.jump-grab-button.approaching { animation:grab-breathe .7s ease-in-out infinite alternate; }
+.jump-grab-button.ready { color:#07120b; background:#fff; transform:scale(1.12); box-shadow:0 0 0 5px var(--target-color),0 0 34px var(--target-color); animation:grab-ready .24s ease-in-out infinite alternate; }
+.jump-grab-button.queued { box-shadow:0 0 0 4px #fff,0 0 28px var(--target-color); }
+.jump-grab-button.passed,.jump-grab-button:disabled { opacity:.36; cursor:default; }
+@keyframes grab-breathe { from { transform:scale(.97); } to { transform:scale(1.03); } }
+@keyframes grab-ready { from { transform:scale(1.06); } to { transform:scale(1.14); } }
 
 @media (max-width: 680px) {
   .jump-lab-controls { left:12px; right:12px; bottom:92px; transform:none; gap:8px; }
   .jump-lab-instruction { min-width:0; flex:1; padding:8px 10px; }
   .jump-lab-instruction span { font-size:10px; }
   .jump-charge-button { width:62px; height:62px; flex-basis:62px; }
+  .jump-grab-button { width:62px; height:62px; flex-basis:62px; }
 }

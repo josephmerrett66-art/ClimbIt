@@ -56,10 +56,10 @@ export function solve() {
         tick(launch.g,launch.j);
         const d = Math.min(distance(launch.g.p.leftHand,target), distance(launch.g.p.rightHand,target));
         closest = Math.min(closest,d);
-        if (d > target.radius! + 20 * g.scale) continue;
+        if (launch.j.catchCue !== 'ready') continue;
         window++;
         const candidate = copy(launch.g,launch.j);
-        if (!candidate.j.tryCatch(target)) continue;
+        if (!candidate.j.pressGrab()) continue;
         if (recover(candidate.g,candidate.j,target.id)) {
           solution = candidate;
           results.push({name:stage.name,charge,frame:f,window});

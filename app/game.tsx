@@ -154,6 +154,9 @@ export default function Game({
       message: 'Drag a hand or boot onto a solid edge.',
       jumpState: 'idle',
       jumpCharge: 0,
+      jumpCatchCue: 'idle',
+      jumpCatchProgress: 0,
+      jumpTargetColor: '#ffffff',
     }),
     [paused, setPaused] = useState(false),
     [zoom, setZoom] = useState(
@@ -206,6 +209,7 @@ export default function Game({
     } | null>(null),
     history = useRef<Level[]>([]),
     paid = useRef(false),
+    lastCatchCue = useRef('idle'),
     paidCallback = useRef(onPaid),
     financesRef = useRef<Finances>(EMPTY_FINANCES);
   paidCallback.current = onPaid;
@@ -231,6 +235,9 @@ export default function Game({
       message: 'Drag a hand or boot onto a solid edge.',
       jumpState: 'idle',
       jumpCharge: 0,
+      jumpCatchCue: 'idle',
+      jumpCatchProgress: 0,
+      jumpTargetColor: '#ffffff',
     });
     setChosen(null);
     setPayout(null);
@@ -457,7 +464,11 @@ export default function Game({
         accum += dt;
         while (accum >= 1 / 60) {
           g.step();
-          jumpFor(g)?.step(1 / 60);
+          const jump = jumpFor(g);
+          const catchesBeforeJump = g.catches.length;
+          jump?.step(1 / 60);
+          if (g.catches.length > catchesBeforeJump)
+            gripAudio.current?.playGrab('leftHand');
           const bird = magpieFor(g);
           const phase = bird?.phase;
           bird?.step(1 / 60);
@@ -517,9 +528,15 @@ export default function Game({
       );
       if (!s.edit) drawMagpie(ctx, g, v);
       if (!s.edit) drawCigarette(ctx, g, v);
-      if (now - notify > 140) {
+      // Jump catches have a short physical window, so the fixed control needs
+      // a much faster signal than the rest of the low-frequency HUD.
+      if (now - notify > (l.testMode === 'jump' ? 60 : 140)) {
         notify = now;
         const jump = jumpFor(g);
+        const catchCue = jump?.catchCue ?? 'idle';
+        if (catchCue === 'ready' && lastCatchCue.current !== 'ready')
+          navigator.vibrate?.(14);
+        lastCatchCue.current = catchCue;
         setHud({
           seconds: g.elapsed,
           carrying: g.collected,
@@ -530,6 +547,9 @@ export default function Game({
           message: g.message,
           jumpState: jump?.state ?? 'idle',
           jumpCharge: jump?.charge ?? 0,
+          jumpCatchCue: catchCue,
+          jumpCatchProgress: jump?.catchProgress ?? 0,
+          jumpTargetColor: jump?.target?.color ?? '#ffffff',
         });
       }
       if (g.complete && !paid.current) {
@@ -591,6 +611,16 @@ export default function Game({
       if (!edit && e.code === 'Space' && level.current.testMode === 'jump') {
         e.preventDefault();
         if (!e.repeat) jumpFor(game.current!)?.startCharge();
+      }
+      if (
+        !edit &&
+        e.key.toLowerCase() === 'g' &&
+        level.current.testMode === 'jump' &&
+        !e.repeat
+      ) {
+        e.preventDefault();
+        if (jumpFor(game.current!)?.pressGrab())
+          gripAudio.current?.playGrab('leftHand');
       }
       if (edit && e.key === ' ') {
         e.preventDefault();
@@ -699,7 +729,6 @@ export default function Game({
       const jump = jumpFor(game.current!);
       const result = jump?.select(p);
       if (result && result !== 'none') {
-        if (result === 'caught') gripAudio.current?.playGrab('leftHand');
         setRevision((r) => r + 1);
         e.preventDefault();
         return;
@@ -1023,7 +1052,13 @@ export default function Game({
                 <span>
                   {game.current && (jumpFor(game.current)?.completedJumps ?? 0) === 6
                     ? 'Match both hands on FINISH. Control the swing for one second.'
-                    : 'Follow 1–6 · match hands + plant one foot · hold, release, tap to catch'}
+                    : hud.jumpState === 'airborne'
+                      ? hud.jumpCatchCue === 'ready'
+                        ? 'GRAB NOW — the reaching hand is on the hold'
+                        : hud.jumpCatchCue === 'passed'
+                          ? 'Missed the catch window'
+                          : 'Watch the catch ring close, then press GRAB'
+                      : 'Choose 1–6 · set both hands + one foot · hold JUMP · press GRAB when it lights'}
                 </span>
               </div>
               <button
@@ -1056,6 +1091,45 @@ export default function Game({
                     : hud.jumpState === 'propelling'
                       ? 'PUSH'
                       : 'HOLD'}
+                </small>
+              </button>
+              <button
+                type="button"
+                className={
+                  'jump-grab-button ' +
+                  hud.jumpCatchCue +
+                  (game.current && jumpFor(game.current)?.grabQueued ? ' queued' : '')
+                }
+                style={
+                  {
+                    '--catch': hud.jumpCatchProgress,
+                    '--target-color': hud.jumpTargetColor,
+                  } as React.CSSProperties
+                }
+                aria-label="Grab the selected jump hold"
+                onPointerDown={(event) => {
+                  event.preventDefault();
+                  gripAudio.current?.unlock();
+                  if (jumpFor(game.current!)?.pressGrab())
+                    gripAudio.current?.playGrab('leftHand');
+                  setRevision((r) => r + 1);
+                }}
+                disabled={
+                  paused ||
+                  hud.jumpState !== 'airborne' ||
+                  hud.jumpCatchCue === 'passed'
+                }
+              >
+                <span />
+                <Hand size={25} />
+                <small>
+                  {hud.jumpCatchCue === 'ready'
+                    ? 'GRAB!'
+                    : hud.jumpCatchCue === 'passed'
+                      ? 'MISSED'
+                      : game.current && jumpFor(game.current)?.grabQueued
+                        ? 'ARMED'
+                        : 'GRAB'}
                 </small>
               </button>
             </div>
@@ -1324,7 +1398,7 @@ export default function Game({
             basePath={basePath}
             controlsTarget={musicControlsTarget}
           />
-          {touchControls && !phoneOpen && !hud.complete && !hud.failed && (
+          {touchControls && level.current.testMode !== 'jump' && !phoneOpen && !hud.complete && !hud.failed && (
             <div
               className="touch-climb-controls"
               aria-label="Choose a climbing limb"
