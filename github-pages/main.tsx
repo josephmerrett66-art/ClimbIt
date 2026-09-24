@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import Game from '@/app/game';
 import { pubLevel } from '@/lib/game/pub-level';
 import { AUSTRALIAN_JOBS } from '@/lib/game/australian-jobs';
+import { jumpLabLevel } from '@/lib/game/jump-lab';
 import '@/app/globals.css';
 import type { Level } from '@/lib/game/level';
 
@@ -19,7 +20,9 @@ const legacy: Record<string, number> = {
   '/cable-car': 7,
 };
 const source =
-  route === '/pub'
+  route === '/jump-lab'
+    ? jumpLabLevel
+    : route === '/pub'
     ? pubLevel
     : (
         AUSTRALIAN_JOBS.find((job) => job.href === route) ??

@@ -9,6 +9,7 @@ import { magpieFor } from '@/lib/game/magpie';
 import { drawMagpie } from '@/lib/game/magpie-render';
 import { cigaretteFor } from '@/lib/game/cigarette';
 import { drawCigarette } from '@/lib/game/cigarette-render';
+import { jumpFor } from '@/lib/game/jump';
 import { storyMessages, debtPayment } from '@/lib/game/story';
 import { efficiencyBonus } from '@/lib/game/scoring';
 import {
@@ -38,6 +39,7 @@ import {
   ChevronRight,
   Cigarette,
   CircleSlash,
+  ArrowUp,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { parseLevel, type Level, type Point } from '@/lib/game/level';
@@ -149,6 +151,8 @@ export default function Game({
       grips: 0,
       moves: 0,
       message: 'Drag a hand or boot onto a solid edge.',
+      jumpState: 'idle',
+      jumpCharge: 0,
     }),
     [paused, setPaused] = useState(false),
     [zoom] = useState(START_ZOOM),
@@ -222,6 +226,8 @@ export default function Game({
       grips: 0,
       moves: 0,
       message: 'Drag a hand or boot onto a solid edge.',
+      jumpState: 'idle',
+      jumpCharge: 0,
     });
     setChosen(null);
     setPayout(null);
@@ -356,7 +362,7 @@ export default function Game({
         setStoryRead(read.filter((id) => typeof id === 'string'));
     } catch {}
     setStoryReady(true);
-    if (editing || seen) return;
+    if (editing || seen || level.current.testMode === 'jump') return;
     const timer = window.setTimeout(() => {
       setPhoneTab('messages');
       openPhone();
@@ -448,6 +454,7 @@ export default function Game({
         accum += dt;
         while (accum >= 1 / 60) {
           g.step();
+          jumpFor(g)?.step(1 / 60);
           const bird = magpieFor(g);
           const phase = bird?.phase;
           bird?.step(1 / 60);
@@ -469,7 +476,14 @@ export default function Game({
         setChosen(null);
       }
       viewport.current = { width: w, height: h };
-      const target = cameraTarget(w, h, l, g.p.hip, s.zoom, s.edit);
+      const target = cameraTarget(
+        w,
+        h,
+        l,
+        g.p.hip,
+        l.testMode === 'jump' && !s.edit ? 1.15 : s.zoom,
+        s.edit,
+      );
       const v = view.current;
       if (!cameraReady.current || resized || s.edit) {
         Object.assign(v, target);
@@ -502,6 +516,7 @@ export default function Game({
       if (!s.edit) drawCigarette(ctx, g, v);
       if (now - notify > 140) {
         notify = now;
+        const jump = jumpFor(g);
         setHud({
           seconds: g.elapsed,
           carrying: g.collected,
@@ -510,6 +525,8 @@ export default function Game({
           grips: Object.keys(g.grips).length,
           moves: g.moves,
           message: g.message,
+          jumpState: jump?.state ?? 'idle',
+          jumpCharge: jump?.charge ?? 0,
         });
       }
       if (g.complete && !paid.current) {
@@ -568,6 +585,10 @@ export default function Game({
       }
       if (!edit && e.key.toLowerCase() === 'r') reset();
       if (!edit && e.key.toLowerCase() === 'f') void toggleFullscreen();
+      if (!edit && e.code === 'Space' && level.current.testMode === 'jump') {
+        e.preventDefault();
+        if (!e.repeat) jumpFor(game.current!)?.startCharge();
+      }
       if (edit && e.key === ' ') {
         e.preventDefault();
         setPaused((v) => !v);
@@ -575,8 +596,18 @@ export default function Game({
       if (!edit && ['1', '2', '3', '4'].includes(e.key))
         setChosen(LIMBS[Number(e.key) - 1]);
     };
+    const keyUp = (e: KeyboardEvent) => {
+      if (!edit && e.code === 'Space' && level.current.testMode === 'jump') {
+        e.preventDefault();
+        jumpFor(game.current!)?.release();
+      }
+    };
     window.addEventListener('keydown', key);
-    return () => window.removeEventListener('keydown', key);
+    window.addEventListener('keyup', keyUp);
+    return () => {
+      window.removeEventListener('keydown', key);
+      window.removeEventListener('keyup', keyUp);
+    };
   });
   useEffect(() => {
     const context = (document as any).modelContext;
@@ -661,6 +692,16 @@ export default function Game({
       return;
     gripAudio.current?.unlock();
     const p = world(e);
+    if (!edit && level.current.testMode === 'jump') {
+      const jump = jumpFor(game.current!);
+      const result = jump?.select(p);
+      if (result && result !== 'none') {
+        if (result === 'caught') gripAudio.current?.playGrab('leftHand');
+        setRevision((r) => r + 1);
+        e.preventDefault();
+        return;
+      }
+    }
     active.current = e.pointerId;
     e.currentTarget.setPointerCapture(e.pointerId);
     if (edit) {
@@ -970,7 +1011,37 @@ export default function Game({
                 : 'Climbing game. Drag hands and feet onto solid edges. On touch screens, select a limb then drag anywhere to move it; release to grab.'
             }
           />
-          {!edit && !phoneOpen && !hud.complete && !hud.failed && (
+          {!edit && level.current.testMode === 'jump' && !phoneOpen && !hud.failed && (
+            <div className="jump-lab-controls">
+              <div className="jump-lab-instruction">
+                <strong>JUMP LAB</strong>
+                <span>Tap target · two hands + one foot · hold · release · tap to catch</span>
+              </div>
+              <button
+                type="button"
+                className={'jump-charge-button ' + hud.jumpState}
+                aria-label="Hold to charge jump and release to launch"
+                onPointerDown={(event) => {
+                  event.currentTarget.setPointerCapture(event.pointerId);
+                  jumpFor(game.current!)?.startCharge();
+                  setRevision((r) => r + 1);
+                }}
+                onPointerUp={(event) => {
+                  if (event.currentTarget.hasPointerCapture(event.pointerId))
+                    event.currentTarget.releasePointerCapture(event.pointerId);
+                  jumpFor(game.current!)?.release();
+                  setRevision((r) => r + 1);
+                }}
+                onPointerCancel={() => jumpFor(game.current!)?.cancelCharge()}
+                disabled={paused || hud.jumpState === 'airborne'}
+              >
+                <span style={{ '--charge': hud.jumpCharge } as React.CSSProperties} />
+                <ArrowUp size={25} />
+                <small>{hud.jumpState === 'charging' ? 'RELEASE' : 'HOLD'}</small>
+              </button>
+            </div>
+          )}
+          {!edit && level.current.testMode !== 'jump' && !phoneOpen && !hud.complete && !hud.failed && (
             <div className="prop-controls">
               {game.current && magpieFor(game.current) && (
                 <button

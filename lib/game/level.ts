@@ -5,6 +5,9 @@ export type Grip = Point & {
   surface?: string;
   use?: 'hand' | 'foot';
   singleLimb?: boolean;
+  color?: string;
+  jumpTarget?: boolean;
+  radius?: number;
 };
 export type Collider = {
   id: string;
@@ -52,6 +55,7 @@ export type Level = {
   discoveryRadius?: number;
   // Target move count for the efficiency bonus. Moves are grips caught.
   moveTarget?: number;
+  testMode?: 'jump';
   backgroundFraming?: { y: number; height: number };
   location?: string;
   briefing?: string;

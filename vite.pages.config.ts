@@ -20,6 +20,7 @@ export default defineConfig({
         ...Object.fromEntries(
           [
             'pub',
+            'jump-lab',
             'prawn',
             'surf-club',
             'drive-in',

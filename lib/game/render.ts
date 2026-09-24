@@ -7,6 +7,7 @@ import {
   tremblingJoint,
 } from './climbing';
 import type { Level, Point, Grip } from './level';
+import { jumpFor } from './jump';
 export type View = { scale: number; x: number; y: number };
 export function draw(
   ctx: CanvasRenderingContext2D,
@@ -25,7 +26,7 @@ export function draw(
   debug = false,
 ) {
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = '#1d332b';
+  ctx.fillStyle = l.testMode === 'jump' ? '#050505' : '#1d332b';
   ctx.fillRect(0, 0, w, h);
   ctx.save();
   ctx.translate(v.x, v.y);
@@ -202,8 +203,56 @@ export function draw(
       );
     };
 
+    if (l.testMode === 'jump') {
+      const jump = jumpFor(g);
+      for (const hold of l.gripPoints) {
+        const radius = hold.radius ?? 15;
+        const selected = jump?.target?.id === hold.id;
+        ctx.save();
+        ctx.shadowColor = hold.color ?? '#ffffff';
+        ctx.shadowBlur = selected ? 24 : hold.jumpTarget ? 10 : 4;
+        ctx.fillStyle = hold.color ?? '#ffffff';
+        ctx.strokeStyle = selected ? '#ffffff' : '#111111';
+        ctx.lineWidth = selected ? 4 : 2;
+        ctx.beginPath();
+        if (hold.use === 'foot') {
+          ctx.roundRect(
+            hold.x - radius * 1.25,
+            hold.y - radius * 0.45,
+            radius * 2.5,
+            radius * 0.9,
+            radius * 0.4,
+          );
+        } else {
+          ctx.arc(hold.x, hold.y, radius, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+      }
+      if (jump?.state === 'charging' && jump.target) {
+        const from = g.p.hip;
+        const to = jump.target;
+        ctx.save();
+        ctx.strokeStyle = to.color ?? '#ffffff';
+        ctx.globalAlpha = 0.28 + jump.charge * 0.48;
+        ctx.lineWidth = 3;
+        ctx.setLineDash([8, 9]);
+        ctx.beginPath();
+        ctx.moveTo(from.x, from.y);
+        ctx.quadraticCurveTo(
+          (from.x + to.x) / 2,
+          Math.min(from.y, to.y) - 95 * jump.charge,
+          to.x,
+          to.y,
+        );
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
+
     const objective = l.objectives[0];
-    if (objective.type === 'repair') {
+    if (l.testMode !== 'jump' && objective.type === 'repair') {
       if (objective.kind === 'scenery') {
         // The job object is in the artwork; only its interaction cue is drawn.
         ctx.strokeStyle = g.complete ? '#d8e8b0' : '#fff0bf';
@@ -606,7 +655,7 @@ export function draw(
       ctx.stroke();
       ctx.restore();
     };
-    if (l.fatigue) {
+    if (l.testMode !== 'jump' && l.fatigue) {
       const limb = g.drag?.limb ?? chosen;
       const ready = g.grabPreview();
       for (const hold of l.gripPoints) {
@@ -640,7 +689,7 @@ export function draw(
         ctx.stroke();
         ctx.restore();
       }
-    } else if (g.drag) {
+    } else if (l.testMode !== 'jump' && g.drag) {
       const ready = g.grabPreview();
       const { limb, target } = g.drag;
       const nearby = l.gripPoints
@@ -670,7 +719,8 @@ export function draw(
       }
       if (ready) edgeMark(ready, 1, 10);
     }
-    for (const hold of Object.values(g.grips)) edgeMark(hold, 0.55, 5);
+    if (l.testMode !== 'jump')
+      for (const hold of Object.values(g.grips)) edgeMark(hold, 0.55, 5);
     for (const event of g.catches) {
       const t = event.age / 0.38;
       ctx.save();
