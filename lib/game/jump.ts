@@ -32,6 +32,10 @@ export class JumpController {
   charge = 0;
   target: Grip | null = null;
   flightTime = 0;
+  completedJumps = 0;
+  finishControl = 0;
+  private catchCooldown = 0;
+  private previousFinishHip: Point | null = null;
   private phaseTime = 0;
   private launchPower = 0;
   private chargePose: Record<string, Point> | null = null;
@@ -129,6 +133,9 @@ export class JumpController {
       .sort((a, b) => distance(a, point) - distance(b, point))[0];
     if (!target || distance(target, point) > (target.radius ?? 18) + 18)
       return 'none';
+    // Leave held pads draggable so the second hand can be matched.
+    if (Object.values(this.game.grips).some((hold) => hold.id === target.id))
+      return 'none';
     if (!this.withinRange(target)) {
       this.game.message =
         'That beacon is out of range from here. Work closer to it first.';
@@ -142,6 +149,7 @@ export class JumpController {
 
   startCharge() {
     const g = this.game;
+    if (g.failed || g.complete || this.state === 'charging') return false;
     if (this.state === 'airborne' || this.state === 'propelling') return false;
     if (!this.target) {
       g.message = 'Tap a coloured hand hold to choose a landing target.';
@@ -410,14 +418,14 @@ export class JumpController {
     const target = this.target;
     if (this.state !== 'airborne' || !target) return false;
     if (distance(point, target) > (target.radius ?? 18) + 24) return false;
+    if (this.catchCooldown > 0) return false;
+    this.catchCooldown = 0.16;
     const hands = [...HANDS].sort(
       (a, b) => distance(g.p[a], target) - distance(g.p[b], target),
     );
-    const nearest =
-      distance(g.p[this.leadHand], target) <= 68 * g.scale
-        ? this.leadHand
-        : hands[0];
-    const catchRadius = 64 * g.scale;
+    const nearest = hands[0];
+    // Touch target stays generous; the physical hand must actually arrive.
+    const catchRadius = g.level.jumpCourse ? (target.radius ?? 17) + 20 * g.scale : 64 * g.scale;
     if (distance(g.p[nearest], target) > catchRadius) {
       g.message =
         this.flightTime < 0.3
@@ -435,6 +443,8 @@ export class JumpController {
       g.p[hand].y = g.p[hand].py = target.y;
     }
     g.catches.push({ x: target.x, y: target.y, age: 0 });
+    const next = g.level.jumpCourse?.[this.completedJumps];
+    if (next?.hold === target.id) this.completedJumps++;
     this.state = 'caught';
     this.flightTime = 0;
     this.charge = 0;
@@ -446,6 +456,20 @@ export class JumpController {
 
   step(dt: number) {
     const g = this.game;
+    this.catchCooldown = Math.max(0, this.catchCooldown - dt);
+    if (g.failed || g.complete) return;
+    const course = g.level.jumpCourse;
+    if (course && this.completedJumps === course.length) {
+      const final = course[course.length - 1].hold;
+      const matched = g.grips.leftHand?.id === final && g.grips.rightHand?.id === final;
+      const controlled = this.previousFinishHip && distance(g.p.hip, this.previousFinishHip) < 1.4 * g.scale;
+      this.finishControl = matched && controlled ? this.finishControl + dt : 0;
+      this.previousFinishHip = { x: g.p.hip.x, y: g.p.hip.y };
+      if (this.finishControl >= 1) {
+        g.complete = true;
+        g.message = 'Switchback sent. Six jumps and a controlled finish.';
+      }
+    }
     if (this.state === 'charging') {
       this.charge = Math.min(1, this.charge + dt / 1.15);
       this.coil();

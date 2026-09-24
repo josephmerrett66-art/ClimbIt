@@ -26,21 +26,14 @@ Each map fills the window at a close starting zoom. Mouse dragging and touch lim
 
 Old bookmarked URLs open the new jobs. The original maps remain as archived physics-test fixtures, but are no longer in the playable job lineup. New paths work on both Sites and GitHub Pages.
 
-## The Gantry — dynamic jump lab
+## Switchback — dynamic jump lab
 
-`/jump-lab` is the test area for the dynamic jump. A launch needs both hands
-matched on one wide pad and a boot planted, so the wall is built from nine pads
-and thirty-odd single-limb notches that can never launch anything. Five sections
-each ask a different question of the mechanic: a feint that dead-ends at a
-notch, a roof slab low enough that only a half-charged dyno fits under it, a
-catch onto a pad with no foothold and a hand-only exit, a fork whose left-hand
-beacon cannot launch again, and a carry that takes the jump away entirely —
-holding the tool occupies a hand permanently, so the way home is a line of
-notches crossed one hand at a time.
+`/jump-lab` is a continuous six-jump bouldering circuit. Fifteen holds total,
+with wide gaps, single-boot recovery footholds and two direction reversals.
+Catch numbered pads 1–6 in order, then match both hands on the finish and
+control the swing for a full second. Training runs have no payout.
 
-Every span is measured against the take-off maths rather than placed by eye, and
-[docs/jump-lab.md](docs/jump-lab.md) records the envelope, the charge window and
-the tuning dials.
+[docs/jump-lab.md](docs/jump-lab.md) describes the layout and catch tuning.
 
 The developer workshop is retained separately at `/workshop`: import background/foreground PNGs, trace grips and edge/rectangle colliders, place spawn/objective/return-zone/camera geometry, play test, undo, save locally and export/reload portable JSON with embedded artwork.
 
@@ -51,8 +44,8 @@ Node 22.13+ and pnpm. `pnpm install`, then `pnpm dev`. `pnpm build` creates the 
 ## Architecture
 
 - `lib/game/jump.ts` and `jump-lab.ts`: the staged dyno — coil, hip drive,
-  hands released before feet, a single leading hand for the catch — and The
-  Gantry, the authored level built on it.
+  hands released before feet, a single leading hand for the catch — and
+  Switchback, the sparse bouldering circuit built on it.
 - `lib/game/physics.ts`: position-based weighted ragdoll with a physical torso frame, separate shoulder and hip joints, fixed bone lengths, limited endpoint reach, anchored grips, gravity, one-way elbow/knee hinges and ground-impact failure. Soft dragging, nearby-hold attraction and capped release momentum keep repositioning fluid while grip anchors remain precise.
 - `lib/game/australian-jobs.ts`, `australian-routes.json` and `campaign.ts`: current job lineup, coordinates traced in native artwork pixels and shared scaling of artwork/geometry. `level.ts` retains types, JSON validation and retired regression fixtures.
 - `lib/game/render.ts`: PNG background/foreground layers, a connected low-poly climber built from tapered faceted limbs, joint pieces, skin forearms, shaped hands and boots, torso, pelvis, face and hair, plus the low-poly cat PNG and editor overlays. The climber has no helmet, harness or visible rope, and gameplay geometry is invisible.
@@ -71,11 +64,7 @@ The complete carry-and-return system remains available to editor play tests. Nor
 `pnpm exec jiti tests/jump.test.ts` covers the dyno itself: the coil, the drive
 through the feet, the leading hand, the trailing limbs, the one-handed catch and
 the three refusals (unmatched hands, no boot down, unreachable beacon).
-`pnpm exec jiti tests/jump-lab.test.ts` is the gate for The Gantry, re-deriving
-the jump envelope from the take-off maths to prove that the six authored jumps
-are catchable, that no unintended jump skips a section, that the two pads which
-must not launch have no foothold in leg range, and that the roof slab blocks a
-full-charge dyno while a middling one fits.
+`pnpm exec jiti tests/jump-lab.test.ts` links all six jumps through the actual physics, recovers each landing using normal limb inputs, and checks the controlled finish and shortcut rejection.
 
 `pnpm exec jiti tests/pub.test.ts` checks the pub route and obstruction rules. `pnpm exec jiti tests/controls.test.ts` covers camera framing, touch selection and cancellation. `tests/physics.test.ts` retains the original level fixtures for bone, hinge, reach, carry and gravity regressions.
 

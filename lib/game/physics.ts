@@ -308,6 +308,7 @@ export class Climber {
       p.py = p.y;
     } else {
       if (
+        !this.level.jumpCourse &&
         !this.collected &&
         limb.endsWith('Hand') &&
         distance(p, this.cat) < 31 * this.scale &&

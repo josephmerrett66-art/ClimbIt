@@ -232,10 +232,11 @@ export function draw(
       // The belay ledge the tool has to be brought back to.
       const zone = l.completionTrigger;
       ctx.save();
-      ctx.setLineDash([7, 6]);
-      ctx.strokeStyle = g.collected ? '#8ef0a8' : '#39424c';
-      ctx.lineWidth = 2;
-      ctx.strokeRect(zone.x, zone.y, zone.width, zone.height);
+      if (!l.jumpCourse) {
+        ctx.strokeStyle = g.collected ? '#8ef0a8' : '#39424c';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(zone.x, zone.y, zone.width, zone.height);
+      }
       ctx.restore();
 
       for (const hold of l.gripPoints) {
@@ -245,7 +246,7 @@ export function draw(
         // and a fork judged from a distance. Everything else fades up around the
         // body, which is what turns reading the wall into a skill. The floor of
         // 0.1 keeps the structure legible without giving away the detail.
-        const awareness = hold.jumpTarget
+        const awareness = hold.jumpTarget || l.jumpCourse
           ? 1
           : Math.min(1, 0.1 + 1.25 * (g.holdVisibility[hold.id] ?? 0));
         if (awareness < 0.03) continue;
@@ -280,6 +281,28 @@ export function draw(
         }
         ctx.fill();
         ctx.stroke();
+        const index = l.jumpCourse?.findIndex(stage => stage.hold === hold.id) ?? -1;
+        if (index >= 0 || hold.id === 'start-hands') {
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = '#080b10';
+          ctx.font = 'bold 14px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(index < 0 ? 'S' : String(index + 1), hold.x, hold.y);
+          ctx.fillStyle = '#b9c0cd';
+          ctx.font = '12px sans-serif';
+          const name = index < 0 ? 'START' : l.jumpCourse![index].name.toUpperCase();
+          ctx.fillText(index === (l.jumpCourse?.length ?? 0) - 1 ? 'FINISH · MATCH BOTH HANDS' : name, hold.x, hold.y - radius - 16);
+          if (index >= 0 && index < (jump?.completedJumps ?? 0)) {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(hold.x - 5, hold.y + radius + 10);
+            ctx.lineTo(hold.x - 1, hold.y + radius + 14);
+            ctx.lineTo(hold.x + 7, hold.y + radius + 5);
+            ctx.stroke();
+          }
+        }
         ctx.restore();
       }
     }
@@ -773,7 +796,7 @@ export function draw(
     }
     // Only the currently available interaction is highlighted; editor geometry stays hidden.
     const cat = g.cat;
-    if (l.testMode === 'jump') {
+    if (l.testMode === 'jump' && !l.jumpCourse) {
       // The lab's objective is drawn rather than painted, for the same reason
       // its colliders are. A hold-to-collect bar is drawn with it, because on a
       // challenge level the tool only comes free after 1.2 still seconds and

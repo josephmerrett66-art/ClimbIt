@@ -534,7 +534,7 @@ export default function Game({
       }
       if (g.complete && !paid.current) {
         paid.current = true;
-        if (!s.editing) {
+        if (!s.editing && l.testMode !== 'jump') {
           const bonus = efficiencyBonus(l, g.moves),
             total = l.pay + bonus;
           recordPay(
@@ -1017,8 +1017,14 @@ export default function Game({
           {!edit && level.current.testMode === 'jump' && !phoneOpen && !hud.failed && !hud.complete && (
             <div className="jump-lab-controls">
               <div className="jump-lab-instruction">
-                <strong>JUMP LAB</strong>
-                <span>Tap target · two hands + one foot · hold · release · tap to catch</span>
+                <strong>
+                  SWITCHBACK · {game.current ? jumpFor(game.current)?.completedJumps ?? 0 : 0}/6
+                </strong>
+                <span>
+                  {game.current && (jumpFor(game.current)?.completedJumps ?? 0) === 6
+                    ? 'Match both hands on FINISH. Control the swing for one second.'
+                    : 'Follow 1–6 · match hands + plant one foot · hold, release, tap to catch'}
+                </span>
               </div>
               <button
                 type="button"
@@ -1363,10 +1369,12 @@ export default function Game({
               aria-label="Job failed"
             >
               <section className="failure-card">
-                <span>JOB FAILED</span>
+                <span>{level.current.testMode === 'jump' ? 'ATTEMPT OVER' : 'JOB FAILED'}</span>
                 <h2>You fell.</h2>
                 <p>
-                  No payment this time. Get back up there and finish the job.
+                  {level.current.testMode === 'jump'
+                    ? 'Read the next foothold, set your body, and commit to the catch.'
+                    : 'No payment this time. Get back up there and finish the job.'}
                 </p>
                 <button onClick={reset}>
                   <RotateCcw size={15} /> Try again
@@ -1374,6 +1382,20 @@ export default function Game({
                 <button onClick={() => openPhoneTo('jobs')}>
                   Choose another job
                 </button>
+              </section>
+            </div>
+          )}
+          {hud.complete && level.current.testMode === 'jump' && !phoneOpen && (
+            <div className="completion-layer" role="dialog" aria-label="Boulder complete">
+              <section className="completion-card">
+                <span className="completion-kicker">SWITCHBACK SENT</span>
+                <h2>Six for six.</h2>
+                <p>All six jumps linked. Finish matched and controlled.</p>
+                <p>{Math.floor(hud.seconds / 60)}:{String(Math.floor(hud.seconds % 60)).padStart(2, '0')} elapsed</p>
+                <div className="completion-actions">
+                  <button onClick={reset}>Climb again</button>
+                  <button onClick={() => openPhoneTo('jobs')}>Choose a job</button>
+                </div>
               </section>
             </div>
           )}
