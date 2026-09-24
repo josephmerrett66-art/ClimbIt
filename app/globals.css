@@ -1714,6 +1714,15 @@ body {
 .prop-controls small { max-width:155px; color:#fff9df; text-shadow:0 1px 3px #000; font-size:11px; }
 .prop-controls .dart-button { background:#f0e7d0; }
 
+.camera-zoom-control { position:absolute; z-index:13; top:max(14px,env(safe-area-inset-top)); left:50%; transform:translateX(-50%); height:34px; padding:0 10px; display:flex; align-items:center; gap:7px; color:#fff8df; background:#090d0bd1; border:1px solid #ffffff40; border-radius:18px; box-shadow:0 5px 18px #0008; backdrop-filter:blur(7px); }
+.camera-zoom-control input { width:112px; height:28px; margin:0; accent-color:#f5dc43; cursor:pointer; touch-action:manipulation; }
+.camera-zoom-control input:focus-visible { outline:2px solid #f5dc43; outline-offset:3px; }
+
+@media (max-width: 600px) {
+  .camera-zoom-control { top:max(10px,env(safe-area-inset-top)); height:32px; padding:0 8px; gap:5px; }
+  .camera-zoom-control input { width:92px; }
+}
+
 .jump-lab-controls { position:absolute; z-index:14; left:50%; bottom:22px; transform:translateX(-50%); display:flex; align-items:center; gap:12px; color:#fff; pointer-events:none; }
 .jump-lab-instruction { min-width:min(520px,calc(100vw - 150px)); padding:10px 16px; display:flex; flex-direction:column; gap:3px; background:#090909d9; border:1px solid #ffffff35; border-radius:12px; box-shadow:0 8px 30px #0009; text-align:center; }
 .jump-lab-instruction strong { font-size:12px; letter-spacing:.14em; color:#f5dc43; }

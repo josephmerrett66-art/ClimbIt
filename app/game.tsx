@@ -156,7 +156,9 @@ export default function Game({
       jumpCharge: 0,
     }),
     [paused, setPaused] = useState(false),
-    [zoom] = useState(START_ZOOM),
+    [zoom, setZoom] = useState(
+      initialLevel.testMode === 'jump' ? 1.15 : START_ZOOM,
+    ),
     [touchControls, setTouchControls] = useState(false),
     [fullscreen, setFullscreen] = useState(false),
     [hintVisible, setHintVisible] = useState(true),
@@ -482,7 +484,7 @@ export default function Game({
         h,
         l,
         g.p.hip,
-        l.testMode === 'jump' && !s.edit ? 1.15 : s.zoom,
+        s.zoom,
         s.edit,
       );
       const v = view.current;
@@ -1041,6 +1043,24 @@ export default function Game({
                 <small>{hud.jumpState === 'charging' ? 'RELEASE' : 'HOLD'}</small>
               </button>
             </div>
+          )}
+          {!edit && !phoneOpen && !hud.complete && !hud.failed && (
+            <label className="camera-zoom-control">
+              <Minus size={14} aria-hidden="true" />
+              <input
+                type="range"
+                min="0.65"
+                max="2.2"
+                step="0.05"
+                value={zoom}
+                onChange={(event) => {
+                  cameraReady.current = false;
+                  setZoom(Number(event.target.value));
+                }}
+                aria-label="Camera zoom"
+              />
+              <Plus size={14} aria-hidden="true" />
+            </label>
           )}
           {!edit && level.current.testMode !== 'jump' && !phoneOpen && !hud.complete && !hud.failed && (
             <div className="prop-controls">
