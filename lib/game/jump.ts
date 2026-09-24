@@ -38,6 +38,7 @@ export class JumpController {
   private propulsionPose: Record<string, Point> | null = null;
   private handsReleased = false;
   private feetReleased = false;
+  private leadHand: Limb = 'rightHand';
 
   constructor(public game: Climber) {}
 
@@ -141,6 +142,8 @@ export class JumpController {
       return false;
     }
     this.launchPower = this.charge;
+    this.leadHand =
+      this.target.x >= g.p.hip.x ? 'rightHand' : 'leftHand';
     this.state = 'propelling';
     this.phaseTime = 0;
     this.propulsionPose = this.snapshot();
@@ -158,16 +161,20 @@ export class JumpController {
     // A climbing dyno starts opposite the intended motion: hips sink and move
     // slightly away from the target while the hands and feet remain fixed.
     const offset = {
-      x: -direction.x * 25 * load * g.scale,
-      y: (48 - Math.min(0, direction.y) * 10) * load * g.scale,
+      x: -direction.x * 34 * load * g.scale,
+      y: (60 - Math.min(0, direction.y) * 12) * load * g.scale,
     };
     for (const name of TORSO) {
       const base = this.chargePose[name];
-      const amount = name === 'head' ? 0.72 : name === 'neck' ? 0.82 : 1;
+      const amount = name === 'head' ? 0.78 : name === 'neck' ? 0.9 : 1;
+      const tuck = name === 'head' ? 8 * load * g.scale : 0;
       this.shiftToward(
         name,
-        { x: base.x + offset.x * amount, y: base.y + offset.y * amount },
-        0.58,
+        {
+          x: base.x + offset.x * amount + direction.x * tuck * 0.35,
+          y: base.y + offset.y * amount + tuck,
+        },
+        0.66,
       );
     }
     // Keep knees between the hips and planted feet so the silhouette reads as
@@ -179,10 +186,10 @@ export class JumpController {
       this.shiftToward(
         side + 'Knee',
         {
-          x: (hip.x + foot.x) / 2 + sign * 16 * g.scale * load,
-          y: (hip.y + foot.y) / 2 + 7 * g.scale * load,
+          x: (hip.x + foot.x) / 2 + sign * 23 * g.scale * load,
+          y: (hip.y + foot.y) / 2 + 11 * g.scale * load,
         },
-        0.2,
+        0.32,
       );
     }
   }
@@ -191,9 +198,11 @@ export class JumpController {
     const g = this.game;
     if (!this.target || !this.propulsionPose) return;
     this.phaseTime += dt;
-    const duration = 0.24;
+    const duration = 0.28;
     const t = clamp(this.phaseTime / duration, 0, 1);
-    const drive = smoothstep(t);
+    // Fast hip extension after the visible load gives the take-off a forceful,
+    // spring-like snap instead of evenly interpolating out of the crouch.
+    const drive = 1 - Math.pow(1 - t, 3);
     const direction = this.direction(g.p.hip);
 
     // The hands pull during the first instant. They release before the feet,
@@ -207,8 +216,8 @@ export class JumpController {
       this.feetReleased = true;
     }
 
-    const driveDistance = (42 + 18 * this.launchPower) * g.scale;
-    const lift = (28 + 18 * this.launchPower) * g.scale;
+    const driveDistance = (50 + 22 * this.launchPower) * g.scale;
+    const lift = (36 + 22 * this.launchPower) * g.scale;
     for (const name of TORSO) {
       const base = this.propulsionPose[name];
       const amount = name === 'head' ? 1.03 : 1;
@@ -229,28 +238,47 @@ export class JumpController {
       const perpendicular = { x: -direction.y, y: direction.x };
       for (const side of ['left', 'right']) {
         const sign = side === 'left' ? -1 : 1;
+        const handName = (side + 'Hand') as Limb;
         const shoulder = g.p[side + 'Shoulder'];
-        const reach = 72 * g.scale;
+        const leading = handName === this.leadHand;
+        const reach = (leading ? 78 : 38) * g.scale;
         const handTarget = {
           x:
             shoulder.x +
-            direction.x * reach +
-            perpendicular.x * sign * 5 * g.scale,
+            direction.x * reach * (leading ? 1 : -0.35) +
+            perpendicular.x * sign * (leading ? 5 : 18) * g.scale,
           y:
             shoulder.y +
-            direction.y * reach +
-            perpendicular.y * sign * 5 * g.scale,
+            direction.y * reach * (leading ? 1 : -0.35) +
+            perpendicular.y * sign * (leading ? 5 : 18) * g.scale +
+            (leading ? 0 : 22 * g.scale),
         };
-        this.shiftToward(side + 'Hand', handTarget, 0.5);
+        this.shiftToward(side + 'Hand', handTarget, leading ? 0.56 : 0.18);
         this.shiftToward(
           side + 'Elbow',
           {
             x: shoulder.x + (handTarget.x - shoulder.x) * 0.52,
             y: shoulder.y + (handTarget.y - shoulder.y) * 0.52,
           },
-          0.34,
+          leading ? 0.38 : 0.12,
         );
       }
+    }
+
+    // As the hips rise, the knees unfold towards the line between hip and foot.
+    // The small remaining offset keeps each knee on its anatomical bend side.
+    for (const side of ['left', 'right']) {
+      const hip = g.p[side + 'Hip'];
+      const foot = g.p[side + 'Foot'];
+      const sign = side === 'left' ? -1 : 1;
+      this.shiftToward(
+        side + 'Knee',
+        {
+          x: (hip.x + foot.x) / 2 + sign * 5 * g.scale * (1 - t),
+          y: (hip.y + foot.y) / 2 + 2 * g.scale * (1 - t),
+        },
+        0.28,
+      );
     }
 
     if (t >= 1) this.takeOff();
@@ -285,15 +313,26 @@ export class JumpController {
     for (const [name, p] of Object.entries(g.p)) {
       let segmentVx = vx;
       let segmentVy = vy;
-      if (name.endsWith('Hand')) {
-        segmentVx += direction.x * 2.3 * this.launchPower;
-        segmentVy += direction.y * 2.3 * this.launchPower;
+      if (name === this.leadHand) {
+        segmentVx += direction.x * 3 * this.launchPower;
+        segmentVy += direction.y * 3 * this.launchPower;
+      } else if (name === this.leadHand.replace('Hand', 'Elbow')) {
+        segmentVx += direction.x * 1.5 * this.launchPower;
+        segmentVy += direction.y * 1.5 * this.launchPower;
+      } else if (name.endsWith('Hand')) {
+        // The spare arm is no longer posed after take-off. Give it less forward
+        // momentum so the articulated bones let it trail and swing naturally.
+        segmentVx -= direction.x * 2.2;
+        segmentVy += 1.9;
       } else if (name.endsWith('Elbow')) {
-        segmentVx += direction.x * 1.15 * this.launchPower;
-        segmentVy += direction.y * 1.15 * this.launchPower;
-      } else if (name.endsWith('Foot') || name.endsWith('Knee')) {
-        segmentVx -= direction.x * 0.7;
-        segmentVy += 0.8;
+        segmentVx -= direction.x * 1.05;
+        segmentVy += 1.1;
+      } else if (name.endsWith('Foot')) {
+        segmentVx -= direction.x * 2.1;
+        segmentVy += 2.3;
+      } else if (name.endsWith('Knee')) {
+        segmentVx -= direction.x * 0.9;
+        segmentVy += 1.15;
       }
       p.px = p.x - segmentVx;
       p.py = p.y - segmentVy;
@@ -313,7 +352,7 @@ export class JumpController {
     if (!target) return;
     // Small equal-and-opposite internal impulses let the arms reach without
     // granting the whole body a second mid-air acceleration.
-    for (const handName of HANDS) {
+    for (const handName of [this.leadHand]) {
       const hand = g.p[handName];
       const dx = target.x - hand.x;
       const dy = target.y - hand.y;
@@ -336,7 +375,10 @@ export class JumpController {
     const hands = [...HANDS].sort(
       (a, b) => distance(g.p[a], target) - distance(g.p[b], target),
     );
-    const nearest = hands[0];
+    const nearest =
+      distance(g.p[this.leadHand], target) <= 68 * g.scale
+        ? this.leadHand
+        : hands[0];
     const catchRadius = 64 * g.scale;
     if (distance(g.p[nearest], target) > catchRadius) {
       g.message =
@@ -346,10 +388,9 @@ export class JumpController {
       return false;
     }
 
-    const caughtHands = hands.filter(
-      (hand, index) =>
-        index === 0 || distance(g.p[hand], target) <= 76 * g.scale,
-    );
+    // A dyno catch starts through the leading hand. Leaving the other arm free
+    // preserves the loose counter-swing instead of snapping both arms rigid.
+    const caughtHands = [nearest];
     for (const hand of caughtHands) {
       g.hold(hand, target);
       g.p[hand].x = g.p[hand].px = target.x;
@@ -361,9 +402,7 @@ export class JumpController {
     this.charge = 0;
     g.unanchoredStartY = null;
     g.message =
-      caughtHands.length === 2
-        ? 'Both hands caught. Let the elbows absorb the swing, then place your feet.'
-        : 'One hand caught. Absorb the swing and match the second hand quickly.';
+      'One hand caught. Absorb the swing and match the second hand quickly.';
     return true;
   }
 

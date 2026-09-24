@@ -230,25 +230,6 @@ export function draw(
         ctx.stroke();
         ctx.restore();
       }
-      if (jump?.state === 'charging' && jump.target) {
-        const from = g.p.hip;
-        const to = jump.target;
-        ctx.save();
-        ctx.strokeStyle = to.color ?? '#ffffff';
-        ctx.globalAlpha = 0.28 + jump.charge * 0.48;
-        ctx.lineWidth = 3;
-        ctx.setLineDash([8, 9]);
-        ctx.beginPath();
-        ctx.moveTo(from.x, from.y);
-        ctx.quadraticCurveTo(
-          (from.x + to.x) / 2,
-          Math.min(from.y, to.y) - 95 * jump.charge,
-          to.x,
-          to.y,
-        );
-        ctx.stroke();
-        ctx.restore();
-      }
     }
 
     const objective = l.objectives[0];

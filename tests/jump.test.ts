@@ -47,11 +47,16 @@ const projectVelocity = (name: string) => {
     targetLength
   );
 };
-const handLead =
-  (projectVelocity('leftHand') + projectVelocity('rightHand')) / 2;
+const leadHand = target.x >= game.p.hip.x ? 'rightHand' : 'leftHand';
+const trailingHand = leadHand === 'rightHand' ? 'leftHand' : 'rightHand';
+const handLead = projectVelocity(leadHand);
 assert.ok(
   handLead > projectVelocity('hip'),
-  'the hands should leave take-off moving ahead of the hips',
+  'the catching hand should leave take-off moving ahead of the hips',
+);
+assert.ok(
+  projectVelocity(trailingHand) < handLead,
+  'the spare arm should trail rather than holding the same rigid flight pose',
 );
 
 let caught = false;
@@ -76,6 +81,11 @@ assert.equal(
   'the hands only came within ' + closest.toFixed(1) + 'px',
 );
 assert.ok(game.grips.leftHand || game.grips.rightHand);
+assert.equal(
+  Object.keys(game.grips).length,
+  1,
+  'the leading hand catches while the spare arm and legs remain free to swing',
+);
 console.log(
-  'PASS dyno coils down, releases hands before feet, leads with both hands, follows a ballistic arc and catches within anatomical reach',
+  'PASS dyno coils deeply, drives through the feet, leads with one hand, trails the spare limbs and catches within anatomical reach',
 );
