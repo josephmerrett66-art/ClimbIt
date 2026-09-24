@@ -992,7 +992,11 @@ export default function Game({
   };
   return (
     <div
-      className={'game-shell ' + (edit ? 'workshop-stage' : 'immersive-stage')}
+      className={
+        'game-shell ' +
+        (edit ? 'workshop-stage' : 'immersive-stage') +
+        (level.current.testMode === 'jump' ? ' jump-lab-stage' : '')
+      }
     >
       {edit && (
         <div className="game-topbar">
