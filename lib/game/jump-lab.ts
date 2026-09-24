@@ -62,3 +62,13 @@ export const jumpLabLevel: Level = {
   completionTrigger: { x: 930, y: 40, width: 40, height: 40 },
   pay: 0,
 };
+
+export const jumpLabJob = {
+  id: jumpLabLevel.id,
+  name: 'TEST AREA: Dynamic jump training',
+  client: 'Climbing gym · Mechanics lab',
+  pay: 0,
+  href: '/jump-lab',
+  image: '/assets/jump-lab.svg',
+  level: jumpLabLevel,
+};

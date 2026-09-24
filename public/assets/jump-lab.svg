@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="Black jump laboratory with coloured climbing holds">
+  <rect width="800" height="450" fill="#050505"/>
+  <g stroke="#fff" stroke-opacity=".2" stroke-width="5">
+    <circle cx="142" cy="324" r="33" fill="#f5dc43"/>
+    <circle cx="325" cy="242" r="34" fill="#42ddff"/>
+    <circle cx="464" cy="112" r="34" fill="#ff63b7"/>
+    <circle cx="612" cy="254" r="34" fill="#ff8a3d"/>
+    <rect x="278" y="342" width="90" height="22" rx="11" fill="#217f94"/>
+    <rect x="422" y="276" width="90" height="22" rx="11" fill="#96376f"/>
+    <rect x="562" y="354" width="90" height="22" rx="11" fill="#9b4e25"/>
+  </g>
+  <path d="M142 324 Q235 130 325 242 T464 112" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="7" stroke-dasharray="16 18"/>
+  <text x="42" y="72" fill="#fff" font-family="Arial,sans-serif" font-size="34" font-weight="800" letter-spacing="7">JUMP LAB</text>
+  <text x="44" y="106" fill="#f5dc43" font-family="Arial,sans-serif" font-size="18" letter-spacing="2">MECHANIC TEST AREA</text>
+</svg>

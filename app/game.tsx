@@ -46,6 +46,7 @@ import { parseLevel, type Level, type Point } from '@/lib/game/level';
 import { Climber, LIMBS, distance, type Limb } from '@/lib/game/physics';
 import { draw, type View } from '@/lib/game/render';
 import { pubJob } from '@/lib/game/pub-level';
+import { jumpLabJob } from '@/lib/game/jump-lab';
 import { AUSTRALIAN_JOBS } from '@/lib/game/australian-jobs';
 import {
   START_ZOOM,
@@ -89,7 +90,7 @@ const EMPTY_FINANCES: Finances = {
   lifetimeEarnings: 0,
   completedJobs: [],
 };
-const JOBS = [pubJob, ...AUSTRALIAN_JOBS];
+const JOBS = [jumpLabJob, pubJob, ...AUSTRALIAN_JOBS];
 const money = (amount: number) =>
   new Intl.NumberFormat('en-AU', {
     style: 'currency',
