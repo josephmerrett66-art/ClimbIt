@@ -1054,8 +1054,16 @@ export default function Game({
               </button>
             </div>
           )}
-          {!edit && !phoneOpen && !hud.complete && !hud.failed && (
-            <label className="camera-zoom-control">
+          {!edit &&
+            !phoneOpen &&
+            (level.current.testMode === 'jump' ||
+              (!hud.complete && !hud.failed)) && (
+            <label
+              className={
+                'camera-zoom-control' +
+                (level.current.testMode === 'jump' ? ' jump-lab-camera' : '')
+              }
+            >
               <Minus size={14} aria-hidden="true" />
               <input
                 type="range"
@@ -1070,6 +1078,7 @@ export default function Game({
                 aria-label="Camera zoom"
               />
               <Plus size={14} aria-hidden="true" />
+              {level.current.testMode === 'jump' && <b>ZOOM</b>}
             </label>
           )}
           {!edit && level.current.testMode !== 'jump' && !phoneOpen && !hud.complete && !hud.failed && (
