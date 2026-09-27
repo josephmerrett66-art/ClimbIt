@@ -1079,11 +1079,12 @@ export default function Game({
                     {game.current
                       ? (jumpFor(game.current)?.completedJumps ?? 0)
                       : 0}
-                    /6
+                    /{level.current.jumpCourse?.length ?? 0}
                   </strong>
                   <span>
                     {game.current &&
-                    (jumpFor(game.current)?.completedJumps ?? 0) === 6
+                    (jumpFor(game.current)?.completedJumps ?? 0) ===
+                      (level.current.jumpCourse?.length ?? 0)
                       ? 'Match both hands on FINISH. Control the swing for one second.'
                       : hud.jumpState === 'airborne'
                         ? hud.jumpCatchCue === 'ready'
@@ -1091,7 +1092,7 @@ export default function Game({
                           : hud.jumpCatchCue === 'passed'
                             ? 'Missed the catch window'
                             : 'Watch the catch ring close, then press GRAB'
-                        : 'Choose 1–6 · set both hands + one foot · hold JUMP · press GRAB when it lights'}
+                        : 'Climb to LOAD · choose the next beacon · match hands + plant a foot · jump'}
                   </span>
                 </div>
                 <button

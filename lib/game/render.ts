@@ -76,6 +76,14 @@ function jumpLabLayer(level: Level) {
         radius * 0.9,
         radius * 0.4,
       );
+    } else if (hold.surface === 'launch') {
+      ctx.roundRect(
+        hold.x - radius * 1.45,
+        hold.y - radius * 0.62,
+        radius * 2.9,
+        radius * 1.24,
+        radius * 0.55,
+      );
     } else if (hold.singleLimb) {
       ctx.roundRect(
         hold.x - radius * 0.55,
@@ -109,6 +117,12 @@ function jumpLabLayer(level: Level) {
         hold.x,
         hold.y - radius - 16,
       );
+    } else if (hold.surface === 'launch') {
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = '#f5dc43';
+      ctx.font = 'bold 11px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('LOAD', hold.x, hold.y - radius - 12);
     }
     ctx.restore();
   }
@@ -393,6 +407,14 @@ export function draw(
             radius * 2.5,
             radius * 0.9,
             radius * 0.4,
+          );
+        } else if (hold.surface === 'launch') {
+          ctx.roundRect(
+            hold.x - radius * 1.45,
+            hold.y - radius * 0.62,
+            radius * 2.9,
+            radius * 1.24,
+            radius * 0.55,
           );
         } else if (hold.singleLimb) {
           // A notch is drawn narrow because narrow is what it is: one limb fits,

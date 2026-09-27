@@ -172,6 +172,11 @@ export class JumpController {
       .sort((a, b) => distance(a, point) - distance(b, point))[0];
     if (!target || distance(target, point) > (target.radius ?? 18) + 18)
       return 'none';
+    const next = this.game.level.jumpCourse?.[this.completedJumps];
+    if (next && target.id !== next.hold) {
+      this.game.message = `Follow the route in order. Beacon ${this.completedJumps + 1} is next.`;
+      return 'none';
+    }
     // Leave held pads draggable so the second hand can be matched.
     if (Object.values(this.game.grips).some((hold) => hold.id === target.id))
       return 'none';
@@ -192,6 +197,15 @@ export class JumpController {
     if (this.state === 'airborne' || this.state === 'propelling') return false;
     if (!this.target) {
       g.message = 'Tap a coloured hand hold to choose a landing target.';
+      return false;
+    }
+    const stage = g.level.jumpCourse?.[this.completedJumps];
+    if (
+      stage?.launch &&
+      (g.grips.leftHand?.id !== stage.launch ||
+        g.grips.rightHand?.id !== stage.launch)
+    ) {
+      g.message = 'Climb to the LOAD hold and match both hands before jumping.';
       return false;
     }
     if (!this.sameHandHold()) {
@@ -227,8 +241,7 @@ export class JumpController {
       return false;
     }
     this.launchPower = this.charge;
-    this.leadHand =
-      this.target.x >= g.p.hip.x ? 'rightHand' : 'leftHand';
+    this.leadHand = this.target.x >= g.p.hip.x ? 'rightHand' : 'leftHand';
     this.state = 'propelling';
     this.phaseTime = 0;
     this.propulsionPose = this.snapshot();
@@ -518,8 +531,11 @@ export class JumpController {
     const course = g.level.jumpCourse;
     if (course && this.completedJumps === course.length) {
       const final = course[course.length - 1].hold;
-      const matched = g.grips.leftHand?.id === final && g.grips.rightHand?.id === final;
-      const controlled = this.previousFinishHip && distance(g.p.hip, this.previousFinishHip) < 1.4 * g.scale;
+      const matched =
+        g.grips.leftHand?.id === final && g.grips.rightHand?.id === final;
+      const controlled =
+        this.previousFinishHip &&
+        distance(g.p.hip, this.previousFinishHip) < 1.4 * g.scale;
       this.finishControl = matched && controlled ? this.finishControl + dt : 0;
       this.previousFinishHip = { x: g.p.hip.x, y: g.p.hip.y };
       if (this.finishControl >= 1) {
@@ -544,7 +560,8 @@ export class JumpController {
         return;
       }
       if (this.flightTime > 1.55 && !g.failed)
-        g.message = 'The dead point has passed — brace for the fall or restart.';
+        g.message =
+          'The dead point has passed — brace for the fall or restart.';
     } else if (this.state === 'caught') {
       this.flightTime += dt;
       if (this.flightTime > 0.72) this.state = 'idle';

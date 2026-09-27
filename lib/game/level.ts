@@ -56,7 +56,12 @@ export type Level = {
   // Target move count for the efficiency bonus. Moves are grips caught.
   moveTarget?: number;
   testMode?: 'jump';
-  jumpCourse?: { hold: string; name: string; hint: string }[];
+  jumpCourse?: {
+    hold: string;
+    launch?: string;
+    name: string;
+    hint: string;
+  }[];
   backgroundFraming?: { y: number; height: number };
   location?: string;
   briefing?: string;
