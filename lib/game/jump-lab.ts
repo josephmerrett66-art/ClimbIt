@@ -1,188 +1,151 @@
 import type { Grip, Level } from './level';
 
-const beacon = (
-  id: string,
-  x: number,
-  y: number,
-  color: string,
-  radius = 17,
-): Grip => ({ id, x, y, color, radius, use: 'hand', jumpTarget: true });
-
-const launch = (id: string, x: number, y: number): Grip => ({
-  id,
-  x,
-  y,
-  color: '#f5dc43',
-  radius: 18,
-  use: 'hand',
-  surface: 'launch',
-});
-
-const hand = (id: string, x: number, y: number, angle = 0): Grip => ({
-  id,
-  x,
-  y,
-  angle,
-  color: '#d8d0bb',
-  radius: 10,
-  use: 'hand',
-  singleLimb: true,
-});
-
-const foot = (id: string, x: number, y: number, angle = 0): Grip => ({
-  id,
-  x,
-  y,
-  angle,
-  color: '#6f766f',
-  radius: 8,
-  use: 'foot',
-  singleLimb: true,
-});
-
-// One continuous boulder problem. Each coloured beacon is a dynamic landing;
-// every pale section after it has to be climbed before the next yellow LOAD pad
-// is available. The route switches direction so reach order, foot choice and
-// settling the body matter more than simply moving upwards.
+// Seven holds per problem: four hands and three feet. No filler holds.
+export const boulderSections = [
+  {
+    name: 'Sideways',
+    color: '#d9bf66',
+    x: 200,
+    y: 1400,
+    hands: [
+      [0, 0],
+      [65, -25],
+      [105, -75],
+      [150, -65],
+    ],
+    feet: [
+      [-22, 145],
+      [62, 116],
+      [140, 65],
+    ],
+  },
+  {
+    name: 'High step',
+    color: '#70b5c5',
+    x: 590,
+    y: 1215,
+    hands: [
+      [0, 0],
+      [50, -55],
+      [115, -65],
+      [140, -125],
+    ],
+    feet: [
+      [15, 138],
+      [60, 58],
+      [135, 8],
+    ],
+  },
+  {
+    name: 'Crossover',
+    color: '#c495ba',
+    x: 970,
+    y: 980,
+    hands: [
+      [0, 0],
+      [-60, -40],
+      [-20, -100],
+      [-95, -135],
+    ],
+    feet: [
+      [15, 140],
+      [-60, 85],
+      [-100, 5],
+    ],
+  },
+  {
+    name: 'Low traverse',
+    color: '#90b375',
+    x: 635,
+    y: 730,
+    hands: [
+      [0, 0],
+      [-70, 25],
+      [-140, 0],
+      [-170, -65],
+    ],
+    feet: [
+      [20, 140],
+      [-65, 135],
+      [-160, 70],
+    ],
+  },
+  {
+    name: 'Compression',
+    color: '#cfa176',
+    x: 225,
+    y: 555,
+    hands: [
+      [0, 0],
+      [60, -40],
+      [20, -105],
+      [90, -145],
+    ],
+    feet: [
+      [-15, 142],
+      [70, 85],
+      [45, -2],
+    ],
+  },
+];
+const grips: Grip[] = boulderSections.flatMap((section, index) => [
+  ...section.hands.map(
+    ([x, y], i): Grip => ({
+      id:
+        i === 0
+          ? index === 0
+            ? 'start-hands'
+            : `landing-${index}`
+          : `section-${index}-hand-${i}`,
+      x: section.x + x,
+      y: section.y + y,
+      use: 'hand',
+      color: section.color,
+      radius: i === 0 || i === 3 ? 18 : 10,
+      singleLimb: i === 1 || i === 2,
+      jumpTarget: index > 0 && i === 0,
+      surface: i === 3 ? 'rest' : undefined,
+    }),
+  ),
+  ...section.feet.map(
+    ([x, y], i): Grip => ({
+      id: `section-${index}-foot-${i}`,
+      x: section.x + x,
+      y: section.y + y,
+      use: 'foot',
+      color: section.color,
+      radius: 8,
+      singleLimb: true,
+    }),
+  ),
+]);
 export const jumpLabLevel: Level = {
   version: 1,
   id: 'jump-lab',
-  name: 'Switchback Circuit',
+  name: 'Five Problems',
   backgroundImage: '',
-  worldWidth: 1120,
-  worldHeight: 1850,
+  worldWidth: 1200,
+  worldHeight: 1650,
   playerScale: 0.9,
   challenge: true,
-  contactReach: [0.72, 0.82, 0.93, 1],
-  contactForce: [0.72, 0.82, 0.92, 1],
   testMode: 'jump',
-  playerSpawn: { x: 160, y: 1760 },
-  jumpCourse: [
-    {
-      hold: 'jump-cyan',
-      launch: 'start-hands',
-      name: 'Opening throw',
-      hint: 'Load from the yellow start and catch the cyan beacon with one hand.',
-    },
-    {
-      hold: 'jump-pink',
-      launch: 'launch-pink',
-      name: 'Right gap',
-      hint: 'Climb the pale diagonal, match the LOAD pad, then throw right.',
-    },
-    {
-      hold: 'jump-lime',
-      launch: 'launch-lime',
-      name: 'Reverse',
-      hint: 'Use the descending feet to turn the hips before jumping back left.',
-    },
-    {
-      hold: 'jump-orange',
-      launch: 'launch-orange',
-      name: 'Corner cut',
-      hint: 'The left crimp ladder finishes in a tight launch from one boot.',
-    },
-    {
-      hold: 'jump-violet',
-      launch: 'launch-violet',
-      name: 'Long traverse',
-      hint: 'Climb out of the corner and commit across the widest gap.',
-    },
-    {
-      hold: 'jump-red',
-      launch: 'launch-red',
-      name: 'Top out',
-      hint: 'Finish the last technical sequence, jump, match red and control the swing.',
-    },
-  ],
-  gripPoints: [
-    launch('start-hands', 160, 1660),
-    foot('start-left-foot', 136, 1822),
-    foot('start-right-foot', 190, 1822),
-
-    beacon('jump-cyan', 400, 1530, '#42ddff'),
-    foot('cyan-catch-foot', 418, 1624, -0.08),
-    hand('cyan-crimp-1', 350, 1478, -0.35),
-    foot('cyan-foot-1', 380, 1550, 0.18),
-    hand('cyan-crimp-2', 420, 1440, 0.32),
-    foot('cyan-foot-2', 445, 1518, -0.18),
-    hand('cyan-cross', 490, 1472, -0.22),
-    foot('cyan-foot-3', 512, 1546, 0.16),
-    hand('cyan-sidepull', 545, 1410, 1.12),
-    foot('cyan-foot-4', 548, 1488, -0.16),
-    hand('cyan-crimp-5', 590, 1360, 0.25),
-    foot('cyan-foot-5', 584, 1435, 0.12),
-    launch('launch-pink', 620, 1320),
-    foot('pink-launch-foot', 598, 1406, -0.18),
-
-    beacon('jump-pink', 875, 1208, '#ff63b7', 16),
-    foot('pink-catch-foot', 892, 1304, 0.12),
-    hand('pink-crimp-1', 930, 1150, 0.4),
-    foot('pink-foot-1', 900, 1232, -0.16),
-    hand('pink-sidepull', 865, 1110, -1.05),
-    foot('pink-foot-2', 882, 1188, 0.2),
-    hand('pink-cross', 910, 1045, 0.28),
-    foot('pink-foot-3', 842, 1138, -0.2),
-    hand('pink-crimp-4', 835, 1010, -0.3),
-    foot('pink-foot-4', 868, 1082, 0.16),
-    hand('pink-drop', 770, 1055, 1.02),
-    foot('pink-foot-5', 802, 1128, -0.12),
-    hand('pink-crimp-6', 710, 1015, 0.2),
-    foot('pink-foot-6', 738, 1088, 0.12),
-    launch('launch-lime', 658, 1008),
-    foot('lime-launch-foot', 688, 1092, 0.12),
-
-    beacon('jump-lime', 412, 902, '#83f05d', 16),
-    foot('lime-catch-foot', 435, 998, -0.1),
-    hand('lime-undercling', 350, 850, 0.75),
-    foot('lime-foot-1', 372, 932, 0.18),
-    hand('lime-cross', 410, 805, -0.32),
-    foot('lime-foot-2', 398, 878, -0.15),
-    hand('lime-crimp-3', 345, 760, 0.28),
-    foot('lime-foot-3', 360, 836, 0.12),
-    launch('launch-orange', 270, 730),
-    foot('orange-launch-foot', 300, 815, 0.14),
-
-    beacon('jump-orange', 48, 628, '#ff8a3d', 16),
-    foot('orange-catch-foot', 66, 724, 0.08),
-    hand('orange-sidepull-1', 105, 575, 1.1),
-    foot('orange-foot-1', 108, 656, -0.18),
-    hand('orange-crimp-2', 80, 510, -0.35),
-    foot('orange-foot-2', 112, 584, 0.16),
-    hand('orange-cross', 145, 470, 0.25),
-    foot('orange-foot-3', 148, 548, -0.12),
-    hand('orange-drop', 210, 505, 1.05),
-    foot('orange-foot-4', 205, 577, 0.14),
-    hand('orange-crimp-5', 260, 455, -0.22),
-    foot('orange-foot-5', 248, 530, -0.12),
-    launch('launch-violet', 286, 426),
-    foot('violet-launch-foot', 254, 510, 0.15),
-
-    beacon('jump-violet', 548, 326, '#b68cff', 16),
-    foot('violet-catch-foot', 530, 420, -0.08),
-    hand('violet-crimp-1', 610, 280, -0.25),
-    foot('violet-foot-1', 590, 360, 0.18),
-    hand('violet-sidepull', 575, 225, 1.08),
-    foot('violet-foot-2', 608, 300, -0.16),
-    hand('violet-cross', 650, 190, 0.25),
-    foot('violet-foot-3', 642, 265, 0.12),
-    hand('violet-drop', 705, 240, -1.02),
-    foot('violet-foot-4', 690, 310, -0.14),
-    launch('launch-red', 760, 205),
-    foot('red-launch-foot', 730, 284, 0.12),
-
-    beacon('jump-red', 1000, 112, '#ff5656', 18),
-    foot('finish-foot', 974, 245, -0.1),
-  ],
+  playerSpawn: { x: 200, y: 1495 },
+  jumpCourse: boulderSections.slice(1).map((section, index) => ({
+    hold: `landing-${index + 1}`,
+    name: section.name,
+    hint: 'Set your feet, match a wide hold, then jump across the gap.',
+  })),
+  boulderFinish: 'section-4-hand-3',
+  gripPoints: grips,
   colliders: [
     {
       id: 'ground',
       type: 'edge',
       role: 'ground',
       x: 0,
-      y: 1840,
-      x2: 1120,
-      y2: 1840,
+      y: 1610,
+      x2: 1200,
+      y2: 1610,
     },
   ],
   objectives: [
@@ -191,20 +154,19 @@ export const jumpLabLevel: Level = {
       type: 'repair',
       kind: 'scenery',
       name: 'Match the finish',
-      x: 1000,
-      y: 112,
+      x: 315,
+      y: 410,
     },
   ],
   interactiveObjects: [],
-  cameraBounds: { x: 0, y: 0, width: 1120, height: 1850 },
-  completionTrigger: { x: 950, y: 70, width: 120, height: 180 },
+  cameraBounds: { x: 0, y: 0, width: 1200, height: 1650 },
+  completionTrigger: { x: 275, y: 380, width: 90, height: 180 },
   pay: 0,
 };
-
 export const jumpLabJob = {
   id: jumpLabLevel.id,
-  name: 'TEST AREA: Switchback Circuit',
-  client: 'Bouldering circuit · Five climbs linked by six jumps',
+  name: 'TEST AREA: Five Problems',
+  client: 'Five sparse boulders · Four connecting jumps',
   pay: 0,
   href: '/jump-lab',
   image: '/assets/jump-lab.svg',

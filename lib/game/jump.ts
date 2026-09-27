@@ -199,15 +199,6 @@ export class JumpController {
       g.message = 'Tap a coloured hand hold to choose a landing target.';
       return false;
     }
-    const stage = g.level.jumpCourse?.[this.completedJumps];
-    if (
-      stage?.launch &&
-      (g.grips.leftHand?.id !== stage.launch ||
-        g.grips.rightHand?.id !== stage.launch)
-    ) {
-      g.message = 'Climb to the LOAD hold and match both hands before jumping.';
-      return false;
-    }
     if (!this.sameHandHold()) {
       g.message = 'Put both hands on the same hold before coiling up.';
       return false;
@@ -530,7 +521,7 @@ export class JumpController {
     if (g.failed || g.complete) return;
     const course = g.level.jumpCourse;
     if (course && this.completedJumps === course.length) {
-      const final = course[course.length - 1].hold;
+      const final = g.level.boulderFinish ?? course[course.length - 1].hold;
       const matched =
         g.grips.leftHand?.id === final && g.grips.rightHand?.id === final;
       const controlled =
@@ -540,7 +531,8 @@ export class JumpController {
       this.previousFinishHip = { x: g.p.hip.x, y: g.p.hip.y };
       if (this.finishControl >= 1) {
         g.complete = true;
-        g.message = 'Switchback sent. Six jumps and a controlled finish.';
+        g.message =
+          'Circuit sent. Every gap crossed and the final boulder controlled.';
       }
     }
     if (this.state === 'charging') {

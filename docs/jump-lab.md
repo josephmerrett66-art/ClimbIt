@@ -1,12 +1,9 @@
-# Switchback
-A black-wall boulder with six numbered dynos. Seven handholds and eight footholds total; no interpolated routes, invisible traps or carry objective.
+# Five Problems prototype
 
-Follow the numbered holds in order. Match hands, recover one foot, select the next target, then hold and release JUMP. The fixed GRAB control mirrors the selected hold colour while a solid ring closes around the target. Press GRAB when the control flashes and the ring completes; the moving hold itself is never the timing button. Each foothold accepts one boot. Offset feet and two changes of direction demand a new stance after each landing. The six gaps vary from 230 to 250 pixels across and 110 to 180 pixels upwards.
+Five sparse boulders linked by four jump gaps. Each problem has four handholds and three footholds: 35 total. Round numbered holds are landings; short wide holds allow matching; narrow holds take one limb. Sections change direction and include sideways, rising and descending moves. Colour distinguishes each section without route lines.
 
-Physical catches require the leading hand to enter the illuminated catch window. A 320ms input buffer makes an intentional slightly-early press reliable on touchscreens, while a late press still misses. The button changes from approaching to ready to missed, and supported devices give one short vibration as the window opens. A held target stays available for limb selection, allowing the free hand to match it.
+No named launch restriction: any physically supported matched-hand stance can charge. The gap geometry makes the exits useful. Jump order still records the four required gaps, and completion requires climbing beyond the fourth landing to match the final hold for one controlled second.
 
-A clear requires all six jump catches in order, then both hands matched on the finish and the hip moving less than 1.4 player-scaled pixels per physics frame for one uninterrupted second. Falling restarts the run. Training does not pay into the story bank.
+Practice retry restores the last matched landing with a planted foot. It preserves exact body and jump state and labels completion as practice. Ordinary restart begins a fresh uninterrupted run.
 
-Validation uses the actual Climber and JumpController. The driver searches charge and catch times and uses normal begin/step/end input to recover the free hand and foot at every landing; it carries the resulting pose and momentum through the entire run. This verifies reachability, not human difficulty. Final feel still benefits from playtesting on touch.
-
-Run tests with the project's TypeScript runner or compile tests/jump.test.ts and tests/jump-lab.test.ts to CommonJS with tsc and execute them with Node.
+Validation: `tests/jump-lab.test.ts` runs all five climbs using begin/end limb inputs and fixed physics ticks, searches charge/catch timings for each jump, recovers the catches and reaches the finish continuously. No section teleporting. This proves a route exists; human difficulty and touch comfort still need play feedback. Hold spacing is also checked against a 40-world-unit minimum.

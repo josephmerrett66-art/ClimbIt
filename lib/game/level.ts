@@ -56,6 +56,7 @@ export type Level = {
   // Target move count for the efficiency bonus. Moves are grips caught.
   moveTarget?: number;
   testMode?: 'jump';
+  boulderFinish?: string;
   jumpCourse?: {
     hold: string;
     launch?: string;

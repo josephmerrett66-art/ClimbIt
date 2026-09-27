@@ -76,7 +76,7 @@ function jumpLabLayer(level: Level) {
         radius * 0.9,
         radius * 0.4,
       );
-    } else if (hold.surface === 'launch') {
+    } else if (hold.surface === 'launch' || hold.surface === 'rest') {
       ctx.roundRect(
         hold.x - radius * 1.45,
         hold.y - radius * 0.62,
@@ -111,18 +111,24 @@ function jumpLabLayer(level: Level) {
       const name =
         index < 0 ? 'START' : level.jumpCourse![index].name.toUpperCase();
       ctx.fillText(
-        index === (level.jumpCourse?.length ?? 0) - 1
+        hold.id === level.boulderFinish ||
+          (!level.boulderFinish &&
+            index === (level.jumpCourse?.length ?? 0) - 1)
           ? 'FINISH · MATCH BOTH HANDS'
           : name,
         hold.x,
         hold.y - radius - 16,
       );
-    } else if (hold.surface === 'launch') {
+    } else if (hold.surface === 'launch' || hold.surface === 'rest') {
       ctx.shadowBlur = 0;
       ctx.fillStyle = '#f5dc43';
       ctx.font = 'bold 11px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('LOAD', hold.x, hold.y - radius - 12);
+      ctx.fillText(
+        hold.id === level.boulderFinish ? 'FINISH · MATCH' : '',
+        hold.x,
+        hold.y - radius - 12,
+      );
     }
     ctx.restore();
   }
@@ -408,7 +414,7 @@ export function draw(
             radius * 0.9,
             radius * 0.4,
           );
-        } else if (hold.surface === 'launch') {
+        } else if (hold.surface === 'launch' || hold.surface === 'rest') {
           ctx.roundRect(
             hold.x - radius * 1.45,
             hold.y - radius * 0.62,
@@ -469,7 +475,8 @@ export function draw(
           const name =
             index < 0 ? 'START' : l.jumpCourse![index].name.toUpperCase();
           ctx.fillText(
-            index === (l.jumpCourse?.length ?? 0) - 1
+            hold.id === l.boulderFinish ||
+              (!l.boulderFinish && index === (l.jumpCourse?.length ?? 0) - 1)
               ? 'FINISH · MATCH BOTH HANDS'
               : name,
             hold.x,

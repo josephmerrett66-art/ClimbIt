@@ -1,6 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Ambience from './ambience';
+import { BoulderPractice } from '@/lib/game/practice';
 import { GripAudio } from '@/lib/game/grip-audio';
 import { readSoundSettings } from '@/lib/game/sound-settings';
 import StoryInbox from './story-inbox';
@@ -221,7 +222,19 @@ export default function Game({
     history.current.push(clone(level.current));
     if (history.current.length > 40) history.current.shift();
   };
+  const practice = useRef(new BoulderPractice());
+  const retrySection = () => {
+    const restored = practice.current.restore();
+    if (!restored) return;
+    game.current = restored;
+    cameraReady.current = false;
+    active.current = null;
+    setChosen(null);
+    setPaused(false);
+    setRevision((r) => r + 1);
+  };
   const reset = () => {
+    practice.current = new BoulderPractice();
     cameraReady.current = false;
     game.current = new Climber(level.current, !editing);
     paid.current = false;
@@ -506,6 +519,7 @@ export default function Game({
         v.x += (target.x - v.x) * ease;
         v.y += (target.y - v.y) * ease;
       }
+      practice.current.capture(g);
       g.selectedLimb = s.chosen;
       draw(
         ctx,
@@ -1067,6 +1081,17 @@ export default function Game({
                 : 'Climbing game. Drag hands and feet onto solid edges. On touch screens, select a limb then drag anywhere to move it; release to grab.'
             }
           />
+          {!edit && level.current.boulderFinish && !phoneOpen && (
+            <button
+              className="boulder-practice"
+              onClick={retrySection}
+              title="Practice: retry this section"
+              aria-label="Practice: retry this section"
+            >
+              <RotateCcw size={18} />
+              <small>PRACTICE</small>
+            </button>
+          )}
           {!edit &&
             level.current.testMode === 'jump' &&
             !phoneOpen &&
@@ -1075,7 +1100,7 @@ export default function Game({
               <div className="jump-lab-controls">
                 <div className="jump-lab-instruction">
                   <strong>
-                    SWITCHBACK ·{' '}
+                    JUMPS ·{' '}
                     {game.current
                       ? (jumpFor(game.current)?.completedJumps ?? 0)
                       : 0}
@@ -1085,14 +1110,14 @@ export default function Game({
                     {game.current &&
                     (jumpFor(game.current)?.completedJumps ?? 0) ===
                       (level.current.jumpCourse?.length ?? 0)
-                      ? 'Match both hands on FINISH. Control the swing for one second.'
+                      ? 'Climb the final problem. Match FINISH and settle for one second.'
                       : hud.jumpState === 'airborne'
                         ? hud.jumpCatchCue === 'ready'
                           ? 'GRAB NOW — the reaching hand is on the hold'
                           : hud.jumpCatchCue === 'passed'
                             ? 'Missed the catch window'
                             : 'Watch the catch ring close, then press GRAB'
-                        : 'Climb to LOAD · choose the next beacon · match hands + plant a foot · jump'}
+                        : 'Climb the coloured problem · match a wide hold · jump to the next number'}
                   </span>
                 </div>
                 <button
@@ -1494,9 +1519,16 @@ export default function Game({
               aria-label="Boulder complete"
             >
               <section className="completion-card">
-                <span className="completion-kicker">SWITCHBACK SENT</span>
-                <h2>Six for six.</h2>
-                <p>All six jumps linked. Finish matched and controlled.</p>
+                <span className="completion-kicker">CIRCUIT SENT</span>
+                <h2>
+                  {practice.current.used
+                    ? 'Practice complete.'
+                    : 'Circuit complete.'}
+                </h2>
+                <p>
+                  Five boulders linked by four jumps. Finish matched and
+                  controlled.
+                </p>
                 <p>
                   {Math.floor(hud.seconds / 60)}:
                   {String(Math.floor(hud.seconds % 60)).padStart(2, '0')}{' '}

@@ -1794,3 +1794,6 @@ body {
   .failure-card,.completion-card { max-height:calc(100dvh - 12px); padding-top:20px; padding-bottom:18px; }
   .jump-lab-stage .touch-climb-controls { bottom:max(84px,calc(env(safe-area-inset-bottom) + 74px)); }
 }
+
+.boulder-practice { position:absolute; z-index:15; left:max(12px,env(safe-area-inset-left)); top:max(64px,calc(env(safe-area-inset-top) + 58px)); display:flex; flex-direction:column; align-items:center; gap:3px; padding:9px; min-width:48px; min-height:48px; border:1px solid #ffffff38; border-radius:12px; color:#deded3; background:#111e; touch-action:manipulation; }
+.boulder-practice small { font-size:9px; letter-spacing:.03em; }
