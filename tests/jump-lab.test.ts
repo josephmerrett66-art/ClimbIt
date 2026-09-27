@@ -7,6 +7,11 @@ import { tick } from './switchback-driver';
 import { solveCircuit } from './circuit-driver';
 assert.equal(boulderSections.length, 5);
 assert.equal(
+  jumpLabLevel.fatigue,
+  true,
+  'Test Area uses the same load-based stamina as campaign climbs',
+);
+assert.equal(
   jumpLabLevel.gripPoints.length,
   35,
   'Seven deliberately spaced holds per section',
@@ -17,6 +22,16 @@ for (let i = 0; i < 5; i++) {
     for (let b = a + 1; b < section.length; b++)
       assert.ok(distance(section[a], section[b]) >= 40, 'No hold clusters');
 }
+const hanging = new Climber(structuredClone(jumpLabLevel));
+const startHold = hanging.level.gripPoints.find(
+  (hold) => hold.id === 'start-hands',
+)!;
+hanging.grips = { leftHand: startHold, rightHand: startHold };
+tick(hanging, jumpFor(hanging)!, 300);
+assert.ok(
+  Math.min(hanging.stamina.leftHand, hanging.stamina.rightHand) < 85,
+  'Hanging through a problem has a meaningful stamina cost',
+);
 const { g, j } = solveCircuit();
 assert.equal(j.completedJumps, 4);
 assert.ok(

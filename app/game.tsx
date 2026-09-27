@@ -233,6 +233,12 @@ export default function Game({
     setPaused(false);
     setRevision((r) => r + 1);
   };
+  const adjustZoom = (amount: number) => {
+    cameraReady.current = false;
+    setZoom((current) =>
+      Math.max(0.65, Math.min(2.2, Math.round((current + amount) * 20) / 20)),
+    );
+  };
   const reset = () => {
     practice.current = new BoulderPractice();
     cameraReady.current = false;
@@ -1098,28 +1104,6 @@ export default function Game({
             !hud.failed &&
             !hud.complete && (
               <div className="jump-lab-controls">
-                <div className="jump-lab-instruction">
-                  <strong>
-                    JUMPS ·{' '}
-                    {game.current
-                      ? (jumpFor(game.current)?.completedJumps ?? 0)
-                      : 0}
-                    /{level.current.jumpCourse?.length ?? 0}
-                  </strong>
-                  <span>
-                    {game.current &&
-                    (jumpFor(game.current)?.completedJumps ?? 0) ===
-                      (level.current.jumpCourse?.length ?? 0)
-                      ? 'Climb the final problem. Match FINISH and settle for one second.'
-                      : hud.jumpState === 'airborne'
-                        ? hud.jumpCatchCue === 'ready'
-                          ? 'GRAB NOW — the reaching hand is on the hold'
-                          : hud.jumpCatchCue === 'passed'
-                            ? 'Missed the catch window'
-                            : 'Watch the catch ring close, then press GRAB'
-                        : 'Climb the coloured problem · match a wide hold · jump to the next number'}
-                  </span>
-                </div>
                 <button
                   type="button"
                   className={'jump-charge-button ' + hud.jumpState}
@@ -1180,13 +1164,32 @@ export default function Game({
           {!edit &&
             !phoneOpen &&
             (level.current.testMode === 'jump' ||
-              (!hud.complete && !hud.failed)) && (
-              <label
-                className={
-                  'camera-zoom-control' +
-                  (level.current.testMode === 'jump' ? ' jump-lab-camera' : '')
-                }
+              (!hud.complete && !hud.failed)) &&
+            (level.current.testMode === 'jump' ? (
+              <div
+                className="camera-zoom-control jump-lab-camera"
+                aria-label="Camera zoom controls"
               >
+                <button
+                  type="button"
+                  onClick={() => adjustZoom(-0.1)}
+                  disabled={zoom <= 0.65}
+                  aria-label="Zoom out"
+                >
+                  <Minus size={17} aria-hidden="true" />
+                </button>
+                <b>ZOOM</b>
+                <button
+                  type="button"
+                  onClick={() => adjustZoom(0.1)}
+                  disabled={zoom >= 2.2}
+                  aria-label="Zoom in"
+                >
+                  <Plus size={17} aria-hidden="true" />
+                </button>
+              </div>
+            ) : (
+              <label className="camera-zoom-control">
                 <Minus size={14} aria-hidden="true" />
                 <input
                   type="range"
@@ -1201,9 +1204,8 @@ export default function Game({
                   aria-label="Camera zoom"
                 />
                 <Plus size={14} aria-hidden="true" />
-                {level.current.testMode === 'jump' && <b>ZOOM</b>}
               </label>
-            )}
+            ))}
           {!edit &&
             level.current.testMode !== 'jump' &&
             !phoneOpen &&

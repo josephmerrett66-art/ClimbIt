@@ -8,6 +8,7 @@ import {
 import { catLevel, churchLevel, towerLevel } from '../lib/game/level';
 import { AUSTRALIAN_JOBS } from '../lib/game/australian-jobs';
 import { pubLevel } from '../lib/game/pub-level';
+import { jumpLabLevel } from '../lib/game/jump-lab';
 import { Climber, type Limb } from '../lib/game/physics';
 
 for (const level of [
@@ -41,6 +42,20 @@ for (const level of [
     }
   }
 }
+const jumpView = cameraTarget(
+  1280,
+  720,
+  jumpLabLevel,
+  jumpLabLevel.playerSpawn,
+  1.15,
+  false,
+);
+assert.ok(
+  Math.abs(
+    jumpLabLevel.playerSpawn.y * jumpView.scale + jumpView.y - 720 * 0.55,
+  ) < 0.001,
+  'Jump Lab keeps the climber near the middle of the screen',
+);
 const rig = new Climber(structuredClone(catLevel));
 for (const scale of [0.8, 1.6, 2.4]) {
   const near = { x: rig.p.leftHand.x - 40 / scale, y: rig.p.leftHand.y };

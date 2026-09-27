@@ -128,6 +128,7 @@ export const jumpLabLevel: Level = {
   worldHeight: 1650,
   playerScale: 0.9,
   challenge: true,
+  fatigue: true,
   testMode: 'jump',
   playerSpawn: { x: 200, y: 1495 },
   jumpCourse: boulderSections.slice(1).map((section, index) => ({

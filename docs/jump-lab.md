@@ -6,4 +6,6 @@ No named launch restriction: any physically supported matched-hand stance can ch
 
 Practice retry restores the last matched landing with a planted foot. It preserves exact body and jump state and labels completion as practice. Ordinary restart begins a fresh uninterrupted run.
 
+The shared load-based fatigue system stays live throughout the circuit. Players need to use the planted footholds and matched landing holds to unload or alternate their arms; rushing the five problems without resting can now cost a grip. Practice retry preserves the saved stamina state, so it cannot be used as a free refill.
+
 Validation: `tests/jump-lab.test.ts` runs all five climbs using begin/end limb inputs and fixed physics ticks, searches charge/catch timings for each jump, recovers the catches and reaches the finish continuously. No section teleporting. This proves a route exists; human difficulty and touch comfort still need play feedback. Hold spacing is also checked against a 40-world-unit minimum.

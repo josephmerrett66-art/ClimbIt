@@ -33,7 +33,13 @@ export function cameraTarget(
   return {
     scale,
     x: axis(width, b.x, b.width, focus.x, 0.5),
-    y: axis(height, b.y, b.height, focus.y, 0.62),
+    // Jump Lab needs room below the climber for the launch controls and for
+    // reading the next gap. Its sparse test backdrop can safely overscan the
+    // world, so keep the body near the middle instead of pinning it low.
+    y:
+      level.testMode === 'jump' && !edit
+        ? height * 0.55 - focus.y * scale
+        : axis(height, b.y, b.height, focus.y, 0.62),
   };
 }
 

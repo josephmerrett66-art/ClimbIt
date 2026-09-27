@@ -1738,17 +1738,17 @@ body {
 .camera-zoom-control input:focus-visible { outline:2px solid #f5dc43; outline-offset:3px; }
 .camera-zoom-control b { font-size:9px; letter-spacing:.12em; }
 .camera-zoom-control.jump-lab-camera { color:#121212; background:#f5dc43ed; border-color:#fff6a8; box-shadow:0 5px 18px #000c,0 0 0 1px #000; }
-.camera-zoom-control.jump-lab-camera input { accent-color:#ef663c; }
+.camera-zoom-control.jump-lab-camera button { width:28px; height:28px; padding:0; display:grid; place-items:center; border:0; border-radius:50%; color:#121212; background:#fff4a1; touch-action:manipulation; }
+.camera-zoom-control.jump-lab-camera button:hover:not(:disabled) { background:#fffbd2; }
+.camera-zoom-control.jump-lab-camera button:focus-visible { outline:2px solid #121212; outline-offset:2px; }
+.camera-zoom-control.jump-lab-camera button:disabled { opacity:.35; cursor:default; }
 
 @media (max-width: 600px) {
   .camera-zoom-control { top:max(10px,env(safe-area-inset-top)); height:32px; padding:0 8px; gap:5px; }
   .camera-zoom-control input { width:92px; }
 }
 
-.jump-lab-controls { position:absolute; z-index:14; left:50%; bottom:max(22px,env(safe-area-inset-bottom)); transform:translateX(-50%); display:grid; grid-template-columns:minmax(280px,520px) 70px 70px; align-items:center; gap:12px; color:#fff; pointer-events:none; }
-.jump-lab-instruction { min-width:min(520px,calc(100vw - 150px)); padding:10px 16px; display:flex; flex-direction:column; gap:3px; background:#090909d9; border:1px solid #ffffff35; border-radius:12px; box-shadow:0 8px 30px #0009; text-align:center; }
-.jump-lab-instruction strong { font-size:12px; letter-spacing:.14em; color:#f5dc43; }
-.jump-lab-instruction span { font-size:12px; color:#eee; }
+.jump-lab-controls { position:absolute; z-index:14; left:50%; bottom:max(22px,env(safe-area-inset-bottom)); transform:translateX(-50%); display:flex; align-items:center; gap:12px; color:#fff; pointer-events:none; }
 .jump-charge-button { --charge:0; pointer-events:auto; position:relative; width:70px; height:70px; flex:0 0 70px; display:grid; place-items:center; align-content:center; gap:0; overflow:hidden; border:2px solid #fff; border-radius:50%; background:#151515; color:#fff; box-shadow:0 7px 26px #000c; touch-action:none; user-select:none; }
 .jump-charge-button > span { position:absolute; inset:auto 0 0; height:calc(var(--charge) * 100%); background:linear-gradient(#ff8a3d,#f5dc43); transition:height .08s linear; opacity:.9; }
 .jump-charge-button svg,.jump-charge-button small { position:relative; z-index:1; }
@@ -1769,11 +1769,8 @@ body {
 @keyframes grab-ready { from { transform:scale(1.06); } to { transform:scale(1.14); } }
 
 @media (max-width: 900px) {
-  .jump-lab-controls { left:12px; right:12px; bottom:max(14px,env(safe-area-inset-bottom)); transform:none; grid-template-columns:1fr 1fr; justify-items:center; gap:8px 10px; }
-  .jump-lab-instruction { grid-column:1 / -1; width:min(540px,100%); min-width:0; padding:8px 10px; }
-  .jump-lab-instruction span { font-size:10px; }
-  .jump-charge-button { grid-column:1; justify-self:end; width:62px; height:62px; flex-basis:62px; }
-  .jump-grab-button { grid-column:2; justify-self:start; width:62px; height:62px; flex-basis:62px; }
+  .jump-lab-controls { bottom:max(14px,env(safe-area-inset-bottom)); gap:10px; }
+  .jump-charge-button,.jump-grab-button { width:62px; height:62px; flex-basis:62px; }
 }
 
 @media (any-pointer: coarse) {
@@ -1787,10 +1784,8 @@ body {
 }
 
 @media (max-height: 430px) and (orientation: landscape) {
-  .jump-lab-controls { left:10px; right:auto; bottom:max(10px,env(safe-area-inset-bottom)); width:min(420px,calc(100vw - 150px)); grid-template-columns:1fr 58px 58px; gap:7px; }
-  .jump-lab-instruction { grid-column:1; grid-row:1; width:auto; }
-  .jump-charge-button { grid-column:2; grid-row:1; width:56px; height:56px; flex-basis:56px; }
-  .jump-grab-button { grid-column:3; grid-row:1; width:56px; height:56px; flex-basis:56px; }
+  .jump-lab-controls { bottom:max(10px,env(safe-area-inset-bottom)); gap:7px; }
+  .jump-charge-button,.jump-grab-button { width:56px; height:56px; flex-basis:56px; }
   .failure-card,.completion-card { max-height:calc(100dvh - 12px); padding-top:20px; padding-bottom:18px; }
   .jump-lab-stage .touch-climb-controls { bottom:max(84px,calc(env(safe-area-inset-bottom) + 74px)); }
 }
