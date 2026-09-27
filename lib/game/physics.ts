@@ -51,6 +51,9 @@ export class Climber {
     rightFoot: CLIMBING.footMax,
   };
   loads = emptyLoads();
+  holdWear: Record<string, number> = {};
+  motionOrigins: Record<string, number> = {};
+  brokenHolds: Record<string, boolean> = {};
   holdVisibility: Record<string, number> = {};
   selectedLimb: Limb | null = null;
   private previousRepairHip: Point | null = null;
@@ -72,6 +75,8 @@ export class Climber {
     public level: Level,
     public completionEnabled = true,
   ) {
+    if (level.gripPoints.some((hold) => hold.motion || hold.crumbleAfter))
+      this.level = level = structuredClone(level);
     this.scale = level.playerScale ?? 1;
     const { x, y } = level.playerSpawn,
       s = this.scale;
@@ -233,6 +238,7 @@ export class Climber {
   }
   canUse(limb: Limb, grip: Grip) {
     return (
+      !this.brokenHolds[grip.id] &&
       limb !== this.racketHand &&
       limb !== this.cigaretteHand &&
       (!grip.use || (grip.use === 'hand') === limb.endsWith('Hand')) &&
@@ -443,6 +449,27 @@ export class Climber {
   step(dt = 1 / 60) {
     if (this.complete || this.failed) return;
     this.elapsed += dt;
+    for (const hold of this.level.gripPoints) {
+      if (!hold.motion && !hold.crumbleAfter) continue;
+      const attached = LIMBS.filter((limb) => this.grips[limb]?.id === hold.id);
+      if (hold.motion) {
+        this.motionOrigins[hold.id] ??= hold.x;
+        // A caught rail locks in place so the recovery stance is dependable.
+        if (!attached.length)
+          hold.x =
+            this.motionOrigins[hold.id] +
+            hold.motion.amplitude *
+              Math.sin((this.elapsed * Math.PI * 2) / hold.motion.period);
+      }
+      if (hold.crumbleAfter && attached.length) {
+        this.holdWear[hold.id] = (this.holdWear[hold.id] ?? 0) + dt;
+        if (this.holdWear[hold.id] >= hold.crumbleAfter) {
+          this.brokenHolds[hold.id] = true;
+          for (const limb of attached) delete this.grips[limb];
+          this.message = 'The cracked hold crumbled. Move to solid rock.';
+        }
+      }
+    }
     this.catches = this.catches.filter((event) => (event.age += dt) < 0.38);
     if (this.level.challenge) {
       const limb = this.drag?.limb;

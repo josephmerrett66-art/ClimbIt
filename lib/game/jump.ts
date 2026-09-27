@@ -168,7 +168,7 @@ export class JumpController {
     if (this.state === 'airborne') return 'none';
     if (this.state === 'charging' || this.state === 'propelling') return 'none';
     const target = this.game.level.gripPoints
-      .filter((hold) => hold.jumpTarget)
+      .filter((hold) => hold.jumpTarget && !this.game.brokenHolds[hold.id])
       .sort((a, b) => distance(a, point) - distance(b, point))[0];
     if (!target || distance(target, point) > (target.radius ?? 18) + 18)
       return 'none';
@@ -461,7 +461,8 @@ export class JumpController {
   private catchTarget() {
     const g = this.game;
     const target = this.target;
-    if (this.state !== 'airborne' || !target) return false;
+    if (this.state !== 'airborne' || !target || g.brokenHolds[target.id])
+      return false;
     const hands = [...HANDS].sort(
       (a, b) => distance(g.p[a], target) - distance(g.p[b], target),
     );

@@ -18,7 +18,7 @@ const labSignature = (level: Level) =>
     level.worldWidth,
     level.worldHeight,
     level.colliders,
-    level.gripPoints,
+    level.gripPoints.filter((hold) => !hold.motion && !hold.crumbleAfter),
     level.jumpCourse,
   ]);
 
@@ -60,6 +60,7 @@ function jumpLabLayer(level: Level) {
     level.jumpCourse?.map((stage, index) => [stage.hold, index]) ?? [],
   );
   for (const hold of level.gripPoints) {
+    if (hold.motion || hold.crumbleAfter) continue;
     const radius = hold.radius ?? 15;
     ctx.save();
     ctx.shadowColor = hold.color ?? '#ffffff';
@@ -153,6 +154,7 @@ export function draw(
   chosen: Limb | null = null,
   debug = false,
 ) {
+  if (l.testMode === 'jump') l = g.level;
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = l.testMode === 'jump' ? '#050505' : '#1d332b';
   ctx.fillRect(0, 0, w, h);
@@ -371,9 +373,10 @@ export function draw(
       ctx.restore();
 
       for (const hold of l.gripPoints) {
+        if (g.brokenHolds[hold.id]) continue;
         const radius = hold.radius ?? 15;
         const selected = jump?.target?.id === hold.id;
-        if (staticLayer && !selected) {
+        if (staticLayer && !selected && !hold.motion && !hold.crumbleAfter) {
           const index =
             l.jumpCourse?.findIndex((stage) => stage.hold === hold.id) ?? -1;
           if (index >= 0 && index < (jump?.completedJumps ?? 0)) {
@@ -437,6 +440,28 @@ export function draw(
         }
         ctx.fill();
         ctx.stroke();
+        if (hold.crumbleAfter) {
+          const wear = (g.holdWear[hold.id] ?? 0) / hold.crumbleAfter;
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = wear > 0.65 ? '#ff694f' : '#211a20';
+          ctx.lineWidth = 2 + wear * 2;
+          ctx.beginPath();
+          ctx.moveTo(hold.x + 3, hold.y - radius);
+          ctx.lineTo(hold.x - 3, hold.y);
+          ctx.lineTo(hold.x + 3, hold.y + 4);
+          ctx.lineTo(hold.x - 2, hold.y + radius);
+          ctx.stroke();
+        }
+        if (hold.motion) {
+          const origin = g.motionOrigins[hold.id] ?? hold.x;
+          ctx.shadowBlur = 0;
+          ctx.strokeStyle = '#ffffff50';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(origin - hold.motion.amplitude, hold.y + radius + 10);
+          ctx.lineTo(origin + hold.motion.amplitude, hold.y + radius + 10);
+          ctx.stroke();
+        }
         if (selected && jump?.state === 'airborne') {
           const cue = jump.catchCue;
           const progress = jump.catchProgress;

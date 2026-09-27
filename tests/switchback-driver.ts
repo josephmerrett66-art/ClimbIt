@@ -8,12 +8,10 @@ export const tick = (g: Climber, j: JumpController, n = 1) => {
   }
 };
 export function copy(g: Climber, j: JumpController) {
-  const next = Object.assign(
-    new Climber(structuredClone(g.level)),
-    structuredClone(g),
-  );
-  const jump = Object.assign(new JumpController(next), j, { game: next });
-  return { g: next, j: jump };
+  const state = structuredClone({ g, j });
+  Object.setPrototypeOf(state.g, Climber.prototype);
+  Object.setPrototypeOf(state.j, JumpController.prototype);
+  return state;
 }
 export function recover(g: Climber, j: JumpController, padId: string) {
   const pad = g.level.gripPoints.find((h) => h.id === padId)!;

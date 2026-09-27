@@ -26,11 +26,14 @@ Each map fills the window at a close starting zoom. Mouse dragging and touch lim
 
 Old bookmarked URLs open the new jobs. The original maps remain as archived physics-test fixtures, but are no longer in the playable job lineup. New paths work on both Sites and GitHub Pages.
 
-## Switchback — dynamic jump lab
+## Twelve Problems — dynamic jump lab
 
-`/jump-lab` is a continuous six-jump bouldering circuit. Fifteen holds total,
-with wide gaps, single-boot recovery footholds and two direction reversals.
-Catch numbered pads 1–6 in order, then match both hands on the finish and
+`/jump-lab` is a continuous twelve-problem circuit with eleven jumps and 93 sparse holds.
+It includes high steps, reversals, a hanging traverse, a two-foot recovery pocket,
+crumbling handholds and a slowly moving landing that locks when caught.
+Two long hand-only shuffles finish the course. They have end-only footholds,
+single-hand intermediate grips and 50% faster arm drain while hanging.
+Catch numbered pads 1–11 in order, then match both hands on the finish and
 control the swing for a full second. Training runs have no payout.
 
 [docs/jump-lab.md](docs/jump-lab.md) describes the layout and catch tuning.
@@ -64,7 +67,7 @@ The complete carry-and-return system remains available to editor play tests. Nor
 `pnpm exec jiti tests/jump.test.ts` covers the dyno itself: the coil, the drive
 through the feet, the leading hand, the trailing limbs, the one-handed catch and
 the three refusals (unmatched hands, no boot down, unreachable beacon).
-`pnpm exec jiti tests/jump-lab.test.ts` links all six jumps through the actual physics, recovers each landing using normal limb inputs, and checks the controlled finish and shortcut rejection.
+`pnpm dlx jiti tests/jump-lab.test.ts` links all eleven jumps through the actual physics with fatigue active, recovers each landing using normal limb inputs, and checks the controlled finish and shortcut rejection. `pnpm dlx jiti tests/arena-dynamics.test.ts` checks crumbling holds, moving catches, recovery and practice state. `pnpm dlx jiti tests/arena-shuffle.test.ts` verifies the two hand-only traverses and their faster stamina drain.
 
 `pnpm exec jiti tests/pub.test.ts` checks the pub route and obstruction rules. `pnpm exec jiti tests/controls.test.ts` covers camera framing, touch selection and cancellation. `tests/physics.test.ts` retains the original level fixtures for bone, hinge, reach, carry and gravity regressions.
 

@@ -5,7 +5,7 @@ import { jumpFor } from '../lib/game/jump';
 import { BoulderPractice } from '../lib/game/practice';
 import { tick } from './switchback-driver';
 import { solveCircuit } from './circuit-driver';
-assert.equal(boulderSections.length, 5);
+assert.equal(boulderSections.length, 12);
 assert.equal(
   jumpLabLevel.fatigue,
   true,
@@ -13,15 +13,19 @@ assert.equal(
 );
 assert.equal(
   jumpLabLevel.gripPoints.length,
-  35,
-  'Seven deliberately spaced holds per section',
+  93,
+  'Ninety-three intentionally placed holds across twelve problems',
 );
-for (let i = 0; i < 5; i++) {
-  const section = jumpLabLevel.gripPoints.slice(i * 7, i * 7 + 7);
-  for (let a = 0; a < section.length; a++)
-    for (let b = a + 1; b < section.length; b++)
-      assert.ok(distance(section[a], section[b]) >= 40, 'No hold clusters');
-}
+const holds = jumpLabLevel.gripPoints;
+for (let a = 0; a < holds.length; a++)
+  for (let b = a + 1; b < holds.length; b++)
+    assert.ok(
+      distance(holds[a], holds[b]) -
+        (holds[a].motion?.amplitude ?? 0) -
+        (holds[b].motion?.amplitude ?? 0) >=
+        40,
+      `No hold clusters, even during motion: ${holds[a].id}, ${holds[b].id}`,
+    );
 const hanging = new Climber(structuredClone(jumpLabLevel));
 const startHold = hanging.level.gripPoints.find(
   (hold) => hold.id === 'start-hands',
@@ -33,7 +37,7 @@ assert.ok(
   'Hanging through a problem has a meaningful stamina cost',
 );
 const { g, j } = solveCircuit();
-assert.equal(j.completedJumps, 4);
+assert.equal(j.completedJumps, 11);
 assert.ok(
   g.complete,
   'Complete all climbs and jumps through normal input, without teleporting',

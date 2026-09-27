@@ -117,6 +117,9 @@ export function tickFatigue(g: Climber, dt: number) {
       : load < CLIMBING.minimumLoad
         ? CLIMBING.lightRecovery * (1 - load / CLIMBING.minimumLoad)
         : -(hand ? CLIMBING.handDrain : CLIMBING.footDrain) *
+          (hand && !g.grips.leftFoot && !g.grips.rightFoot
+            ? (g.grips[l]?.hangingDrain ?? 1)
+            : 1) *
           Math.pow(load, CLIMBING.loadSensitivity);
     g.stamina[l] = clamp(g.stamina[l] + rate * dt, 0, max);
     if (

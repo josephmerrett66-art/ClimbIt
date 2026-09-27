@@ -8,6 +8,9 @@ export type Grip = Point & {
   color?: string;
   jumpTarget?: boolean;
   radius?: number;
+  crumbleAfter?: number;
+  hangingDrain?: number;
+  motion?: { amplitude: number; period: number };
 };
 export type Collider = {
   id: string;

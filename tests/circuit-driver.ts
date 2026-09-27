@@ -1,14 +1,15 @@
 import { Climber, LIMBS, distance } from '../lib/game/physics';
 import { JumpController } from '../lib/game/jump';
-import { jumpLabLevel } from '../lib/game/jump-lab';
+import { jumpLabLevel, boulderSections } from '../lib/game/jump-lab';
 import { tick, copy, recover } from './switchback-driver';
+import { establishRest } from './rest-driver';
 export function climb(g: Climber, j: JumpController, index: number) {
   const holds = g.level.gripPoints.filter(
     (h) =>
       h.id.startsWith(`section-${index}-`) ||
       h.id === (index ? `landing-${index}` : 'start-hands'),
   );
-  const finish = holds.find((h) => h.id === `section-${index}-hand-3`)!;
+  const finish = holds.find((h) => h.surface === 'rest')!;
   let beam = [{ g, j, path: [] as string[] }];
   const seen = new Set<string>();
   for (let depth = 0; depth < 26; depth++) {
@@ -20,6 +21,18 @@ export function climb(g: Climber, j: JumpController, index: number) {
         (state.g.grips.leftFoot || state.g.grips.rightFoot)
       )
         return state;
+      if (index >= 10) {
+        for (const limb of ['leftFoot', 'rightFoot'] as const) {
+          if (!state.g.grips[limb]) continue;
+          const c = copy(state.g, state.j);
+          c.g.begin(limb, { x: c.g.p.hip.x, y: c.g.p.hip.y });
+          tick(c.g, c.j, 24);
+          c.g.end();
+          tick(c.g, c.j, 12);
+          if (!c.g.failed && !c.g.grips[limb])
+            next.push({ ...c, path: [...state.path, `release:${limb}`] });
+        }
+      }
       for (const limb of LIMBS)
         for (const hold of holds) {
           if (
@@ -60,12 +73,13 @@ export function solveCircuit() {
   let g = new Climber(structuredClone(jumpLabLevel)),
     j = new JumpController(g);
   tick(g, j, 60);
-  for (let index = 0; index < 5; index++) {
+  for (let index = 0; index < boulderSections.length; index++) {
+    if (index >= 10) establishRest(g);
     const solved = climb(g, j, index);
     g = solved.g;
     j = solved.j;
     console.log('CLIMBED', index, solved.path);
-    if (index === 4) break;
+    if (index === boulderSections.length - 1) break;
     const target = g.level.gripPoints.find(
       (h) => h.id === `landing-${index + 1}`,
     )!;

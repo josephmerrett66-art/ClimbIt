@@ -58,7 +58,7 @@ assert.equal(
 assert.equal(j.grabQueued, true, 'a slightly early grab is buffered');
 for (let f = 0; f < 90; f++) {
   tick(g, j);
-  if (j.state === 'caught') break;
+  if (j.completedJumps === 1) break;
 }
 assert.equal(
   j.state,
