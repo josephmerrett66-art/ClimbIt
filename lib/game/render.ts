@@ -22,6 +22,55 @@ const labSignature = (level: Level) =>
     level.jumpCourse,
   ]);
 
+// The Test Arena deliberately keeps the generous gameplay hitboxes from the
+// authored route, but draws a much smaller mark. The result reads like points
+// of light in empty space instead of a conventional coloured climbing wall.
+function minimalLabHoldPath(
+  ctx: CanvasRenderingContext2D,
+  hold: Grip,
+  radius: number,
+) {
+  ctx.beginPath();
+  if (hold.use === 'foot') {
+    ctx.roundRect(
+      hold.x - radius * 0.9,
+      hold.y - radius * 0.2,
+      radius * 1.8,
+      radius * 0.4,
+      radius * 0.2,
+    );
+  } else if (hold.surface === 'launch' || hold.surface === 'rest') {
+    ctx.roundRect(
+      hold.x - radius * 1.1,
+      hold.y - radius * 0.36,
+      radius * 2.2,
+      radius * 0.72,
+      radius * 0.36,
+    );
+  } else {
+    ctx.arc(
+      hold.x,
+      hold.y,
+      radius * (hold.singleLimb ? 0.58 : 0.72),
+      0,
+      Math.PI * 2,
+    );
+  }
+}
+
+function paintMinimalLabHold(
+  ctx: CanvasRenderingContext2D,
+  hold: Grip,
+  radius: number,
+  selected = false,
+) {
+  ctx.shadowColor = '#ffffff';
+  ctx.shadowBlur = selected ? 24 : hold.jumpTarget ? 16 : 11;
+  ctx.fillStyle = '#ffffff';
+  minimalLabHoldPath(ctx, hold, radius);
+  ctx.fill();
+}
+
 function jumpLabLayer(level: Level) {
   if (typeof document === 'undefined') return null;
   const signature = labSignature(level);
@@ -34,103 +83,11 @@ function jumpLabLayer(level: Level) {
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
-  for (const collider of level.colliders) {
-    ctx.save();
-    ctx.lineCap = 'round';
-    if (collider.type === 'edge') {
-      ctx.strokeStyle = collider.role === 'ground' ? '#2c3138' : '#59636f';
-      ctx.lineWidth = collider.role === 'ground' ? 3 : 9;
-      ctx.beginPath();
-      ctx.moveTo(collider.x, collider.y);
-      ctx.lineTo(collider.x2, collider.y2);
-      ctx.stroke();
-    } else {
-      ctx.fillStyle = '#39424c';
-      ctx.fillRect(
-        Math.min(collider.x, collider.x2),
-        Math.min(collider.y, collider.y2),
-        Math.abs(collider.x2 - collider.x),
-        Math.abs(collider.y2 - collider.y),
-      );
-    }
-    ctx.restore();
-  }
-
-  const courseIndex = new Map(
-    level.jumpCourse?.map((stage, index) => [stage.hold, index]) ?? [],
-  );
   for (const hold of level.gripPoints) {
     if (hold.motion || hold.crumbleAfter) continue;
     const radius = hold.radius ?? 15;
     ctx.save();
-    ctx.shadowColor = hold.color ?? '#ffffff';
-    ctx.shadowBlur = hold.jumpTarget ? 10 : 4;
-    ctx.fillStyle = hold.color ?? '#ffffff';
-    ctx.strokeStyle = '#111111';
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    if (hold.use === 'foot') {
-      ctx.roundRect(
-        hold.x - radius * 1.25,
-        hold.y - radius * 0.45,
-        radius * 2.5,
-        radius * 0.9,
-        radius * 0.4,
-      );
-    } else if (hold.surface === 'launch' || hold.surface === 'rest') {
-      ctx.roundRect(
-        hold.x - radius * 1.45,
-        hold.y - radius * 0.62,
-        radius * 2.9,
-        radius * 1.24,
-        radius * 0.55,
-      );
-    } else if (hold.singleLimb) {
-      ctx.roundRect(
-        hold.x - radius * 0.55,
-        hold.y - radius * 1.15,
-        radius * 1.1,
-        radius * 2.3,
-        radius * 0.5,
-      );
-    } else {
-      ctx.arc(hold.x, hold.y, radius, 0, Math.PI * 2);
-    }
-    ctx.fill();
-    ctx.stroke();
-
-    const index = courseIndex.get(hold.id) ?? -1;
-    if (index >= 0 || hold.id === 'start-hands') {
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = '#080b10';
-      ctx.font = 'bold 14px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(index < 0 ? 'S' : String(index + 1), hold.x, hold.y);
-      ctx.fillStyle = '#b9c0cd';
-      ctx.font = '12px sans-serif';
-      const name =
-        index < 0 ? 'START' : level.jumpCourse![index].name.toUpperCase();
-      ctx.fillText(
-        hold.id === level.boulderFinish ||
-          (!level.boulderFinish &&
-            index === (level.jumpCourse?.length ?? 0) - 1)
-          ? 'FINISH · MATCH BOTH HANDS'
-          : name,
-        hold.x,
-        hold.y - radius - 16,
-      );
-    } else if (hold.surface === 'launch' || hold.surface === 'rest') {
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = '#f5dc43';
-      ctx.font = 'bold 11px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(
-        hold.id === level.boulderFinish ? 'FINISH · MATCH' : '',
-        hold.x,
-        hold.y - radius - 12,
-      );
-    }
+    paintMinimalLabHold(ctx, hold, radius);
     ctx.restore();
   }
 
@@ -156,7 +113,7 @@ export function draw(
 ) {
   if (l.testMode === 'jump') l = g.level;
   ctx.clearRect(0, 0, w, h);
-  ctx.fillStyle = l.testMode === 'jump' ? '#050505' : '#1d332b';
+  ctx.fillStyle = l.testMode === 'jump' ? '#000000' : '#1d332b';
   ctx.fillRect(0, 0, w, h);
   ctx.save();
   ctx.translate(v.x, v.y);
@@ -335,33 +292,10 @@ export function draw(
 
     if (l.testMode === 'jump') {
       const jump = jumpFor(g);
-      // Gameplay geometry is invisible in the campaign because the painting
-      // carries it. The lab has no painting, so its structure has to be drawn:
-      // an unlit roof slab would be an ambush rather than an obstacle.
+      // The Test Arena is intentionally just a black field and points of light.
+      // Its collider geometry still works, but stays invisible.
       const staticLayer = l.jumpCourse ? jumpLabLayer(l) : null;
       if (staticLayer) ctx.drawImage(staticLayer, 0, 0);
-      else
-        for (const c of l.colliders) {
-          ctx.save();
-          ctx.lineCap = 'round';
-          if (c.type === 'edge') {
-            ctx.strokeStyle = c.role === 'ground' ? '#2c3138' : '#59636f';
-            ctx.lineWidth = c.role === 'ground' ? 3 : 9;
-            ctx.beginPath();
-            ctx.moveTo(c.x, c.y);
-            ctx.lineTo(c.x2, c.y2);
-            ctx.stroke();
-          } else {
-            ctx.fillStyle = '#39424c';
-            ctx.fillRect(
-              Math.min(c.x, c.x2),
-              Math.min(c.y, c.y2),
-              Math.abs(c.x2 - c.x),
-              Math.abs(c.y2 - c.y),
-            );
-          }
-          ctx.restore();
-        }
       // The belay ledge the tool has to be brought back to.
       const zone = l.completionTrigger;
       ctx.save();
@@ -403,48 +337,12 @@ export function draw(
         if (awareness < 0.03) continue;
         ctx.save();
         ctx.globalAlpha = awareness;
-        ctx.shadowColor = hold.color ?? '#ffffff';
-        ctx.shadowBlur = selected ? 24 : hold.jumpTarget ? 10 : 4;
-        ctx.fillStyle = hold.color ?? '#ffffff';
-        ctx.strokeStyle = selected ? '#ffffff' : '#111111';
-        ctx.lineWidth = selected ? 4 : 2;
-        ctx.beginPath();
-        if (hold.use === 'foot') {
-          ctx.roundRect(
-            hold.x - radius * 1.25,
-            hold.y - radius * 0.45,
-            radius * 2.5,
-            radius * 0.9,
-            radius * 0.4,
-          );
-        } else if (hold.surface === 'launch' || hold.surface === 'rest') {
-          ctx.roundRect(
-            hold.x - radius * 1.45,
-            hold.y - radius * 0.62,
-            radius * 2.9,
-            radius * 1.24,
-            radius * 0.55,
-          );
-        } else if (hold.singleLimb) {
-          // A notch is drawn narrow because narrow is what it is: one limb fits,
-          // so the hands can never be matched on it and it can never launch.
-          ctx.roundRect(
-            hold.x - radius * 0.55,
-            hold.y - radius * 1.15,
-            radius * 1.1,
-            radius * 2.3,
-            radius * 0.5,
-          );
-        } else {
-          ctx.arc(hold.x, hold.y, radius, 0, Math.PI * 2);
-        }
-        ctx.fill();
-        ctx.stroke();
+        paintMinimalLabHold(ctx, hold, radius, selected);
         if (hold.crumbleAfter) {
           const wear = (g.holdWear[hold.id] ?? 0) / hold.crumbleAfter;
           ctx.shadowBlur = 0;
-          ctx.strokeStyle = wear > 0.65 ? '#ff694f' : '#211a20';
-          ctx.lineWidth = 2 + wear * 2;
+          ctx.strokeStyle = '#000000';
+          ctx.lineWidth = 1.5 + wear * 2;
           ctx.beginPath();
           ctx.moveTo(hold.x + 3, hold.y - radius);
           ctx.lineTo(hold.x - 3, hold.y);
@@ -466,8 +364,7 @@ export function draw(
           const cue = jump.catchCue;
           const progress = jump.catchProgress;
           ctx.shadowBlur = cue === 'ready' ? 28 : 10;
-          ctx.strokeStyle =
-            cue === 'ready' ? '#ffffff' : (hold.color ?? '#ffffff');
+          ctx.strokeStyle = '#ffffff';
           ctx.lineWidth = cue === 'ready' ? 7 : 4;
           ctx.beginPath();
           ctx.arc(
@@ -480,7 +377,7 @@ export function draw(
           ctx.stroke();
           if (cue === 'ready') {
             ctx.globalAlpha = 0.2 + 0.14 * Math.sin(performance.now() / 55);
-            ctx.fillStyle = hold.color ?? '#ffffff';
+            ctx.fillStyle = '#ffffff';
             ctx.beginPath();
             ctx.arc(hold.x, hold.y, radius + 24, 0, Math.PI * 2);
             ctx.fill();
@@ -488,34 +385,15 @@ export function draw(
         }
         const index =
           l.jumpCourse?.findIndex((stage) => stage.hold === hold.id) ?? -1;
-        if (index >= 0 || hold.id === 'start-hands') {
+        if (index >= 0 && index < (jump?.completedJumps ?? 0)) {
           ctx.shadowBlur = 0;
-          ctx.fillStyle = '#080b10';
-          ctx.font = 'bold 14px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(index < 0 ? 'S' : String(index + 1), hold.x, hold.y);
-          ctx.fillStyle = '#b9c0cd';
-          ctx.font = '12px sans-serif';
-          const name =
-            index < 0 ? 'START' : l.jumpCourse![index].name.toUpperCase();
-          ctx.fillText(
-            hold.id === l.boulderFinish ||
-              (!l.boulderFinish && index === (l.jumpCourse?.length ?? 0) - 1)
-              ? 'FINISH · MATCH BOTH HANDS'
-              : name,
-            hold.x,
-            hold.y - radius - 16,
-          );
-          if (index >= 0 && index < (jump?.completedJumps ?? 0)) {
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(hold.x - 5, hold.y + radius + 10);
-            ctx.lineTo(hold.x - 1, hold.y + radius + 14);
-            ctx.lineTo(hold.x + 7, hold.y + radius + 5);
-            ctx.stroke();
-          }
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(hold.x - 4, hold.y + radius + 8);
+          ctx.lineTo(hold.x - 1, hold.y + radius + 11);
+          ctx.lineTo(hold.x + 5, hold.y + radius + 4);
+          ctx.stroke();
         }
         ctx.restore();
       }

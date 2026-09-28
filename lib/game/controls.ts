@@ -12,9 +12,14 @@ export function cameraTarget(
   edit: boolean,
 ) {
   const b = level.cameraBounds;
+  const jumpPortrait =
+    level.testMode === 'jump' && !edit && width <= 600 && height > width;
   const scale =
     (edit ? Math.min : Math.max)(width / b.width, height / b.height) *
-    (edit ? 1 : zoom);
+    (edit ? 1 : zoom) *
+    // A width-fitted portrait view made the climber and minimal holds too small
+    // to read on phones. Crop a little more of the empty sides instead.
+    (jumpPortrait ? 1.18 : 1);
   const axis = (
     size: number,
     origin: number,
@@ -38,7 +43,7 @@ export function cameraTarget(
     // world, so keep the body near the middle instead of pinning it low.
     y:
       level.testMode === 'jump' && !edit
-        ? height * 0.55 - focus.y * scale
+        ? height * (jumpPortrait ? 0.48 : 0.55) - focus.y * scale
         : axis(height, b.y, b.height, focus.y, 0.62),
   };
 }

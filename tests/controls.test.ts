@@ -56,6 +56,26 @@ assert.ok(
   ) < 0.001,
   'Jump Lab keeps the climber near the middle of the screen',
 );
+const jumpPhoneView = cameraTarget(
+  390,
+  844,
+  jumpLabLevel,
+  jumpLabLevel.playerSpawn,
+  1.15,
+  false,
+);
+assert.ok(
+  Math.abs(
+    jumpLabLevel.playerSpawn.y * jumpPhoneView.scale +
+      jumpPhoneView.y -
+      844 * 0.48,
+  ) < 0.001,
+  'Portrait Test Arena keeps the climber above the thumb controls',
+);
+assert.ok(
+  jumpPhoneView.scale > (390 / jumpLabLevel.cameraBounds.width) * 1.15,
+  'Portrait Test Arena crops empty side space to make holds easier to read',
+);
 const rig = new Climber(structuredClone(catLevel));
 for (const scale of [0.8, 1.6, 2.4]) {
   const near = { x: rig.p.leftHand.x - 40 / scale, y: rig.p.leftHand.y };

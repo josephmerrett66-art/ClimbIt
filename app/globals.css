@@ -1597,9 +1597,10 @@ body {
   box-shadow:0 5px 18px #0009;
 }
 .jump-lab-stage .touch-climb-controls button.chosen {
-  color:#101315;
-  background:#f5dc43;
-  border-color:#fff6a8;
+  color:#000;
+  background:#fff;
+  border-color:#fff;
+  box-shadow:0 0 18px #fff8;
 }
 .canvas-wrap canvas {
   user-select: none;
@@ -1737,11 +1738,14 @@ body {
 .camera-zoom-control input { width:112px; height:28px; margin:0; accent-color:#f5dc43; cursor:pointer; touch-action:manipulation; }
 .camera-zoom-control input:focus-visible { outline:2px solid #f5dc43; outline-offset:3px; }
 .camera-zoom-control b { font-size:9px; letter-spacing:.12em; }
-.camera-zoom-control.jump-lab-camera { color:#121212; background:#f5dc43ed; border-color:#fff6a8; box-shadow:0 5px 18px #000c,0 0 0 1px #000; }
-.camera-zoom-control.jump-lab-camera button { width:28px; height:28px; padding:0; display:grid; place-items:center; border:0; border-radius:50%; color:#121212; background:#fff4a1; touch-action:manipulation; }
-.camera-zoom-control.jump-lab-camera button:hover:not(:disabled) { background:#fffbd2; }
-.camera-zoom-control.jump-lab-camera button:focus-visible { outline:2px solid #121212; outline-offset:2px; }
+.camera-zoom-control.jump-lab-camera { color:#fff; background:#050505e8; border-color:#ffffff66; box-shadow:0 5px 18px #000c; }
+.camera-zoom-control.jump-lab-camera button { width:28px; height:28px; padding:0; display:grid; place-items:center; border:0; border-radius:50%; color:#fff; background:#1b1b1b; touch-action:manipulation; }
+.camera-zoom-control.jump-lab-camera button:hover:not(:disabled) { background:#333; }
+.camera-zoom-control.jump-lab-camera button:focus-visible { outline:2px solid #fff; outline-offset:2px; }
 .camera-zoom-control.jump-lab-camera button:disabled { opacity:.35; cursor:default; }
+.jump-lab-stage::after { box-shadow:none; }
+.jump-lab-stage .phone-launch { color:#fff; background:#050505e8; border-color:#ffffff55; }
+.jump-lab-stage .phone-unread { background:#fff; box-shadow:0 0 8px #fff; }
 
 @media (max-width: 600px) {
   .camera-zoom-control { top:max(10px,env(safe-area-inset-top)); height:32px; padding:0 8px; gap:5px; }
@@ -1750,11 +1754,11 @@ body {
 
 .jump-lab-controls { position:absolute; z-index:14; left:50%; bottom:max(22px,env(safe-area-inset-bottom)); transform:translateX(-50%); display:flex; align-items:center; gap:12px; color:#fff; pointer-events:none; }
 .jump-charge-button { --charge:0; pointer-events:auto; position:relative; width:70px; height:70px; flex:0 0 70px; display:grid; place-items:center; align-content:center; gap:0; overflow:hidden; border:2px solid #fff; border-radius:50%; background:#151515; color:#fff; box-shadow:0 7px 26px #000c; touch-action:none; user-select:none; }
-.jump-charge-button > span { position:absolute; inset:auto 0 0; height:calc(var(--charge) * 100%); background:linear-gradient(#ff8a3d,#f5dc43); transition:height .08s linear; opacity:.9; }
+.jump-charge-button > span { position:absolute; inset:auto 0 0; height:calc(var(--charge) * 100%); background:#fff; transition:height .08s linear; opacity:.9; }
 .jump-charge-button svg,.jump-charge-button small { position:relative; z-index:1; }
 .jump-charge-button small { font-size:9px; font-weight:900; letter-spacing:.08em; }
 .jump-charge-button.charging { color:#111; transform:scale(.96); }
-.jump-charge-button.propelling { color:#111; background:#f5dc43; transform:scale(1.05); }
+.jump-charge-button.propelling { color:#111; background:#fff; transform:scale(1.05); box-shadow:0 0 26px #fff8; }
 .jump-charge-button.airborne { opacity:.45; }
 .jump-charge-button:disabled { cursor:default; }
 .jump-grab-button { --catch:0; --target-color:#fff; pointer-events:auto; position:relative; width:70px; height:70px; flex:0 0 70px; display:grid; place-items:center; align-content:center; gap:0; overflow:hidden; border:3px solid var(--target-color); border-radius:50%; background:#111; color:#fff; box-shadow:0 7px 26px #000c,0 0 calc(20px * var(--catch)) color-mix(in srgb,var(--target-color) 70%,transparent); touch-action:manipulation; user-select:none; transition:transform .08s ease,opacity .15s ease,background .1s ease,box-shadow .1s ease; }
@@ -1783,11 +1787,84 @@ body {
   .jump-lab-stage .phone-launch.ambience-toggle { bottom:auto; }
 }
 
+@media (max-width: 600px) {
+  .jump-lab-stage .camera-zoom-control.jump-lab-camera {
+    top:max(8px,env(safe-area-inset-top));
+    height:44px;
+    padding:0 5px;
+    gap:3px;
+  }
+  .jump-lab-stage .camera-zoom-control.jump-lab-camera button {
+    width:38px;
+    height:38px;
+  }
+  .jump-lab-stage .boulder-practice {
+    top:max(8px,env(safe-area-inset-top));
+    left:max(8px,env(safe-area-inset-left));
+    min-width:44px;
+    min-height:44px;
+    padding:7px;
+    border-radius:50%;
+  }
+  .jump-lab-stage .boulder-practice small { display:none; }
+  .jump-lab-stage .phone-launch {
+    right:max(8px,env(safe-area-inset-right));
+    width:44px;
+    height:44px;
+  }
+  .jump-lab-stage .phone-launch.ambience-toggle {
+    top:max(8px,env(safe-area-inset-top));
+  }
+  .jump-lab-stage > .phone-launch:not(.ambience-toggle) {
+    top:max(60px,calc(env(safe-area-inset-top) + 52px));
+  }
+  .jump-lab-controls {
+    bottom:max(10px,env(safe-area-inset-bottom));
+    gap:14px;
+  }
+  .jump-charge-button,.jump-grab-button {
+    width:68px;
+    height:68px;
+    flex-basis:68px;
+  }
+  .jump-lab-stage .touch-climb-controls {
+    left:50%;
+    bottom:max(92px,calc(env(safe-area-inset-bottom) + 82px));
+    transform:translateX(-50%);
+  }
+  .jump-lab-stage .touch-climb-controls > div { gap:7px; }
+  .jump-lab-stage .touch-climb-controls button {
+    width:48px;
+    height:48px;
+    border-radius:24px;
+  }
+  .jump-lab-stage .touch-climb-controls button span {
+    font-size:8px;
+    line-height:1;
+  }
+}
+
 @media (max-height: 430px) and (orientation: landscape) {
   .jump-lab-controls { bottom:max(10px,env(safe-area-inset-bottom)); gap:7px; }
   .jump-charge-button,.jump-grab-button { width:56px; height:56px; flex-basis:56px; }
   .failure-card,.completion-card { max-height:calc(100dvh - 12px); padding-top:20px; padding-bottom:18px; }
-  .jump-lab-stage .touch-climb-controls { bottom:max(84px,calc(env(safe-area-inset-bottom) + 74px)); }
+  .jump-lab-stage .touch-climb-controls {
+    left:max(10px,env(safe-area-inset-left));
+    bottom:max(10px,env(safe-area-inset-bottom));
+    transform:none;
+  }
+  .jump-lab-stage .touch-climb-controls button {
+    width:44px;
+    height:44px;
+  }
+  .jump-lab-stage .boulder-practice {
+    top:max(10px,env(safe-area-inset-top));
+    min-width:44px;
+    min-height:44px;
+    padding:7px;
+    border-radius:50%;
+  }
+  .jump-lab-stage .boulder-practice small { display:none; }
 }
 
 .boulder-practice { position:absolute; z-index:15; left:max(12px,env(safe-area-inset-left)); top:max(64px,calc(env(safe-area-inset-top) + 58px)); display:flex; flex-direction:column; align-items:center; gap:3px; padding:9px; min-width:48px; min-height:48px; border:1px solid #ffffff38; border-radius:12px; color:#deded3; background:#111e; touch-action:manipulation; }

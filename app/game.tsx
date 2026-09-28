@@ -557,7 +557,9 @@ export default function Game({
         button.style.setProperty('--catch', String(liveJump.catchProgress));
         button.style.setProperty(
           '--target-color',
-          liveJump.target?.color ?? '#ffffff',
+          level.current.testMode === 'jump'
+            ? '#ffffff'
+            : (liveJump.target?.color ?? '#ffffff'),
         );
         button.disabled =
           s.paused || liveJump.state !== 'airborne' || cue === 'passed';
