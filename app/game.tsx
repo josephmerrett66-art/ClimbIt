@@ -57,6 +57,7 @@ import { pubJob } from '@/lib/game/pub-level';
 import { jumpLabJob } from '@/lib/game/jump-lab';
 import { AUSTRALIAN_JOBS } from '@/lib/game/australian-jobs';
 import { buildingEditorJob } from '@/lib/game/building-editor';
+import { artworkFrame, resizeArtwork } from '@/lib/game/artwork';
 import {
   START_ZOOM,
   cameraTarget,
@@ -1203,6 +1204,16 @@ export default function Game({
   const selectedGrip = level.current.gripPoints.find(
     (grip) => grip.id === selected,
   );
+  const backgroundFrame = artworkFrame(level.current);
+  const artworkPercent = Math.round(
+    (backgroundFrame.width / level.current.worldWidth) * 100,
+  );
+  const changeArtworkSize = (percent: number) => {
+    if (!Number.isFinite(percent)) return;
+    snapshot();
+    resizeArtwork(level.current, percent);
+    setRevision((r) => r + 1);
+  };
   useEffect(() => {
     if (!edit) return;
     const preview = new Climber(clone(level.current), false);
@@ -1572,6 +1583,88 @@ export default function Game({
                   <Upload size={14} /> Foreground PNG
                 </Button>
               </div>
+              {level.current.backgroundImage && (
+                <section className="artwork-sizing">
+                  <label htmlFor="artwork-size">Background size (%)</label>
+                  <div className="artwork-size-row">
+                    <button
+                      type="button"
+                      aria-label="Make artwork smaller"
+                      disabled={artworkPercent <= 10}
+                      onClick={() => changeArtworkSize(artworkPercent - 10)}
+                    >
+                      <Minus size={16} />
+                    </button>
+                    <input
+                      id="artwork-size"
+                      type="number"
+                      min="10"
+                      max="400"
+                      step="10"
+                      key={artworkPercent}
+                      defaultValue={artworkPercent}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter') event.currentTarget.blur();
+                      }}
+                      onBlur={(event) => {
+                        if (event.target.value !== '')
+                          changeArtworkSize(Number(event.target.value));
+                      }}
+                    />
+                    <button
+                      type="button"
+                      aria-label="Make artwork larger"
+                      disabled={artworkPercent >= 400}
+                      onClick={() => changeArtworkSize(artworkPercent + 10)}
+                    >
+                      <Plus size={16} />
+                    </button>
+                  </div>
+                  <p>
+                    Scales the image from its bottom centre. Holds and player
+                    stay in place.
+                  </p>
+                  {(['x', 'y'] as const).map((axis) => (
+                    <label key={axis}>
+                      {axis === 'x'
+                        ? 'Horizontal position'
+                        : 'Vertical position'}
+                      <input
+                        type="number"
+                        step="10"
+                        min="-19000"
+                        max="19000"
+                        key={backgroundFrame[axis]}
+                        defaultValue={Math.round(backgroundFrame[axis])}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter') event.currentTarget.blur();
+                        }}
+                        onBlur={(event) => {
+                          if (event.target.value === '') return;
+                          const value = Number(event.target.value);
+                          if (!Number.isFinite(value)) return;
+                          snapshot();
+                          level.current.backgroundFraming = {
+                            ...backgroundFrame,
+                            [axis]: Math.max(-19000, Math.min(19000, value)),
+                          };
+                          setRevision((r) => r + 1);
+                        }}
+                      />
+                    </label>
+                  ))}
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      snapshot();
+                      delete level.current.backgroundFraming;
+                      setRevision((r) => r + 1);
+                    }}
+                  >
+                    Reset artwork size & position
+                  </Button>
+                </section>
+              )}
             </details>
             <label className="editor-label">
               LEVEL NAME

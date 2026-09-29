@@ -121,9 +121,9 @@ export function draw(
   if (bg?.complete && bg.naturalWidth)
     ctx.drawImage(
       bg,
-      0,
+      l.backgroundFraming?.x ?? 0,
       l.backgroundFraming?.y ?? 0,
-      l.worldWidth,
+      l.backgroundFraming?.width ?? l.worldWidth,
       l.backgroundFraming?.height ?? l.worldHeight,
     );
   if (edit && l.testMode !== 'jump') {

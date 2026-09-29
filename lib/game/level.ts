@@ -66,7 +66,7 @@ export type Level = {
     name: string;
     hint: string;
   }[];
-  backgroundFraming?: { y: number; height: number };
+  backgroundFraming?: { x?: number; y: number; width?: number; height: number };
   location?: string;
   briefing?: string;
   playerSpawn: Point;
@@ -527,6 +527,20 @@ export function parseLevel(raw: string): Level {
   )
     throw Error('Add at least one supported objective.');
   // Accept old exports, but discard the retired rope configuration.
+  if (l.backgroundFraming) {
+    const frame = l.backgroundFraming;
+    if (
+      !point({ x: frame.x ?? 0, y: frame.y }) ||
+      !Number.isFinite(frame.height) ||
+      frame.height <= 0 ||
+      frame.height > 32000 ||
+      (frame.width !== undefined &&
+        (!Number.isFinite(frame.width) ||
+          frame.width <= 0 ||
+          frame.width > 32000))
+    )
+      throw Error('Invalid background artwork size or position.');
+  }
   delete l.ropeAnchors;
   for (const key of ['cameraBounds', 'completionTrigger'])
     if (

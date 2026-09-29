@@ -335,6 +335,13 @@ a {
   gap: 7px;
   margin-bottom: 20px;
 }
+.artwork-sizing { margin:16px 0; display:grid; gap:10px; }
+.artwork-sizing label { display:grid; gap:5px; font-size:12px; }
+.artwork-size-row { display:flex; gap:8px; }
+.artwork-sizing input { width:100%; min-width:0; padding:8px; border:1px solid #777; border-radius:6px; background:#fff; color:#222; }
+.artwork-size-row button { flex:0 0 44px; min-height:44px; display:grid; place-items:center; border:1px solid #777; border-radius:6px; background:#eee; color:#222; }
+.artwork-size-row button:disabled { opacity:.4; }
+.artwork-sizing p { margin:0; font-size:11px; line-height:1.5; }
 .editor-panel [data-slot='button'] {
   height: 34px;
   font-size: 10px;
