@@ -21,6 +21,7 @@ export default defineConfig({
           [
             'pub',
             'jump-lab',
+            'building-editor',
             'prawn',
             'surf-club',
             'drive-in',

@@ -4,6 +4,7 @@ import Game from '@/app/game';
 import { pubLevel } from '@/lib/game/pub-level';
 import { AUSTRALIAN_JOBS } from '@/lib/game/australian-jobs';
 import { jumpLabLevel } from '@/lib/game/jump-lab';
+import { buildingEditorLevel } from '@/lib/game/building-editor';
 import '@/app/globals.css';
 import type { Level } from '@/lib/game/level';
 
@@ -20,14 +21,16 @@ const legacy: Record<string, number> = {
   '/cable-car': 7,
 };
 const source =
-  route === '/jump-lab'
-    ? jumpLabLevel
-    : route === '/pub'
-    ? pubLevel
-    : (
-        AUSTRALIAN_JOBS.find((job) => job.href === route) ??
-        AUSTRALIAN_JOBS[legacy[route] ?? 0]
-      ).level;
+  route === '/building-editor'
+    ? buildingEditorLevel
+    : route === '/jump-lab'
+      ? jumpLabLevel
+      : route === '/pub'
+        ? pubLevel
+        : (
+            AUSTRALIAN_JOBS.find((job) => job.href === route) ??
+            AUSTRALIAN_JOBS[legacy[route] ?? 0]
+          ).level;
 const level = structuredClone(source) as Level;
 
 for (const key of ['backgroundImage', 'foregroundImage'] as const) {
@@ -39,7 +42,7 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <main className="climb-stage">
       <Game
-        editing={false}
+        editing={route === '/building-editor'}
         initialLevel={level}
         basePath={basePath}
         onBack={() => {}}

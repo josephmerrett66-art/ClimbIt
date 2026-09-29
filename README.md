@@ -38,7 +38,7 @@ control the swing for a full second. Training runs have no payout.
 
 [docs/jump-lab.md](docs/jump-lab.md) describes the layout and catch tuning.
 
-The developer workshop is retained separately at `/workshop`: import background/foreground PNGs, trace grips and edge/rectangle colliders, place spawn/objective/return-zone/camera geometry, play test, undo, save locally and export/reload portable JSON with embedded artwork.
+The level editor is available from the phone on every job and as a blank Building Editor job. It can import background/foreground PNGs, place and configure holds, trace edge/rectangle colliders, move the spawn/objective/return-zone/camera geometry, zoom and pan, switch repeatedly between editing and no-pay play tests, save a separate draft for each level, restore the original, and export/reload portable JSON with embedded PNG artwork. The older `/workshop` developer entry remains available.
 
 ## Run
 

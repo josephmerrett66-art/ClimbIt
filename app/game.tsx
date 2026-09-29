@@ -20,6 +20,7 @@ import {
   Download,
   Upload,
   Undo2,
+  Redo2,
   Trash2,
   Plus,
   Minus,
@@ -41,6 +42,7 @@ import {
   Cigarette,
   CircleSlash,
   ArrowUp,
+  Hammer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { parseLevel, type Level, type Point } from '@/lib/game/level';
@@ -49,6 +51,7 @@ import { draw, type View } from '@/lib/game/render';
 import { pubJob } from '@/lib/game/pub-level';
 import { jumpLabJob } from '@/lib/game/jump-lab';
 import { AUSTRALIAN_JOBS } from '@/lib/game/australian-jobs';
+import { buildingEditorJob } from '@/lib/game/building-editor';
 import {
   START_ZOOM,
   cameraTarget,
@@ -57,6 +60,7 @@ import {
 } from '@/lib/game/controls';
 type Tool =
   | 'select'
+  | 'pan'
   | 'grip'
   | 'edge'
   | 'rect'
@@ -91,7 +95,8 @@ const EMPTY_FINANCES: Finances = {
   lifetimeEarnings: 0,
   completedJobs: [],
 };
-const JOBS = [jumpLabJob, pubJob, ...AUSTRALIAN_JOBS];
+const JOBS = [buildingEditorJob, jumpLabJob, pubJob, ...AUSTRALIAN_JOBS];
+type PhoneTab = 'jobs' | 'bank' | 'messages' | 'music' | 'edit';
 const money = (amount: number) =>
   new Intl.NumberFormat('en-AU', {
     style: 'currency',
@@ -135,14 +140,20 @@ export default function Game({
   }, [basePath]);
   const canvas = useRef<HTMLCanvasElement>(null),
     level = useRef<Level>(clone(initialLevel)),
+    originalLevel = useRef<Level>(clone(initialLevel)),
     game = useRef<Climber | null>(null),
     view = useRef<View>({ scale: 1, x: 0, y: 0 }),
+    editorFocus = useRef<Point>({
+      x: initialLevel.cameraBounds.x + initialLevel.cameraBounds.width / 2,
+      y: initialLevel.cameraBounds.y + initialLevel.cameraBounds.height / 2,
+    }),
     images = useRef<{
       bg: HTMLImageElement | null;
       fg: HTMLImageElement | null;
       cat: HTMLImageElement | null;
     }>({ bg: null, fg: null, cat: null });
-  const [edit, setEdit] = useState(editing),
+  const [editorSession, setEditorSession] = useState(editing),
+    [edit, setEdit] = useState(editing),
     [tool, setTool] = useState<Tool>('select'),
     [revision, setRevision] = useState(0),
     [hud, setHud] = useState({
@@ -159,7 +170,7 @@ export default function Game({
     }),
     [paused, setPaused] = useState(false),
     [zoom, setZoom] = useState(
-      initialLevel.testMode === 'jump' ? 1.15 : START_ZOOM,
+      editing ? 1 : initialLevel.testMode === 'jump' ? 1.15 : START_ZOOM,
     ),
     [touchControls, setTouchControls] = useState(false),
     [fullscreen, setFullscreen] = useState(false),
@@ -169,15 +180,14 @@ export default function Game({
     [debug, setDebug] = useState(false),
     [chosen, setChosen] = useState<Limb | null>(null),
     [phoneOpen, setPhoneOpen] = useState(false),
-    [phoneTab, setPhoneTab] = useState<'jobs' | 'bank' | 'messages' | 'music'>(
-      'jobs',
-    ),
+    [phoneTab, setPhoneTab] = useState<PhoneTab>('jobs'),
     [finances, setFinances] = useState<Finances>(EMPTY_FINANCES),
     [phoneUnread, setPhoneUnread] = useState(false),
     [payout, setPayout] = useState<Payout | null>(null);
   const settings = useRef({
     edit,
     editing,
+    editorSession,
     tool,
     paused,
     zoom,
@@ -188,6 +198,7 @@ export default function Game({
   settings.current = {
     edit,
     editing,
+    editorSession,
     tool,
     paused,
     zoom,
@@ -207,6 +218,7 @@ export default function Game({
       original?: any;
     } | null>(null),
     history = useRef<Level[]>([]),
+    future = useRef<Level[]>([]),
     paid = useRef(false),
     lastCatchCue = useRef('idle'),
     jumpGrabButton = useRef<HTMLButtonElement>(null),
@@ -221,6 +233,7 @@ export default function Game({
   const snapshot = () => {
     history.current.push(clone(level.current));
     if (history.current.length > 40) history.current.shift();
+    future.current = [];
   };
   const practice = useRef(new BoulderPractice());
   const retrySection = () => {
@@ -242,7 +255,7 @@ export default function Game({
   const reset = () => {
     practice.current = new BoulderPractice();
     cameraReady.current = false;
-    game.current = new Climber(level.current, !editing);
+    game.current = new Climber(level.current, !settings.current.editorSession);
     paid.current = false;
     setHud({
       seconds: 0,
@@ -309,7 +322,7 @@ export default function Game({
     setPhoneOpen(false);
     setPaused(false);
   };
-  const openPhoneTo = (tab: 'jobs' | 'bank' | 'messages' | 'music') => {
+  const openPhoneTo = (tab: PhoneTab) => {
     setPayout(null);
     setPhoneTab(tab);
     openPhone();
@@ -325,11 +338,14 @@ export default function Game({
     setPaymentAmount('');
   };
   const loadImages = () => {
-    const bg = new Image();
-    bg.onload = () => setRevision((r) => r + 1);
-    bg.onerror = () =>
-      setNotice('Background could not load. Import a PNG in the workshop.');
-    bg.src = level.current.backgroundImage;
+    let bg: HTMLImageElement | null = null;
+    if (level.current.backgroundImage) {
+      bg = new Image();
+      bg.onload = () => setRevision((r) => r + 1);
+      bg.onerror = () =>
+        setNotice('Background could not load. Import a PNG in the workshop.');
+      bg.src = level.current.backgroundImage;
+    }
     let fg: HTMLImageElement | null = null;
     if (level.current.foregroundImage) {
       fg = new Image();
@@ -444,16 +460,17 @@ export default function Game({
     }
   }
   useEffect(() => {
+    setEditorSession(editing);
     setEdit(editing);
     reset();
   }, [editing]);
   useEffect(() => {
-    if (editing) {
-      try {
-        const saved = localStorage.getItem('oddjobs-level');
-        if (saved) level.current = parseLevel(saved);
-      } catch {}
-    }
+    try {
+      const saved =
+        localStorage.getItem(`oddjobs-level:${level.current.id}`) ??
+        (editing ? localStorage.getItem('oddjobs-level') : null);
+      if (saved) level.current = parseLevel(saved);
+    } catch {}
     reset();
     loadImages();
     const c = canvas.current!;
@@ -513,7 +530,14 @@ export default function Game({
         setChosen(null);
       }
       viewport.current = { width: w, height: h };
-      const target = cameraTarget(w, h, l, g.p.hip, s.zoom, s.edit);
+      const target = cameraTarget(
+        w,
+        h,
+        l,
+        s.edit ? editorFocus.current : g.p.hip,
+        s.zoom,
+        s.edit,
+      );
       const v = view.current;
       if (!cameraReady.current || resized || s.edit) {
         Object.assign(v, target);
@@ -596,7 +620,7 @@ export default function Game({
       }
       if (g.complete && !paid.current) {
         paid.current = true;
-        if (!s.editing && l.testMode !== 'jump') {
+        if (!s.editorSession && l.testMode !== 'jump') {
           const bonus = efficiencyBonus(l, g.moves),
             total = l.pay + bonus;
           recordPay(
@@ -646,7 +670,8 @@ export default function Game({
       }
       if (edit && (e.metaKey || e.ctrlKey) && e.key === 'z') {
         e.preventDefault();
-        undo();
+        if (e.shiftKey) redo();
+        else undo();
       }
       if (!edit && e.key.toLowerCase() === 'r') reset();
       if (!edit && e.key.toLowerCase() === 'f') void toggleFullscreen();
@@ -732,7 +757,18 @@ export default function Game({
   function undo() {
     const prev = history.current.pop();
     if (prev) {
+      future.current.push(clone(level.current));
       level.current = prev;
+      loadImages();
+      setSelected(null);
+      setRevision((r) => r + 1);
+    }
+  }
+  function redo() {
+    const next = future.current.pop();
+    if (next) {
+      history.current.push(clone(level.current));
+      level.current = next;
       loadImages();
       setSelected(null);
       setRevision((r) => r + 1);
@@ -779,7 +815,7 @@ export default function Game({
     active.current = e.pointerId;
     e.currentTarget.setPointerCapture(e.pointerId);
     if (edit) {
-      snapshot();
+      if (tool !== 'pan') snapshot();
       let id: string | undefined;
       let original: any;
       if (tool === 'select') {
@@ -820,6 +856,8 @@ export default function Game({
           }
         }
         setSelected(id || null);
+      } else if (tool === 'pan') {
+        original = { ...editorFocus.current };
       }
       gesture.current = { a: p, b: p, tool, id, original };
     } else {
@@ -864,6 +902,11 @@ export default function Game({
             g.y2 = s.original.y2 + p.y - s.a.y;
           }
         }
+      } else if (s.tool === 'pan' && s.original) {
+        editorFocus.current = {
+          x: s.original.x + s.a.x - p.x,
+          y: s.original.y + s.a.y - p.y,
+        };
       }
     } else game.current?.move(dragTarget(p, dragOffset.current));
   }
@@ -878,8 +921,10 @@ export default function Game({
         p = s.b,
         id = crypto.randomUUID();
       if (cancel) {
-        const prev = history.current.pop();
-        if (prev) level.current = prev;
+        if (s.tool !== 'pan') {
+          const prev = history.current.pop();
+          if (prev) level.current = prev;
+        }
       } else {
         if (s.tool === 'grip') {
           l.gripPoints.push({ ...p, id });
@@ -992,8 +1037,11 @@ export default function Game({
   }
   function save() {
     try {
-      localStorage.setItem('oddjobs-level', JSON.stringify(level.current));
-      setNotice('Workshop saved on this device.');
+      localStorage.setItem(
+        `oddjobs-level:${level.current.id}`,
+        JSON.stringify(level.current),
+      );
+      setNotice(`Saved “${level.current.name}” on this device.`);
     } catch {
       setNotice('Device storage is full. Export JSON to keep your level.');
     }
@@ -1005,6 +1053,7 @@ export default function Game({
         const path = exported[key];
         if (path && !path.startsWith('data:')) {
           const blob = await (await fetch(path)).blob();
+          if (blob.type !== 'image/png') continue;
           exported[key] = await new Promise<string>((resolve, reject) => {
             const r = new FileReader();
             r.onload = () => resolve(String(r.result));
@@ -1027,37 +1076,77 @@ export default function Game({
       setNotice('Could not embed the artwork. Check the image URL.');
     }
   }
+  function restoreOriginal() {
+    snapshot();
+    localStorage.removeItem(`oddjobs-level:${level.current.id}`);
+    level.current = clone(originalLevel.current);
+    setSelected(null);
+    loadImages();
+    reset();
+    setNotice('Original level restored.');
+  }
+  function beginEditing() {
+    setPhoneOpen(false);
+    setPaused(false);
+    setEditorSession(true);
+    settings.current.editorSession = true;
+    setEdit(true);
+    setSelected(null);
+    setZoom(1);
+    editorFocus.current = {
+      x: level.current.cameraBounds.x + level.current.cameraBounds.width / 2,
+      y: level.current.cameraBounds.y + level.current.cameraBounds.height / 2,
+    };
+    cameraReady.current = false;
+    reset();
+  }
+  function exitEditor() {
+    setEdit(false);
+    setEditorSession(false);
+    settings.current.editorSession = false;
+    setSelected(null);
+    setZoom(level.current.testMode === 'jump' ? 1.15 : START_ZOOM);
+    cameraReady.current = false;
+    reset();
+  }
   const toggle = () => {
     setEdit(!edit);
     setSelected(null);
     reset();
   };
+  const selectedGrip = level.current.gripPoints.find(
+    (grip) => grip.id === selected,
+  );
+  const changeSelectedGrip = (change: (grip: typeof selectedGrip) => void) => {
+    if (!selectedGrip) return;
+    snapshot();
+    change(selectedGrip);
+    setRevision((r) => r + 1);
+  };
   return (
     <div
       className={
         'game-shell ' +
-        (edit ? 'workshop-stage' : 'immersive-stage') +
+        (editorSession ? 'workshop-stage' : 'immersive-stage') +
         (level.current.testMode === 'jump' ? ' jump-lab-stage' : '')
       }
     >
-      {edit && (
+      {editorSession && (
         <div className="game-topbar">
-          <button onClick={onBack}>
-            <ArrowLeft size={15} /> Back to climb
+          <button onClick={editing ? onBack : exitEditor}>
+            <ArrowLeft size={15} /> {editing ? 'Back to climb' : 'Exit editor'}
           </button>
           <div>
             <span className="eyebrow">
-              {editing ? 'LEVEL WORKSHOP' : 'JOB NO. 001'}
+              {edit ? 'LEVEL EDITOR' : 'PLAY TEST'}
             </span>
             <strong>{level.current.name}</strong>
           </div>
           <div className="game-top-actions">
-            {editing && (
-              <Button onClick={toggle}>
-                <Play size={13} />
-                {edit ? 'Play test' : 'Return to editor'}
-              </Button>
-            )}
+            <Button onClick={toggle}>
+              {edit ? <Play size={13} /> : <Hammer size={13} />}
+              {edit ? 'Test' : 'Edit'}
+            </Button>
             <button onClick={reset} aria-label="Restart job">
               <RotateCcw size={16} />
             </button>
@@ -1293,6 +1382,27 @@ export default function Game({
               {level.current.colliders.length} COLLIDERS
             </span>
           )}
+          {edit && (
+            <div className="editor-camera-control" aria-label="Editor camera">
+              <button
+                type="button"
+                onClick={() => adjustZoom(-0.2)}
+                disabled={zoom <= 0.65}
+                aria-label="Zoom editor out"
+              >
+                <Minus size={16} />
+              </button>
+              <b>{Math.round(zoom * 100)}%</b>
+              <button
+                type="button"
+                onClick={() => adjustZoom(0.2)}
+                disabled={zoom >= 2.2}
+                aria-label="Zoom editor in"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          )}
           {!edit &&
             !phoneOpen &&
             !hud.failed &&
@@ -1345,11 +1455,12 @@ export default function Game({
               {(
                 [
                   ['select', '↖', 'Select / move'],
+                  ['pan', '✥', 'Pan view'],
                   ['grip', '●', 'Grip point'],
                   ['edge', '╱', 'Edge collider'],
                   ['rect', '▧', 'Rectangle'],
                   ['spawn', '◎', 'Player spawn'],
-                  ['objective', '★', 'Pickles'],
+                  ['objective', '★', 'Objective'],
                   ['zone', '▣', 'Return zone'],
                   ['camera', '⊞', 'Camera bounds'],
                 ] as [Tool, string, string][]
@@ -1367,10 +1478,127 @@ export default function Game({
             <p className="tool-help">
               {tool === 'select'
                 ? 'Drag grips or colliders. Select one and press Delete to remove it.'
-                : ['edge', 'rect', 'zone', 'camera'].includes(tool)
-                  ? 'Click and drag across the image to trace this shape.'
-                  : 'Click the image to place this item.'}
+                : tool === 'pan'
+                  ? 'Drag the canvas to inspect another part of the level.'
+                  : ['edge', 'rect', 'zone', 'camera'].includes(tool)
+                    ? 'Click and drag across the image to trace this shape.'
+                    : 'Click the image to place this item.'}
             </p>
+            {selectedGrip && (
+              <section className="hold-inspector">
+                <span className="editor-label">SELECTED HOLD</span>
+                <label>
+                  LIMB
+                  <select
+                    value={selectedGrip.use ?? 'either'}
+                    onChange={(event) =>
+                      changeSelectedGrip((grip) => {
+                        if (!grip) return;
+                        const value = event.target.value;
+                        grip.use =
+                          value === 'either'
+                            ? undefined
+                            : (value as 'hand' | 'foot');
+                      })
+                    }
+                  >
+                    <option value="either">Hand or foot</option>
+                    <option value="hand">Hand only</option>
+                    <option value="foot">Foot only</option>
+                  </select>
+                </label>
+                <label>
+                  TYPE
+                  <select
+                    value={selectedGrip.surface ?? 'normal'}
+                    onChange={(event) =>
+                      changeSelectedGrip((grip) => {
+                        if (!grip) return;
+                        grip.surface =
+                          event.target.value === 'normal'
+                            ? undefined
+                            : event.target.value;
+                      })
+                    }
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="rest">Rest / match</option>
+                    <option value="launch">Jump launch</option>
+                  </select>
+                </label>
+                <label>
+                  SIZE
+                  <input
+                    type="number"
+                    min="5"
+                    max="40"
+                    value={selectedGrip.radius ?? 15}
+                    onChange={(event) =>
+                      changeSelectedGrip((grip) => {
+                        if (grip) grip.radius = Number(event.target.value);
+                      })
+                    }
+                  />
+                </label>
+                <label className="editor-check">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(selectedGrip.singleLimb)}
+                    onChange={(event) =>
+                      changeSelectedGrip((grip) => {
+                        if (grip) grip.singleLimb = event.target.checked;
+                      })
+                    }
+                  />
+                  One limb only
+                </label>
+                <label className="editor-check">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(selectedGrip.jumpTarget)}
+                    onChange={(event) =>
+                      changeSelectedGrip((grip) => {
+                        if (grip) grip.jumpTarget = event.target.checked;
+                      })
+                    }
+                  />
+                  Jump target
+                </label>
+                <label>
+                  HANG DRAIN
+                  <input
+                    type="number"
+                    min="1"
+                    max="4"
+                    step="0.1"
+                    value={selectedGrip.hangingDrain ?? 1}
+                    onChange={(event) =>
+                      changeSelectedGrip((grip) => {
+                        if (grip)
+                          grip.hangingDrain = Number(event.target.value);
+                      })
+                    }
+                  />
+                </label>
+                <label>
+                  CRUMBLE SECONDS
+                  <input
+                    type="number"
+                    min="0"
+                    max="30"
+                    step="0.5"
+                    value={selectedGrip.crumbleAfter ?? 0}
+                    onChange={(event) =>
+                      changeSelectedGrip((grip) => {
+                        if (!grip) return;
+                        const value = Number(event.target.value);
+                        grip.crumbleAfter = value > 0 ? value : undefined;
+                      })
+                    }
+                  />
+                </label>
+              </section>
+            )}
             <div className="editor-actions">
               <Button
                 variant="outline"
@@ -1383,6 +1611,14 @@ export default function Game({
                 <Trash2 size={14} /> Delete
               </Button>
             </div>
+            <Button
+              variant="outline"
+              className="redo-level"
+              onClick={redo}
+              disabled={!future.current.length}
+            >
+              <Redo2 size={14} /> Redo
+            </Button>
             <div className="editor-legend">
               <span>● Grips</span>
               <span>━ Collision</span>
@@ -1391,6 +1627,13 @@ export default function Game({
             </div>
             <Button className="save-level" onClick={save}>
               Save on this device
+            </Button>
+            <Button
+              variant="outline"
+              className="restore-level"
+              onClick={restoreOriginal}
+            >
+              <RotateCcw size={13} /> Restore original
             </Button>
             <div className="editor-actions">
               <Button variant="outline" onClick={download}>
@@ -1605,17 +1848,19 @@ export default function Game({
               </section>
             </div>
           )}
-          <button
-            className="phone-launch"
-            onClick={openPhone}
-            aria-label="Open phone"
-          >
-            <Smartphone size={21} />
-            {(phoneUnread || unreadStory > 0) && (
-              <span className="phone-unread" />
-            )}
-          </button>
-          {phoneOpen && (
+          {!editorSession && (
+            <button
+              className="phone-launch"
+              onClick={openPhone}
+              aria-label="Open phone"
+            >
+              <Smartphone size={21} />
+              {(phoneUnread || unreadStory > 0) && (
+                <span className="phone-unread" />
+              )}
+            </button>
+          )}
+          {phoneOpen && !editorSession && (
             <div className="phone-layer" role="dialog" aria-label="Phone">
               <button
                 className="phone-dismiss"
@@ -1657,6 +1902,12 @@ export default function Game({
                   >
                     <Music2 size={15} /> Music
                   </button>
+                  <button
+                    className={phoneTab === 'edit' ? 'active' : ''}
+                    onClick={() => setPhoneTab('edit')}
+                  >
+                    <Hammer size={15} /> Edit
+                  </button>
                 </nav>
                 <div className="phone-screen">
                   {phoneTab === 'messages' ? (
@@ -1668,6 +1919,23 @@ export default function Game({
                     />
                   ) : phoneTab === 'music' ? (
                     <div ref={setMusicControlsTarget} />
+                  ) : phoneTab === 'edit' ? (
+                    <div className="phone-editor">
+                      <span className="eyebrow">LEVEL TOOLS</span>
+                      <Hammer size={34} />
+                      <h2>Edit this level</h2>
+                      <p>
+                        Move the starting point, add holds and platforms, then
+                        swap between editing and a no-pay play test.
+                      </p>
+                      <button onClick={beginEditing}>
+                        <Hammer size={16} /> Open level editor
+                      </button>
+                      <small>
+                        Changes stay on this device until you restore the
+                        original or export the level.
+                      </small>
+                    </div>
                   ) : phoneTab === 'jobs' ? (
                     <div className="phone-jobs">
                       <div className="phone-section-title">

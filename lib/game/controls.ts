@@ -16,7 +16,7 @@ export function cameraTarget(
     level.testMode === 'jump' && !edit && width <= 600 && height > width;
   const scale =
     (edit ? Math.min : Math.max)(width / b.width, height / b.height) *
-    (edit ? 1 : zoom) *
+    zoom *
     // A width-fitted portrait view made the climber and minimal holds too small
     // to read on phones. Crop a little more of the empty sides instead.
     (jumpPortrait ? 1.18 : 1);
@@ -28,7 +28,7 @@ export function cameraTarget(
     fraction: number,
   ) => {
     const centered = (size - extent * scale) / 2 - origin * scale;
-    return edit || extent * scale <= size
+    return extent * scale <= size
       ? centered
       : Math.max(
           size - (origin + extent) * scale,
@@ -44,7 +44,7 @@ export function cameraTarget(
     y:
       level.testMode === 'jump' && !edit
         ? height * (jumpPortrait ? 0.48 : 0.55) - focus.y * scale
-        : axis(height, b.y, b.height, focus.y, 0.62),
+        : axis(height, b.y, b.height, focus.y, edit ? 0.5 : 0.62),
   };
 }
 

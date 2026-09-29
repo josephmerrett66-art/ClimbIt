@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1600" viewBox="0 0 1200 1600">
+  <defs>
+    <pattern id="grid" width="100" height="100" patternUnits="userSpaceOnUse">
+      <path d="M100 0H0V100" fill="none" stroke="#ffffff" stroke-opacity=".045" stroke-width="2"/>
+    </pattern>
+    <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#26312f"/>
+      <stop offset="1" stop-color="#131918"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="1600" fill="#0b0f0e"/>
+  <rect x="120" y="70" width="960" height="1470" rx="8" fill="url(#wall)" stroke="#eef5ef" stroke-opacity=".18" stroke-width="4"/>
+  <rect x="120" y="70" width="960" height="1470" fill="url(#grid)"/>
+  <path d="M120 340H1080M120 700H1080M120 1060H1080M120 1400H1080" stroke="#ffffff" stroke-opacity=".075" stroke-width="8"/>
+  <path d="M300 70V1540M600 70V1540M900 70V1540" stroke="#ffffff" stroke-opacity=".035" stroke-width="4"/>
+  <rect y="1540" width="1200" height="60" fill="#080a0a"/>
+  <text x="600" y="800" text-anchor="middle" fill="#ffffff" fill-opacity=".1" font-family="system-ui,sans-serif" font-size="34" letter-spacing="8">PLACE YOUR ROUTE</text>
+</svg>
