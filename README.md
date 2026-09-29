@@ -40,6 +40,8 @@ control the swing for a full second. Training runs have no payout.
 
 The level editor is available from the phone on every job and as a blank Building Editor job. It can import background/foreground PNGs, place and configure holds, trace edge/rectangle colliders, move the spawn/objective/return-zone/camera geometry, zoom and pan, switch repeatedly between editing and no-pay play tests, save a separate draft for each level, restore the original, and export/reload portable JSON with embedded PNG artwork. The older `/workshop` developer entry remains available.
 
+The Building Editor starts as a blank black Test Arena with a matched handhold and two footholds. The climber stays visible while editing, and the camera opens at the starting stance with unrestricted editor panning. The item palette includes hand, foot, rest, jump, hand-shuffle, crumbling and moving holds. Move start relocates the starter holds with the player; artwork and advanced geometry tools are collapsed by default. Empty drafts from the original building template reopen with the new arena template; authored drafts are preserved.
+
 ## Run
 
 Node 22.13+ and pnpm. `pnpm install`, then `pnpm dev`. `pnpm build` creates the Worker and client assets. `pnpm exec tsc --noEmit` checks types.

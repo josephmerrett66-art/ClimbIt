@@ -490,7 +490,8 @@ export function parseLevel(raw: string): Level {
     throw Error('Invalid level dimensions or spawn.');
   if (
     typeof l.backgroundImage !== 'string' ||
-    !/^(data:image\/png;base64,|\/[^/]|https:\/\/)/.test(l.backgroundImage)
+    (l.backgroundImage !== '' &&
+      !/^(data:image\/png;base64,|\/[^/]|https:\/\/)/.test(l.backgroundImage))
   )
     throw Error(
       'Background must be a PNG data URL, local asset path, or HTTPS URL.',

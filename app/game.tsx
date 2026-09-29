@@ -45,7 +45,12 @@ import {
   Hammer,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { parseLevel, type Level, type Point } from '@/lib/game/level';
+import {
+  parseLevel,
+  type Level,
+  type Point,
+  type Grip,
+} from '@/lib/game/level';
 import { Climber, LIMBS, distance, type Limb } from '@/lib/game/physics';
 import { draw, type View } from '@/lib/game/render';
 import { pubJob } from '@/lib/game/pub-level';
@@ -144,8 +149,7 @@ export default function Game({
     game = useRef<Climber | null>(null),
     view = useRef<View>({ scale: 1, x: 0, y: 0 }),
     editorFocus = useRef<Point>({
-      x: initialLevel.cameraBounds.x + initialLevel.cameraBounds.width / 2,
-      y: initialLevel.cameraBounds.y + initialLevel.cameraBounds.height / 2,
+      ...initialLevel.playerSpawn,
     }),
     images = useRef<{
       bg: HTMLImageElement | null;
@@ -155,6 +159,7 @@ export default function Game({
   const [editorSession, setEditorSession] = useState(editing),
     [edit, setEdit] = useState(editing),
     [tool, setTool] = useState<Tool>('select'),
+    [holdKind, setHoldKind] = useState('hand'),
     [revision, setRevision] = useState(0),
     [hud, setHud] = useState({
       seconds: 0,
@@ -469,11 +474,19 @@ export default function Game({
       const saved =
         localStorage.getItem(`oddjobs-level:${level.current.id}`) ??
         (editing ? localStorage.getItem('oddjobs-level') : null);
-      if (saved) level.current = parseLevel(saved);
+      if (saved) {
+        const draft = parseLevel(saved);
+        const emptyLegacyEditor =
+          draft.id === 'building-editor' &&
+          draft.backgroundImage.endsWith('building-editor.svg') &&
+          !draft.gripPoints.length;
+        if (!emptyLegacyEditor) level.current = draft;
+      }
     } catch {}
     reset();
     loadImages();
     const c = canvas.current!;
+    editorFocus.current = { ...level.current.playerSpawn };
     const ctx = c.getContext('2d')!;
     let frame = 0,
       last = 0,
@@ -857,7 +870,11 @@ export default function Game({
         }
         setSelected(id || null);
       } else if (tool === 'pan') {
-        original = { ...editorFocus.current };
+        original = {
+          ...editorFocus.current,
+          clientX: e.clientX,
+          clientY: e.clientY,
+        };
       }
       gesture.current = { a: p, b: p, tool, id, original };
     } else {
@@ -904,8 +921,12 @@ export default function Game({
         }
       } else if (s.tool === 'pan' && s.original) {
         editorFocus.current = {
-          x: s.original.x + s.a.x - p.x,
-          y: s.original.y + s.a.y - p.y,
+          x:
+            s.original.x +
+            (s.original.clientX - e.clientX) / view.current.scale,
+          y:
+            s.original.y +
+            (s.original.clientY - e.clientY) / view.current.scale,
         };
       }
     } else game.current?.move(dragTarget(p, dragOffset.current));
@@ -927,10 +948,48 @@ export default function Game({
         }
       } else {
         if (s.tool === 'grip') {
-          l.gripPoints.push({ ...p, id });
+          const presets: Record<string, Partial<Grip>> = {
+            hand: { use: 'hand', radius: 10, singleLimb: true },
+            foot: { use: 'foot', radius: 8, singleLimb: true },
+            rest: { use: 'hand', radius: 18, surface: 'rest' },
+            jump: { use: 'hand', radius: 18, jumpTarget: true },
+            crumble: {
+              use: 'hand',
+              radius: 10,
+              singleLimb: true,
+              crumbleAfter: 5,
+            },
+            moving: {
+              use: 'hand',
+              radius: 18,
+              jumpTarget: true,
+              motion: { amplitude: 18, period: 6 },
+            },
+            shuffle: {
+              use: 'hand',
+              radius: 10,
+              singleLimb: true,
+              hangingDrain: 1.5,
+            },
+          };
+          l.gripPoints.push({ ...p, id, ...presets[holdKind] });
           setSelected(id);
         }
-        if (s.tool === 'spawn') l.playerSpawn = p;
+        if (s.tool === 'spawn') {
+          const dx = p.x - l.playerSpawn.x,
+            dy = p.y - l.playerSpawn.y;
+          for (const hold of l.gripPoints) {
+            if (
+              ['start-hands', 'section-0-foot-0', 'start-right-foot'].includes(
+                hold.id,
+              )
+            ) {
+              hold.x += dx;
+              hold.y += dy;
+            }
+          }
+          l.playerSpawn = p;
+        }
         if (s.tool === 'objective')
           l.objectives[0] = { ...l.objectives[0], ...p };
         if (['edge', 'rect'].includes(s.tool) && distance(s.a, p) > 8) {
@@ -1084,6 +1143,8 @@ export default function Game({
     loadImages();
     reset();
     setNotice('Original level restored.');
+    editorFocus.current = { ...level.current.playerSpawn };
+    setRevision((r) => r + 1);
   }
   function beginEditing() {
     setPhoneOpen(false);
@@ -1094,8 +1155,7 @@ export default function Game({
     setSelected(null);
     setZoom(1);
     editorFocus.current = {
-      x: level.current.cameraBounds.x + level.current.cameraBounds.width / 2,
-      y: level.current.cameraBounds.y + level.current.cameraBounds.height / 2,
+      ...level.current.playerSpawn,
     };
     cameraReady.current = false;
     reset();
@@ -1110,6 +1170,7 @@ export default function Game({
     reset();
   }
   const toggle = () => {
+    if (!edit) editorFocus.current = { ...level.current.playerSpawn };
     setEdit(!edit);
     setSelected(null);
     reset();
@@ -1117,6 +1178,12 @@ export default function Game({
   const selectedGrip = level.current.gripPoints.find(
     (grip) => grip.id === selected,
   );
+  useEffect(() => {
+    if (!edit) return;
+    const preview = new Climber(clone(level.current), false);
+    for (let frame = 0; frame < 30; frame++) preview.step();
+    game.current = preview;
+  }, [edit, revision]);
   const changeSelectedGrip = (change: (grip: typeof selectedGrip) => void) => {
     if (!selectedGrip) return;
     snapshot();
@@ -1386,6 +1453,16 @@ export default function Game({
             <div className="editor-camera-control" aria-label="Editor camera">
               <button
                 type="button"
+                aria-label="Focus starting position"
+                onClick={() => {
+                  editorFocus.current = { ...level.current.playerSpawn };
+                  cameraReady.current = false;
+                }}
+              >
+                ◎
+              </button>
+              <button
+                type="button"
                 onClick={() => adjustZoom(-0.2)}
                 disabled={zoom <= 0.65}
                 aria-label="Zoom editor out"
@@ -1424,22 +1501,53 @@ export default function Game({
         {edit && (
           <aside className="editor-panel">
             <p className="eyebrow">BUILD YOUR NEXT ODD JOB</p>
-            <h2>Level workshop</h2>
-            <p>Import the art. Trace the climb.</p>
-            <div className="editor-assets">
-              <Button
-                variant="outline"
-                onClick={() => bgUpload.current?.click()}
-              >
-                <Upload size={14} /> Background PNG
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => fgUpload.current?.click()}
-              >
-                <Upload size={14} /> Foreground PNG
-              </Button>
+            <h2>Build a climb</h2>
+            <p>
+              Add holds around the climber. Drag a hold to move it, or select it
+              to change its properties.
+            </p>
+            <span className="editor-label">ADD ITEMS</span>
+            <div className="tool-grid">
+              {[
+                ['hand', 'Hand hold'],
+                ['foot', 'Foot hold'],
+                ['rest', 'Rest / match'],
+                ['jump', 'Jump target'],
+                ['shuffle', 'Hand shuffle'],
+                ['crumble', 'Crumbling hold'],
+                ['moving', 'Moving hold'],
+              ].map(([kind, label]) => (
+                <button
+                  key={kind}
+                  className={
+                    tool === 'grip' && holdKind === kind ? 'active' : ''
+                  }
+                  onClick={() => {
+                    setHoldKind(kind);
+                    setTool('grip');
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
             </div>
+            <details>
+              <summary className="editor-label">ARTWORK</summary>
+              <div className="editor-assets">
+                <Button
+                  variant="outline"
+                  onClick={() => bgUpload.current?.click()}
+                >
+                  <Upload size={14} /> Background PNG
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => fgUpload.current?.click()}
+                >
+                  <Upload size={14} /> Foreground PNG
+                </Button>
+              </div>
+            </details>
             <label className="editor-label">
               LEVEL NAME
               <input
@@ -1450,19 +1558,13 @@ export default function Game({
                 }}
               />
             </label>
-            <span className="editor-label">TRACING TOOLS</span>
+            <span className="editor-label">EDIT & NAVIGATE</span>
             <div className="tool-grid">
               {(
                 [
                   ['select', '↖', 'Select / move'],
                   ['pan', '✥', 'Pan view'],
-                  ['grip', '●', 'Grip point'],
-                  ['edge', '╱', 'Edge collider'],
-                  ['rect', '▧', 'Rectangle'],
-                  ['spawn', '◎', 'Player spawn'],
-                  ['objective', '★', 'Objective'],
-                  ['zone', '▣', 'Return zone'],
-                  ['camera', '⊞', 'Camera bounds'],
+                  ['spawn', '◎', 'Move start'],
                 ] as [Tool, string, string][]
               ).map(([t, i, n]) => (
                 <button
@@ -1481,9 +1583,33 @@ export default function Game({
                 : tool === 'pan'
                   ? 'Drag the canvas to inspect another part of the level.'
                   : ['edge', 'rect', 'zone', 'camera'].includes(tool)
-                    ? 'Click and drag across the image to trace this shape.'
-                    : 'Click the image to place this item.'}
+                    ? 'Drag across the arena to place this shape.'
+                    : tool === 'spawn'
+                      ? 'Click to move the starting position and its starter holds.'
+                      : 'Click the arena to add this hold. Keep clicking to place more.'}
             </p>
+            <details>
+              <summary className="editor-label">ADVANCED GEOMETRY</summary>
+              <div className="tool-grid">
+                {(
+                  [
+                    ['edge', 'Ledge'],
+                    ['rect', 'Platform'],
+                    ['objective', 'Objective'],
+                    ['zone', 'Finish zone'],
+                    ['camera', 'Camera bounds'],
+                  ] as [Tool, string][]
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    className={tool === value ? 'active' : ''}
+                    onClick={() => setTool(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </details>
             {selectedGrip && (
               <section className="hold-inspector">
                 <span className="editor-label">SELECTED HOLD</span>

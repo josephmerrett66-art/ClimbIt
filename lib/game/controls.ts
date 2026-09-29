@@ -12,6 +12,14 @@ export function cameraTarget(
   edit: boolean,
 ) {
   const b = level.cameraBounds;
+  if (edit) {
+    const scale = Math.max(width / 1200, height / 900) * zoom;
+    return {
+      scale,
+      x: width / 2 - focus.x * scale,
+      y: height / 2 - focus.y * scale,
+    };
+  }
   const jumpPortrait =
     level.testMode === 'jump' && !edit && width <= 600 && height > width;
   const scale =

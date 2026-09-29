@@ -797,6 +797,18 @@ body {
 .workshop-stage .game-topbar {
   height: 60px;
 }
+.jump-lab-stage .editor-panel {
+  background: #141414;
+  color: #f2f2f2;
+  border-left: 1px solid #333;
+}
+.jump-lab-stage .editor-panel .editor-label,
+.jump-lab-stage .editor-panel .eyebrow,
+.jump-lab-stage .editor-panel .tool-help,
+.jump-lab-stage .editor-panel > p:nth-child(3) { color: #bbb; }
+.jump-lab-stage .tool-grid button { background: #232323; color: #eee; border-color: #444; min-height:44px; }
+.jump-lab-stage .tool-grid button.active { background: #eee; color: #111; border-color: #fff; }
+.jump-lab-stage .editor-camera-control { background: #181818ed; }
 @keyframes tip-appear {
   from {
     opacity: 0;

@@ -521,7 +521,7 @@ export class JumpController {
     this.grabBuffer = Math.max(0, this.grabBuffer - dt);
     if (g.failed || g.complete) return;
     const course = g.level.jumpCourse;
-    if (course && this.completedJumps === course.length) {
+    if (course?.length && this.completedJumps === course.length) {
       const final = g.level.boulderFinish ?? course[course.length - 1].hold;
       const matched =
         g.grips.leftHand?.id === final && g.grips.rightHand?.id === final;

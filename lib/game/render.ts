@@ -111,7 +111,7 @@ export function draw(
   chosen: Limb | null = null,
   debug = false,
 ) {
-  if (l.testMode === 'jump') l = g.level;
+  if (l.testMode === 'jump' && !edit) l = g.level;
   ctx.clearRect(0, 0, w, h);
   ctx.fillStyle = l.testMode === 'jump' ? '#000000' : '#1d332b';
   ctx.fillRect(0, 0, w, h);
@@ -126,7 +126,7 @@ export function draw(
       l.worldWidth,
       l.backgroundFraming?.height ?? l.worldHeight,
     );
-  if (edit) {
+  if (edit && l.testMode !== 'jump') {
     ctx.fillStyle = '#10251f35';
     ctx.fillRect(0, 0, l.worldWidth, l.worldHeight);
     ctx.strokeStyle = '#93e6f2';
@@ -158,6 +158,8 @@ export function draw(
   };
   if (edit) {
     for (const c of l.colliders) {
+      if (l.testMode === 'jump' && c.role === 'ground' && c.id !== selection)
+        continue;
       ctx.strokeStyle = c.id === selection ? '#fff' : '#ff886c';
       ctx.fillStyle = '#ff775530';
       ctx.lineWidth = 3 / v.scale;
@@ -171,15 +173,16 @@ export function draw(
         ctx.strokeRect(c.x, c.y, c.x2 - c.x, c.y2 - c.y);
       }
     }
-    for (const gp of l.gripPoints)
+    for (const gp of l.gripPoints.filter(
+      (hold) => l.testMode !== 'jump' || hold.id === selection,
+    ))
       circle(
         gp,
         5 / v.scale,
         gp.id === selection ? '#fff' : '#8ffbbb',
         '#173e30',
       );
-    circle(l.playerSpawn, 10 / v.scale, '#78c8ff');
-    label({ x: l.playerSpawn.x, y: l.playerSpawn.y - 18 }, 'SPAWN');
+    label({ x: l.playerSpawn.x, y: l.playerSpawn.y + 110 }, 'START');
     for (const o of l.objectives) {
       circle(o, 13 / v.scale, '#ffdc67');
       label({ x: o.x, y: o.y - 20 }, o.name.toUpperCase());
@@ -208,7 +211,8 @@ export function draw(
       }
       ctx.setLineDash([]);
     }
-  } else {
+  }
+  {
     let shapeScale = 1;
     let outline = '#26372f';
     const polygon = (points: Point[], fill: string, stroke = outline) => {
@@ -294,7 +298,7 @@ export function draw(
       const jump = jumpFor(g);
       // The Test Arena is intentionally just a black field and points of light.
       // Its collider geometry still works, but stays invisible.
-      const staticLayer = l.jumpCourse ? jumpLabLayer(l) : null;
+      const staticLayer = !edit && l.jumpCourse ? jumpLabLayer(l) : null;
       if (staticLayer) ctx.drawImage(staticLayer, 0, 0);
       // The belay ledge the tool has to be brought back to.
       const zone = l.completionTrigger;
@@ -309,7 +313,9 @@ export function draw(
       for (const hold of l.gripPoints) {
         if (g.brokenHolds[hold.id]) continue;
         const radius = hold.radius ?? 15;
-        const selected = jump?.target?.id === hold.id;
+        const selected = edit
+          ? selection === hold.id
+          : jump?.target?.id === hold.id;
         if (staticLayer && !selected && !hold.motion && !hold.crumbleAfter) {
           const index =
             l.jumpCourse?.findIndex((stage) => stage.hold === hold.id) ?? -1;
@@ -331,7 +337,7 @@ export function draw(
         // body, which is what turns reading the wall into a skill. The floor of
         // 0.1 keeps the structure legible without giving away the detail.
         const awareness =
-          hold.jumpTarget || l.jumpCourse
+          edit || hold.jumpTarget || l.jumpCourse
             ? 1
             : Math.min(1, 0.1 + 1.25 * (g.holdVisibility[hold.id] ?? 0));
         if (awareness < 0.03) continue;

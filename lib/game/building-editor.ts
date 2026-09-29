@@ -1,51 +1,31 @@
 import type { Level } from './level';
+import { jumpLabLevel } from './jump-lab';
 
 export const buildingEditorLevel: Level = {
-  version: 1,
+  ...structuredClone(jumpLabLevel),
   id: 'building-editor',
-  name: 'Building Editor',
-  backgroundImage: '/assets/building-editor.svg',
-  worldWidth: 1200,
-  worldHeight: 1600,
-  playerScale: 0.9,
-  challenge: true,
-  fatigue: true,
-  playerSpawn: { x: 600, y: 1490 },
-  gripPoints: [],
-  colliders: [
-    {
-      id: 'building-ground',
-      type: 'edge',
-      role: 'ground',
-      x: 0,
-      y: 1540,
-      x2: 1200,
-      y2: 1540,
-    },
-  ],
-  objectives: [
-    {
-      id: 'building-finish',
-      type: 'repair',
-      kind: 'scenery',
-      name: 'Building finish',
-      x: 600,
-      y: 120,
-      successMessage: 'Custom climb complete.',
-    },
-  ],
-  interactiveObjects: [],
-  cameraBounds: { x: 0, y: 0, width: 1200, height: 1600 },
-  completionTrigger: { x: 520, y: 70, width: 160, height: 150 },
-  pay: 0,
+  name: 'Blank Test Arena',
+  gripPoints: structuredClone(
+    jumpLabLevel.gripPoints.filter((hold) =>
+      ['start-hands', 'section-0-foot-0'].includes(hold.id),
+    ),
+  ),
+  jumpCourse: [],
+  boulderFinish: undefined,
 };
+
+buildingEditorLevel.gripPoints.push({
+  ...buildingEditorLevel.gripPoints[1],
+  id: 'start-right-foot',
+  x: buildingEditorLevel.playerSpawn.x + 22,
+});
 
 export const buildingEditorJob = {
   id: buildingEditorLevel.id,
   name: 'BUILDING EDITOR',
-  client: 'Create a climb from scratch',
+  client: 'Blank Test Arena · Build your own climb',
   pay: 0,
   href: '/building-editor',
-  image: '/assets/building-editor.svg',
+  image: '/assets/jump-lab.svg',
   level: buildingEditorLevel,
 };
