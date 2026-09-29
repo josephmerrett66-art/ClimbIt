@@ -772,6 +772,7 @@ export default function Game({
     if (prev) {
       future.current.push(clone(level.current));
       level.current = prev;
+      editorFocus.current = { ...prev.playerSpawn };
       loadImages();
       setSelected(null);
       setRevision((r) => r + 1);
@@ -782,6 +783,7 @@ export default function Game({
     if (next) {
       history.current.push(clone(level.current));
       level.current = next;
+      editorFocus.current = { ...next.playerSpawn };
       loadImages();
       setSelected(null);
       setRevision((r) => r + 1);
@@ -1040,6 +1042,15 @@ export default function Game({
     reader.onload = () => {
       const image = new Image();
       image.onload = () => {
+        if (
+          image.width < 200 ||
+          image.height < 200 ||
+          image.width > 8000 ||
+          image.height > 8000
+        ) {
+          setNotice('Use an image between 200 and 8000 pixels on each side.');
+          return;
+        }
         snapshot();
         const l = level.current;
         if (foreground) l.foregroundImage = String(reader.result);
@@ -1047,6 +1058,11 @@ export default function Game({
           l.backgroundImage = String(reader.result);
           const sx = image.width / l.worldWidth,
             sy = image.height / l.worldHeight;
+          // Keep the body in proportion to the resized starting holds.
+          l.playerScale = Math.max(
+            0.4,
+            Math.min(1.5, (l.playerScale ?? 1) * Math.min(sx, sy)),
+          );
           const scale = (p: Point) => {
             p.x *= sx;
             p.y *= sy;
@@ -1067,8 +1083,13 @@ export default function Game({
           }
           l.worldWidth = image.width;
           l.worldHeight = image.height;
+          delete l.backgroundFraming;
+          // The old focus can now be below or beside the resized image.
+          editorFocus.current = { ...l.playerSpawn };
+          reset();
         }
         loadImages();
+        setRevision((r) => r + 1);
         setNotice(
           foreground
             ? 'Foreground imported.'
@@ -1078,6 +1099,8 @@ export default function Game({
       image.onerror = () => setNotice('This PNG could not be read.');
       image.src = String(reader.result);
     };
+    reader.onerror = () =>
+      setNotice('This image could not be read. Please try uploading it again.');
     reader.readAsDataURL(file);
   }
   async function importJson(file: File | undefined) {
@@ -1086,8 +1109,10 @@ export default function Game({
       const l = parseLevel(await file.text());
       snapshot();
       level.current = l;
+      editorFocus.current = { ...l.playerSpawn };
       loadImages();
       reset();
+      setRevision((r) => r + 1);
       setSelected(null);
       setNotice('Level loaded. Continue tracing or play test.');
     } catch (e) {
